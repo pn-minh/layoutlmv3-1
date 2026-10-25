@@ -2,11 +2,20 @@
 
 set -e
 
-cd /home/s24gbn1/Documents/phg/unilm/layoutlmv3
+# Resolve layoutlmv3 directory dynamically instead of hardcoding /home/s24gbn1/...
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_DIR"
 
-export PYTHONPATH="/home/s24gbn1/Documents/phg/unilm/layoutlmv3:$PYTHONPATH"
+export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
 export TOKENIZERS_PARALLELISM=false
 export WANDB_PROJECT="CORD-BASELINE"
+
+# Use local model folder if present, otherwise pull microsoft/layoutlmv3-base from HuggingFace Hub
+MODEL_PATH="${MODEL_PATH:-microsoft/layoutlmv3-base}"
+if [ -d "models/layoutlmv3-base" ]; then
+    MODEL_PATH="models/layoutlmv3-base"
+fi
 
 SEEDS=(42 123 1993)
 
@@ -29,23 +38,23 @@ do
 
     rm -rf "$OUT"
 
+    # Pass "$OUT" to --output_dir so each seed saves to its own directory matching the summary script
     python -m torch.distributed.launch \
     --nproc_per_node=1 --master_port 4398 examples/run_funsd_cord.py \
     --dataset_name cord \
     --do_train --do_eval \
-    --model_name_or_path models/layoutlmv3-base \
-    --output_dir ./output/cord-layoutlmv3-base \
+    --model_name_or_path "$MODEL_PATH" \
+    --output_dir "$OUT" \
     --segment_level_layout 1 --visual_embed 1 --input_size 224 \
     --max_steps 1000 --save_steps -1 --evaluation_strategy steps --eval_steps 100 \
     --learning_rate 5e-5 \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 8 \
-    --dataloader_num_workers 8 \
+    --dataloader_num_workers 4 \
     --report_to none \
     --overwrite_output_dir \
     --overwrite_cache \
-    --seed "$SEED" \
-    
+    --seed "$SEED"
 
 done
 

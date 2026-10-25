@@ -1,16 +1,27 @@
 #!/bin/bash
 set -e
 
-cd /home/s24gbn1/Documents/phg/unilm/layoutlmv3
-export PYTHONPATH="/home/s24gbn1/Documents/phg/unilm/layoutlmv3:$PYTHONPATH"
+# Resolve layoutlmv3 directory dynamically instead of hardcoding /home/s24gbn1/...
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_DIR"
+
+export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
 export TOKENIZERS_PARALLELISM=false
 export WANDB_PROJECT="funsd-LISC-Experiment"
+
+# Use local model folder if present, otherwise pull microsoft/layoutlmv3-large from HuggingFace Hub
+MODEL_PATH="${MODEL_PATH:-microsoft/layoutlmv3-large}"
+if [ -d "models/layoutlmv3-large" ]; then
+    MODEL_PATH="models/layoutlmv3-large"
+fi
 
 SEEDS=(42 123 1993)
 
 for SEED in "${SEEDS[@]}"
 do
-    OUT_DIR="./funsd-large-bdr-seed${SEED}"
+    # Align OUT_DIR with "./logs/funsd-large-bdr-seed${SEED}" expected by the summary block below
+    OUT_DIR="./logs/funsd-large-bdr-seed${SEED}"
 
     echo ""
     echo "============================================================"
@@ -25,7 +36,7 @@ do
       --do_eval \
       --do_predict \
       --use_segment_head \
-      --model_name_or_path models/layoutlmv3-large \
+      --model_name_or_path "$MODEL_PATH" \
       --output_dir "$OUT_DIR" \
       --segment_level_layout 1 \
       --visual_embed 1 \
@@ -39,7 +50,7 @@ do
       --per_device_train_batch_size 2 \
       --gradient_accumulation_steps 8 \
       --dataloader_num_workers 4 \
-      --report_to wandb \
+      --report_to none \
       --run_name "FUnSD-LR-Split-seed${SEED}" \
       --seed "$SEED" \
       --overwrite_output_dir \

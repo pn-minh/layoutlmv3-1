@@ -72,8 +72,12 @@ class Funsd(datasets.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
-        #downloaded_file = dl_manager.download_and_extract("https://guillaumejaume.github.io/FUNSD/dataset.zip")
-        downloaded_file = "/home/s24gbn1/Documents/phg/unilm/layoutlmv3/datasets/funsd"
+        # Check FUNSD_DATA_DIR env var or local ./datasets/funsd folder first; otherwise download automatically
+        local_funsd = os.environ.get("FUNSD_DATA_DIR", os.path.abspath("./datasets/funsd"))
+        if os.path.isdir(os.path.join(local_funsd, "dataset")):
+            downloaded_file = local_funsd
+        else:
+            downloaded_file = dl_manager.download_and_extract("https://guillaumejaume.github.io/FUNSD/dataset.zip")
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN, gen_kwargs={"filepath": f"{downloaded_file}/dataset/training_data/"}

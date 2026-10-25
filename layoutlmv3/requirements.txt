@@ -1,12 +1,26 @@
 datasets==1.15.1
 transformers==4.12.5
 seqeval==1.2.2
-deepspeed==0.5.7
+# Comment out deepspeed==0.5.7 because it is unused in KIE fine-tuning and fails CUDA C++ compilation on Colab
+# deepspeed==0.5.7
 tensorboard==2.7.0
-seqeval==1.2.2
-sentencepiece
+# Pin protobuf==3.20.3 to prevent TypeError with tensorboard==2.7.0 and transformers==4.12.5 on Python 3.7
+protobuf==3.20.3
+# Pin transitive dependencies of datasets==1.15.1 and seqeval==1.2.2 for Python 3.7 compatibility
+pyarrow==6.0.1
+huggingface-hub==0.4.0
+dill==0.3.4
+multiprocess==0.70.12.2
+fsspec==2021.11.1
+packaging==21.3
+scikit-learn==1.0.2
+scipy==1.7.3
+sentencepiece==0.1.99
 timm==0.4.12
-Pillow
-einops
-textdistance
-shapely
+# Pin Pillow==9.5.0 so legacy PIL interpolation constants required by timm==0.4.12 remain available
+Pillow==9.5.0
+einops==0.6.1
+textdistance==4.5.0
+shapely==1.8.5.post1
+# Pin gdown==4.7.1 (last Python 3.7 compatible version) to download CORD-1k archives from Google Drive
+gdown==4.7.1

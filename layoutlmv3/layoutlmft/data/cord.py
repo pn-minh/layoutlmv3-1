@@ -120,9 +120,23 @@ class Cord(datasets.GeneratorBasedBuilder):
     #     ]
     def _split_generators(self, dl_manager):
         """Uses local files located in your machine"""
-        # THAY BẰNG ĐƯỜNG DẪN TUYỆT ĐỐI TỚI THƯ MỤC CORD TRÊN MÁY BẠN
-        # Ví dụ: dest = Path("/home/s24gbn1/data/CORD")
-        dest = Path("/home/s24gbn1/Documents/phg/unilm/layoutlmv3/CORD")
+        # Check CORD_DATA_DIR env var or local ./CORD directory first; fall back to automatic download if absent
+        local_cord = Path(os.environ.get("CORD_DATA_DIR", os.path.abspath("./CORD")))
+        if (local_cord / "train").is_dir():
+            dest = local_cord
+        else:
+            downloaded_file = dl_manager.download_and_extract(_URLS)
+            dest = Path(downloaded_file[0]) / "CORD"
+            for split in ["train", "dev", "test"]:
+                for file_type in ["image", "json"]:
+                    if split == "test" and file_type == "json":
+                        continue
+                    src_dir = Path(downloaded_file[1]) / "CORD" / split / file_type
+                    if src_dir.is_dir():
+                        for f in src_dir.iterdir():
+                            target = dest / split / file_type / f.name
+                            if not target.exists():
+                                os.rename(f, target)
 
         return [
             datasets.SplitGenerator(

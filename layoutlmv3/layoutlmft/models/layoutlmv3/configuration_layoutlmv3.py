@@ -47,6 +47,8 @@ class LayoutLMv3Config(BertConfig):
         use_semantic_geometry_disentangle: bool = False,
         lambda_geo_init: float = 0.1,
         lambda_orth_init: float = 0.1,
+        # Toggle Token-Segment pooling/SCM independently for ablation studies (default True)
+        use_token_segment: bool = True,
         **kwargs
     ):
         """Constructs RobertaConfig."""
@@ -78,3 +80,5 @@ class LayoutLMv3Config(BertConfig):
         self.use_semantic_geometry_disentangle = use_semantic_geometry_disentangle
         self.lambda_geo_init = lambda_geo_init
         self.lambda_orth_init = lambda_orth_init
+        # Store use_token_segment flag on config object
+        self.use_token_segment = use_token_segment

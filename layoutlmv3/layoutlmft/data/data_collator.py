@@ -64,6 +64,8 @@ class DataCollatorForKeyValueExtraction(DataCollatorMixin):
         has_block_ids_input = "block_ids" in features[0]
         has_seg_id_input = "seg_id" in features[0]
         has_column_ids_input = "column_ids" in features[0]   # ✅ Đã có
+        # Check whether entity_ids is present in features so we can pad it with -1 instead of 0
+        has_entity_ids_input = "entity_ids" in features[0]
         
         padding_idx = self.tokenizer.pad_token_id
         sequence_length = torch.tensor(batch["input_ids"]).shape[1]
@@ -120,6 +122,13 @@ class DataCollatorForKeyValueExtraction(DataCollatorMixin):
             else:
                 batch["seg_id"] = [[-1] * (sequence_length - len(seg_id)) + seg_id for seg_id in batch["seg_id"]]
 
+        # Pad entity_ids with -1 (ignored index for boundary loss) to match sequence_length
+        if has_entity_ids_input:
+            if padding_side == "right":
+                batch["entity_ids"] = [ent_id + [-1] * (sequence_length - len(ent_id)) for ent_id in batch["entity_ids"]]
+            else:
+                batch["entity_ids"] = [[-1] * (sequence_length - len(ent_id)) + ent_id for ent_id in batch["entity_ids"]]
+
         # ====== XỬ LÝ SEGMENT_IDS ======
         if 'segment_ids' in batch:
             assert 'position_ids' in batch
@@ -134,7 +143,8 @@ class DataCollatorForKeyValueExtraction(DataCollatorMixin):
                     continue
                 if isinstance(v[0], list):
                     # ✅ THÊM 'column_ids' vào danh sách này
-                    if k in ['line_ids', 'block_ids', 'seg_id', 'column_ids']:
+                    # Skip entity_ids here so shorter sequences are not padded with 0 (which is a valid entity ID)
+                    if k in ['line_ids', 'block_ids', 'seg_id', 'column_ids', 'entity_ids']:
                         continue
                     try:
                         max_len = max([len(item) for item in v])
@@ -191,6 +201,14 @@ class DataCollatorForKeyValueExtraction(DataCollatorMixin):
                     batch["column_ids"][i] = batch["column_ids"][i] + [-1] * (max_len - len(batch["column_ids"][i]))
             batch["column_ids"] = torch.tensor(batch["column_ids"], dtype=torch.long)
 
+        # Convert entity_ids list of lists into a torch.long tensor padded with -1
+        if "entity_ids" in batch:
+            max_len = max([len(x) for x in batch["entity_ids"]])
+            for i in range(len(batch["entity_ids"])):
+                if len(batch["entity_ids"][i]) < max_len:
+                    batch["entity_ids"][i] = batch["entity_ids"][i] + [-1] * (max_len - len(batch["entity_ids"][i]))
+            batch["entity_ids"] = torch.tensor(batch["entity_ids"], dtype=torch.long)
+
         # ====== XỬ LÝ IMAGE PATCHES ======
         if images is not None:
             visual_labels = torch.ones((len(batch['input_ids']), IMAGE_LEN), dtype=torch.long) * -100
@@ -212,5 +230,10 @@ class DataCollatorForKeyValueExtraction(DataCollatorMixin):
             if "column_ids" in batch:
                 image_col_ids = torch.ones((batch["column_ids"].shape[0], IMAGE_LEN), dtype=torch.long) * -1
                 batch["column_ids"] = torch.cat([batch["column_ids"], image_col_ids], dim=1)
+
+            # Extend entity_ids with -1 for visual patch tokens so tensor lengths stay aligned
+            if "entity_ids" in batch:
+                image_ent_ids = torch.ones((batch["entity_ids"].shape[0], IMAGE_LEN), dtype=torch.long) * -1
+                batch["entity_ids"] = torch.cat([batch["entity_ids"], image_ent_ids], dim=1)
 
         return batch

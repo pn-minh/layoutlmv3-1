@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# Force LF line endings on shell scripts so bash execution on Linux/Colab never fails with \r
+*.sh text eol=lf

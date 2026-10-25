@@ -55,19 +55,24 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
             self.classifier = LayoutLMv3ClassificationHead(config, pool_feature=False)
 
         # ---- NEW: lightweight inter-segment context module ----
-        # Config knobs (optional; safe defaults if not set on the config object).
-        seg_ctx_layers = getattr(config, "segment_context_layers", 1)
-        seg_ctx_heads = getattr(config, "segment_context_heads", 4)
-        seg_ctx_dropout = getattr(config, "segment_context_dropout", config.hidden_dropout_prob)
+        # Only instantiate Token-Segment modules when use_token_segment is enabled (allows clean ablation)
+        self.use_token_segment = getattr(config, "use_token_segment", True)
+        if self.use_token_segment:
+            # Config knobs (optional; safe defaults if not set on the config object).
+            seg_ctx_layers = getattr(config, "segment_context_layers", 1)
+            seg_ctx_heads = getattr(config, "segment_context_heads", 4)
+            seg_ctx_dropout = getattr(config, "segment_context_dropout", config.hidden_dropout_prob)
 
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=config.hidden_size,
-            nhead=seg_ctx_heads,
-            dim_feedforward=config.hidden_size * 2,
-            dropout=seg_ctx_dropout,
-            batch_first=True,
-        )
-        self.segment_context = nn.TransformerEncoder(encoder_layer, num_layers=seg_ctx_layers)
+            encoder_layer = nn.TransformerEncoderLayer(
+                d_model=config.hidden_size,
+                nhead=seg_ctx_heads,
+                dim_feedforward=config.hidden_size * 2,
+                dropout=seg_ctx_dropout,
+                batch_first=True,
+            )
+            self.segment_context = nn.TransformerEncoder(encoder_layer, num_layers=seg_ctx_layers)
+        else:
+            self.segment_context = None
         if getattr(config, "use_intra_line_boundary", False):
             self.boundary_classifier = nn.Sequential(
                 nn.Linear(config.hidden_size * 2, config.hidden_size),
@@ -108,15 +113,19 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
         # the start of fine-tuning -- important on tiny datasets like FUNSD
         # (149 docs) where a high-variance early gradient can permanently
         # damage the pretrained representation.
-        self.segment_context_gate = nn.Parameter(torch.zeros(1))
+        if self.use_token_segment:
+            self.segment_context_gate = nn.Parameter(torch.zeros(1))
 
-        # Small embedding so the classifier can still tell "first token of the
-        # segment" (-> should predict B-xxx) apart from the rest (-> I-xxx),
-        # even though every token in the segment otherwise shares one pooled
-        # vector. Initialized near zero so early training resembles the
-        # unmodified baseline.
-        self.is_first_token_embedding = nn.Embedding(2, config.hidden_size)
-        nn.init.normal_(self.is_first_token_embedding.weight, mean=0.0, std=0.02)
+            # Small embedding so the classifier can still tell "first token of the
+            # segment" (-> should predict B-xxx) apart from the rest (-> I-xxx),
+            # even though every token in the segment otherwise shares one pooled
+            # vector. Initialized near zero so early training resembles the
+            # unmodified baseline.
+            self.is_first_token_embedding = nn.Embedding(2, config.hidden_size)
+            nn.init.normal_(self.is_first_token_embedding.weight, mean=0.0, std=0.02)
+        else:
+            self.segment_context_gate = None
+            self.is_first_token_embedding = None
 
         self.init_weights()
         # for param in self.layoutlmv3.parameters():
@@ -320,7 +329,8 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
         image_hidden = sequence_output[:, text_len:, :]
 
         # ====== SỬA: Cắt seg_id để chỉ lấy phần text ======
-        if seg_id is not None:
+        # Run segment pooling and contextualization only when use_token_segment is True and seg_id is provided
+        if self.use_token_segment and seg_id is not None:
             # Đảm bảo seg_id có đúng độ dài text
             if seg_id.shape[1] != text_len:
                 # Nếu seg_id dài hơn text_len, chỉ lấy phần text

@@ -3,6 +3,7 @@
 import logging
 import os
 import sys
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -19,6 +20,7 @@ from transformers import (
     HfArgumentParser,
     PreTrainedTokenizerFast,
     Trainer,
+    TrainerCallback,
     TrainingArguments,
     set_seed,
 )
@@ -105,6 +107,11 @@ class ModelArguments:
     lambda_orth_init: float = field(
         default=0.1,
         metadata={"help": "Initial weight for orthogonality loss"}
+    )
+    # Allow disabling Token-Segment pooling while keeping LayoutLMv3ForSegmentTokenClassification for ablation
+    use_token_segment: bool = field(
+        default=True,
+        metadata={"help": "Enable Token-Segment pooling and Segment Context Module (SCM)"}
     )
 
 
@@ -316,6 +323,8 @@ def main():
         use_semantic_geometry_disentangle=model_args.use_semantic_geometry_disentangle,
         lambda_geo_init=model_args.lambda_geo_init,
         lambda_orth_init=model_args.lambda_orth_init,
+        # Pass use_token_segment into config so LayoutLMv3ForSegmentTokenClassification can toggle SCM
+        use_token_segment=model_args.use_token_segment,
     )
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
@@ -720,6 +729,28 @@ def main():
                 )
             return self.optimizer
 
+    # Callback to print real-time step progress, loss, and estimated time to finish (ETA)
+    class RealTimeETACallback(TrainerCallback):
+        def __init__(self):
+            self.start_time = None
+
+        def on_train_begin(self, args, state, control, **kwargs):
+            self.start_time = time.time()
+            print(f"[REALTIME] Training started | max_steps={state.max_steps}", flush=True)
+
+        def on_step_end(self, args, state, control, **kwargs):
+            if state.global_step % 20 == 0 or state.global_step == state.max_steps:
+                elapsed = time.time() - self.start_time
+                steps_done = max(state.global_step, 1)
+                sec_per_step = elapsed / steps_done
+                remaining_sec = max(0.0, (state.max_steps - steps_done) * sec_per_step)
+                pct = 100.0 * steps_done / max(state.max_steps, 1)
+                print(
+                    f"[REALTIME] Step {steps_done}/{state.max_steps} ({pct:.1f}%) | "
+                    f"Elapsed: {elapsed:.1f}s | ETA: {remaining_sec:.1f}s ({remaining_sec/60.0:.2f} min)",
+                    flush=True,
+                )
+
     # Khởi tạo Trainer bằng CustomTrainer vừa tạo thay vì Trainer mặc định
     trainer = CustomTrainer(
         model=model,
@@ -729,6 +760,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
+        callbacks=[RealTimeETACallback()],
     )
     # Initialize our Trainer
     # trainer = Trainer(
