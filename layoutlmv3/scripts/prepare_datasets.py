@@ -105,3 +105,4 @@ if __name__ == "__main__":
     root = Path(__file__).resolve().parent.parent
     prepare_funsd(root)
     prepare_cord(root)
+
