@@ -38,6 +38,11 @@ from timm.data.constants import \
 from torchvision import transforms
 import torch
 
+# Enable Ampere Tensor Core TF32 matrix multiplication and cuDNN convolution autotuner for A100 GPU acceleration
+if torch.cuda.is_available():
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
+
 @dataclass
 class ModelArguments:
     """

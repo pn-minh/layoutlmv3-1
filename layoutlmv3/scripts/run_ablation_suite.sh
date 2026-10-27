@@ -35,17 +35,17 @@ fi
 # Configure dataset-specific hyperparameters matching the paper & existing scripts
 if [ "$DATASET" = "funsd" ]; then
     LR="1e-5"
-    # Set micro-batch size to 4 and accumulation to 4 on A100 GPU (preserves exact effective batch size = 4 * 4 = 16 while accelerating execution)
-    PER_DEV_BS=4
-    GRAD_ACC=4
+    # Set micro-batch size to 8 and accumulation to 2 on A100 GPU (preserves exact effective batch size = 8 * 2 = 16 while cutting forward/backward passes in half)
+    PER_DEV_BS=8
+    GRAD_ACC=2
     MAX_LINE=100
     MAX_BLOCK=30
     MAX_COL=8
 elif [ "$DATASET" = "cord" ]; then
     LR="5e-5"
-    # Set micro-batch size to 8 and accumulation to 8 on A100 GPU (matches run_baseline_cord.sh and preserves exact effective batch size = 8 * 8 = 64)
-    PER_DEV_BS=8
-    GRAD_ACC=8
+    # Set micro-batch size to 16 and accumulation to 4 on A100 GPU (preserves exact effective batch size = 16 * 4 = 64 while cutting forward/backward passes in half)
+    PER_DEV_BS=16
+    GRAD_ACC=4
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
@@ -172,7 +172,9 @@ do
         --gradient_accumulation_steps "$GRAD_ACC" \
         --fp16 True \
         --dataloader_num_workers 8 \
+        --dataloader_pin_memory True \
         --group_by_length True \
+        --pad_to_max_length False \
         --report_to none \
         --seed "$SEED" \
         --overwrite_output_dir \
