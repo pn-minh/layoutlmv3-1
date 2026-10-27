@@ -1,0 +1,55 @@
+{
+  "dataset": "funsd",
+  "variant": "base",
+  "mode": "no_hpe",
+  "seeds": [
+    42,
+    123,
+    1993
+  ],
+  "per_seed": {
+    "42": {
+      "eval_precision": 0.917505,
+      "eval_recall": 0.912,
+      "eval_f1": 0.914744,
+      "eval_accuracy": 0.845889,
+      "eval_loss": 1.334467
+    },
+    "123": {
+      "eval_precision": 0.914172,
+      "eval_recall": 0.916,
+      "eval_f1": 0.915085,
+      "eval_accuracy": 0.831994,
+      "eval_loss": 1.404697
+    },
+    "1993": {
+      "eval_precision": 0.910866,
+      "eval_recall": 0.9095,
+      "eval_f1": 0.910183,
+      "eval_accuracy": 0.816376,
+      "eval_loss": 1.459901
+    }
+  },
+  "mean_std": {
+    "eval_precision": {
+      "mean": 0.914181,
+      "std": 0.00332
+    },
+    "eval_recall": {
+      "mean": 0.9125,
+      "std": 0.003279
+    },
+    "eval_f1": {
+      "mean": 0.913337,
+      "std": 0.002737
+    },
+    "eval_accuracy": {
+      "mean": 0.83142,
+      "std": 0.014764
+    },
+    "eval_loss": {
+      "mean": 1.399688,
+      "std": 0.062862
+    }
+  }
+}

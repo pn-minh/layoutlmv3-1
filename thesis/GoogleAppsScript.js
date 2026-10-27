@@ -1,17 +1,18 @@
 /**
  * Unified Google Apps Script Web App for:
  * 1. Live LayoutLMv3 Detailed Per-Seed & Model Comparison Tracker (Google Sheets)
- *    Matching sample layout & design: https://docs.google.com/spreadsheets/d/1WaGo752pyewFFXkSbrGjPCoZFmNrxisWTvO56RLz2Y8/edit
+ *    Mimics layout of: https://docs.google.com/spreadsheets/d/1WaGo752pyewFFXkSbrGjPCoZFmNrxisWTvO56RLz2Y8/edit
  * 2. Automated Public Sharing & Material Organization (Google Drive)
  * 
  * Instructions to Update Your Deployment:
  * 1. Open your Google Sheet (https://docs.google.com/spreadsheets/d/173WXkbMXDCEVs4pYBRNXGTHihOda18adbJRJ7RpFw7o/edit).
  * 2. Click "Extensions" > "Apps Script".
  * 3. Replace all code in the editor with this script.
- * 4. Click "Deploy" > "Manage deployments".
- * 5. Click the Edit (pencil) icon on your Active deployment.
- * 6. Under "Version", select "New version".
- * 7. Click "Deploy". (Your Web App URL remains unchanged!)
+ * 4. In the toolbar function dropdown, select "moveTrackerSheetToFolder" and click "Run" once to place this sheet in the folder!
+ * 5. Click "Deploy" > "Manage deployments".
+ * 6. Click the Edit (pencil) icon on your Active deployment.
+ * 7. Under "Version", select "New version".
+ * 8. Click "Deploy". (Your Web App URL remains unchanged!)
  */
 
 /**
@@ -137,7 +138,7 @@ function doPost(e) {
       citSheet.getRange(1, 1).setValue("Key Information Extraction (KIE) & LayoutLMv3 Research Citations Dashboard")
               .setFontSize(14).setFontWeight("bold").setFontColor("#1a73e8");
       citSheet.getRange(2, 1).setValue("Last Synced: " + (data.lastUpdated || new Date().toLocaleString()) + " | Supervisors: TS. Pham Thi Quynh Trang & PGS. TS. Le Duc Trong")
-              .setFontSize(10).setFontStyle("italic").setFontColor("#5f6368");
+              .setFontSize(11).setFontStyle("italic").setFontColor("#5f6368");
       
       if (viUrl) {
         citSheet.getRange(2, 5).setFormula('=HYPERLINK("' + viUrl + '", "📄 Vietnamese Thesis PDF")').setFontWeight("bold");
@@ -164,12 +165,12 @@ function doPost(e) {
       headerRange.setBackground("#1a365d")
                  .setFontColor("#ffffff")
                  .setFontWeight("bold")
-                 .setFontSize(10)
+                 .setFontSize(11)
                  .setHorizontalAlignment("center");
       
       var allDataRange = citSheet.getRange(startRow, 1, numRows, numCols);
       allDataRange.setBorder(true, true, true, true, true, true, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
-      allDataRange.setFontSize(10);
+      allDataRange.setFontSize(11);
       allDataRange.setWrap(true);
       citSheet.setFrozenRows(startRow);
       
@@ -195,22 +196,22 @@ function doPost(e) {
     var enUrl = props.getProperty("EN_PDF_URL") || "";
     var folderUrl = props.getProperty("FOLDER_URL") || "";
     
-    // 1. Dashboard Title (Matching clean academic design)
+    // 1. Dashboard Title (Large, Clear 15pt font)
     sheet.getRange(1, 1).setValue("LayoutLMv3 Enhancement: Detailed Per-Seed & Model Comparison Report")
-         .setFontSize(14).setFontWeight("bold").setFontColor("#1a365d");
+         .setFontSize(15).setFontWeight("bold").setFontColor("#1a365d");
     
-    // 2. Subtitle & Direct Hyperlinks (10pt font matching sample sheet)
+    // 2. Subtitle & Direct Hyperlinks (11pt font)
     sheet.getRange(2, 1).setValue("Last Synced: " + (data.lastUpdated || new Date().toLocaleString()) + " | Hardware: NVIDIA A100-SXM4-80GB (Ampere TF32 + FP16)")
-         .setFontSize(10).setFontStyle("italic").setFontColor("#5f6368");
+         .setFontSize(11).setFontStyle("italic").setFontColor("#5f6368");
          
     if (viUrl) {
-      sheet.getRange(2, 6).setFormula('=HYPERLINK("' + viUrl + '", "📄 Vietnamese Thesis PDF")').setFontWeight("bold").setFontSize(10);
+      sheet.getRange(2, 6).setFormula('=HYPERLINK("' + viUrl + '", "📄 Vietnamese Thesis PDF")').setFontWeight("bold").setFontSize(11);
     }
     if (enUrl) {
-      sheet.getRange(2, 10).setFormula('=HYPERLINK("' + enUrl + '", "📄 English Thesis PDF")').setFontWeight("bold").setFontSize(10);
+      sheet.getRange(2, 10).setFormula('=HYPERLINK("' + enUrl + '", "📄 English Thesis PDF")').setFontWeight("bold").setFontSize(11);
     }
     if (folderUrl) {
-      sheet.getRange(2, 14).setFormula('=HYPERLINK("' + folderUrl + '", "📁 Google Drive Folder")').setFontWeight("bold").setFontSize(10);
+      sheet.getRange(2, 14).setFormula('=HYPERLINK("' + folderUrl + '", "📁 Google Drive Folder")').setFontWeight("bold").setFontSize(11);
     }
          
     var startRow = 4;
@@ -225,20 +226,15 @@ function doPost(e) {
     // 3. Write Data Matrix
     var dataRange = sheet.getRange(startRow, 1, numRows, numCols);
     dataRange.setValues(rows);
-    dataRange.setFontFamily("Arial").setFontSize(10).setVerticalAlignment("middle");
+    dataRange.setFontSize(11).setVerticalAlignment("middle");
     
-    // 4. Intelligent Styling Matching Sample Sheet Design
+    // 4. Intelligent Styling
     for (var i = 0; i < numRows; i++) {
       var rowIdx = startRow + i;
       var c1 = (rows[i][0] || "").toString().trim();
       var c7 = (numCols >= 7) ? (rows[i][6] || "").toString().trim() : "";
       var c13 = (numCols >= 13) ? (rows[i][12] || "").toString().trim() : "";
       var c19 = (numCols >= 19) ? (rows[i][18] || "").toString().trim() : "";
-      
-      var c1Lower = c1.toLowerCase();
-      var c7Lower = c7.toLowerCase();
-      var c13Lower = c13.toLowerCase();
-      var c19Lower = c19.toLowerCase();
       
       // Case A: Section Title Row (TABLE 1, SECTION, etc.)
       if (c1.indexOf("TABLE") === 0 || c1.indexOf("SECTION") === 0) {
@@ -247,55 +243,43 @@ function doPost(e) {
                 .setBackground("#e8f0fe")
                 .setFontColor("#1967d2")
                 .setFontWeight("bold")
-                .setFontSize(11)
+                .setFontSize(12)
                 .setHorizontalAlignment("left")
                 .setVerticalAlignment("middle");
-        sheet.setRowHeight(rowIdx, 32);
+        sheet.setRowHeight(rowIdx, 36);
         continue;
       }
       
-      // Case B: Model Quad Titles Row (Baseline, OURS, Ablation, Layoutlmv3)
-      var isModelTitle = (
-        c1 !== "Metric" && (
-          c1Lower.indexOf("layoutlmv3") !== -1 ||
-          c1Lower.indexOf("baseline") !== -1 ||
-          c1Lower.indexOf("ours") !== -1 ||
-          c1Lower.indexOf("ablation") !== -1 ||
-          c7Lower.indexOf("ablation") !== -1 ||
-          c7Lower.indexOf("baseline") !== -1 ||
-          c13Lower.indexOf("ours") !== -1
-        )
-      );
-      
-      if (isModelTitle) {
-        sheet.setRowHeight(rowIdx, 30);
+      // Case B: Model Quad Titles Row (e.g. Layoutlmv3 goc, OURS, etc.)
+      if (c1.indexOf("Layoutlmv3") !== -1 || c1.indexOf("OURS") !== -1 || c7.indexOf("Segment") !== -1 || c13.indexOf("OURS") !== -1) {
+        sheet.setRowHeight(rowIdx, 32);
         
-        // Block 1 Title (Cols 1-5: Baseline)
+        // Block 1 Title (Cols 1-5)
         if (c1) {
           var b1Range = sheet.getRange(rowIdx, 1, 1, 5);
-          b1Range.merge().setBackground("#f1f3f4").setFontColor("#202124").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
+          b1Range.merge().setBackground("#f1f3f4").setFontColor("#202124").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
         }
-        // Block 2 Title (Cols 7-11: Ablation w/o HPE)
+        // Block 2 Title (Cols 7-11)
         if (numCols >= 11 && c7) {
           var b2Range = sheet.getRange(rowIdx, 7, 1, 5);
-          b2Range.merge().setBackground("#f3e8fd").setFontColor("#5b21b6").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
+          b2Range.merge().setBackground("#f3e8fd").setFontColor("#5b21b6").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
         }
-        // Block 3 Title (Cols 13-17: OURS Full Model)
+        // Block 3 Title (Cols 13-17: OURS)
         if (numCols >= 17 && c13) {
           var b3Range = sheet.getRange(rowIdx, 13, 1, 5);
-          b3Range.merge().setBackground("#e6f4ea").setFontColor("#137333").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
+          b3Range.merge().setBackground("#e6f4ea").setFontColor("#137333").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
         }
-        // Block 4 Title (Cols 19-23: Ablation w/o Boundary)
+        // Block 4 Title (Cols 19-23)
         if (numCols >= 23 && c19) {
           var b4Range = sheet.getRange(rowIdx, 19, 1, 5);
-          b4Range.merge().setBackground("#fef7e0").setFontColor("#b45f06").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
+          b4Range.merge().setBackground("#fef7e0").setFontColor("#b45f06").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
         }
         continue;
       }
       
-      // Case C: Metric Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean ± STD)
+      // Case C: Metric Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD)
       if (c1 === "Metric") {
-        sheet.setRowHeight(rowIdx, 28);
+        sheet.setRowHeight(rowIdx, 30);
         for (var b = 0; b < 4; b++) {
           var startC = 1 + b * 6;
           if (startC + 4 <= numCols) {
@@ -319,12 +303,12 @@ function doPost(e) {
       
       // Case D: Blank separator row
       if (c1 === "" && c7 === "" && c13 === "") {
-        sheet.setRowHeight(rowIdx, 14);
+        sheet.setRowHeight(rowIdx, 16);
         continue;
       }
       
       // Case E: Data Row (eval_accuracy, eval_f1, eval_precision, eval_recall, eval_loss)
-      sheet.setRowHeight(rowIdx, 25);
+      sheet.setRowHeight(rowIdx, 27);
       
       // Format each of the 4 model blocks
       for (var b = 0; b < 4; b++) {
@@ -334,7 +318,7 @@ function doPost(e) {
           sheet.getRange(rowIdx, startC).setHorizontalAlignment("left").setFontWeight("bold");
           // Seeds 42, 123, 1993
           sheet.getRange(rowIdx, startC + 1, 1, 3).setHorizontalAlignment("center");
-          // Mean ± STD
+          // Mean +/- STD
           sheet.getRange(rowIdx, startC + 4).setHorizontalAlignment("center").setFontWeight("bold");
           
           // OURS block subtle background
@@ -347,14 +331,14 @@ function doPost(e) {
       // Delta F1 cells (Col 12 and Col 18)
       if (numCols >= 12) {
         var d12 = (rows[i][11] || "").toString().trim();
-        if (d12 && d12 !== "--") {
+        if (d12) {
           sheet.getRange(rowIdx, 12)
                .setFontColor("#137333").setFontWeight("bold").setBackground("#edf7ed").setHorizontalAlignment("center");
         }
       }
       if (numCols >= 18) {
         var d18 = (rows[i][17] || "").toString().trim();
-        if (d18 && d18 !== "--") {
+        if (d18) {
           sheet.getRange(rowIdx, 18)
                .setFontColor("#137333").setFontWeight("bold").setBackground("#edf7ed").setHorizontalAlignment("center");
         }
@@ -371,8 +355,6 @@ function doPost(e) {
         sheet.setColumnWidth(c, Math.max(curW, 80));
       } else if (c % 6 === 1) { // Metric column
         sheet.setColumnWidth(c, Math.max(curW, 110));
-      } else if (c % 6 === 5) { // Mean ± STD column
-        sheet.setColumnWidth(c, Math.max(curW, 120));
       } else {
         sheet.setColumnWidth(c, Math.max(curW, 85));
       }
@@ -389,3 +371,4 @@ function doPost(e) {
 function doGet(e) {
   return ContentService.createTextOutput("Google Sheets & Drive Webhook is Active. Ready for POST requests.");
 }
+

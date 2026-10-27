@@ -1,0 +1,55 @@
+{
+  "dataset": "cord",
+  "variant": "base",
+  "mode": "baseline",
+  "seeds": [
+    42,
+    123,
+    1993
+  ],
+  "per_seed": {
+    "42": {
+      "eval_precision": 0.967251,
+      "eval_recall": 0.970206,
+      "eval_f1": 0.968726,
+      "eval_accuracy": 0.974109,
+      "eval_loss": 0.216924
+    },
+    "123": {
+      "eval_precision": 0.9673,
+      "eval_recall": 0.971734,
+      "eval_f1": 0.969512,
+      "eval_accuracy": 0.976231,
+      "eval_loss": 0.191252
+    },
+    "1993": {
+      "eval_precision": 0.960516,
+      "eval_recall": 0.966387,
+      "eval_f1": 0.963442,
+      "eval_accuracy": 0.964346,
+      "eval_loss": 0.237013
+    }
+  },
+  "mean_std": {
+    "eval_precision": {
+      "mean": 0.965022,
+      "std": 0.003903
+    },
+    "eval_recall": {
+      "mean": 0.969442,
+      "std": 0.002758
+    },
+    "eval_f1": {
+      "mean": 0.967227,
+      "std": 0.003303
+    },
+    "eval_accuracy": {
+      "mean": 0.971562,
+      "std": 0.006346
+    },
+    "eval_loss": {
+      "mean": 0.215063,
+      "std": 0.022933
+    }
+  }
+}
