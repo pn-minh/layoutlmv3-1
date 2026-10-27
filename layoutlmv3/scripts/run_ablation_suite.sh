@@ -174,7 +174,6 @@ do
         --dataloader_num_workers 8 \
         --dataloader_pin_memory True \
         --group_by_length True \
-        --pad_to_max_length False \
         --report_to none \
         --seed "$SEED" \
         --overwrite_output_dir \
