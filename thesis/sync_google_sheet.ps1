@@ -106,6 +106,9 @@ function Sync-QuadSheet {
     # Load All Summaries
     $funsdLargeBase = Load-Json "funsd-large-baseline_3seed_summary.json"
     $funsdLargeFull = Load-Json "funsd-large-full_3seed_summary.json"
+    $funsdLargeNoBdr = Load-Json "funsd-large-no_boundary_3seed_summary.json"
+    $funsdLargeNoHpe = Load-Json "funsd-large-no_hpe_3seed_summary.json"
+    $funsdLargeNoSeg = Load-Json "funsd-large-no_segment_3seed_summary.json"
 
     $funsdBaseBase = Load-Json "funsd-base-baseline_3seed_summary.json"
     $funsdBaseFull = Load-Json "funsd-base-full_3seed_summary.json"
@@ -120,63 +123,51 @@ function Sync-QuadSheet {
     $cordBaseNoSeg = Load-Json "cord-base-no_segment_3seed_summary.json"
 
     $cordLargeBase = Load-Json "cord-large-baseline_3seed_summary.json"
-
-    # Cord large full (OURS-LARGE-CORD): Seeds 42, 123 done, 1993 completing
-    $cordLargeFullMock = [PSCustomObject]@{
-        per_seed = [PSCustomObject]@{
-            '42' = [PSCustomObject]@{ eval_accuracy = 0.9762; eval_f1 = 0.9733; eval_precision = 0.9725; eval_recall = 0.9740; eval_loss = 0.2423 }
-            '123' = [PSCustomObject]@{ eval_accuracy = 0.9771; eval_f1 = 0.9733; eval_precision = 0.9725; eval_recall = 0.9740; eval_loss = 0.2073 }
-            '1993' = [PSCustomObject]@{ eval_accuracy = 0.9766; eval_f1 = 0.9733; eval_precision = 0.9725; eval_recall = 0.9740; eval_loss = 0.2248 }
-        }
-        mean_std = [PSCustomObject]@{
-            eval_accuracy = [PSCustomObject]@{ mean = 0.9766; std = 0.0005 }
-            eval_f1 = [PSCustomObject]@{ mean = 0.9733; std = 0.0000 }
-            eval_precision = [PSCustomObject]@{ mean = 0.9725; std = 0.0000 }
-            eval_recall = [PSCustomObject]@{ mean = 0.9740; std = 0.0000 }
-            eval_loss = [PSCustomObject]@{ mean = 0.2248; std = 0.0175 }
-        }
-    }
+    $cordLargeFull = Load-Json "cord-large-full_3seed_summary.json"
+    $cordLargeNoBdr = Load-Json "cord-large-no_boundary_3seed_summary.json"
+    $cordLargeNoHpe = Load-Json "cord-large-no_hpe_3seed_summary.json"
+    $cordLargeNoSeg = Load-Json "cord-large-no_segment_3seed_summary.json"
 
     $blankRow = @('', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '')
 
     # 1. Section 1: LARGE - FUNSD
     $sec1 = Make-QuadBlock `
-        'Layoutlmv3 goc - large - funsd' $funsdLargeBase `
-        'Segment + bdr loss - large - funsd' $null `
-        'OURS - LARGE - FUNSD' $funsdLargeFull `
-        'new segment large funsd' $null `
-        '--' '+1.21%' '--'
+        'Baseline LayoutLMv3 (large - FUNSD)' $funsdLargeBase `
+        'w/o HPE (large - FUNSD)' $funsdLargeNoHpe `
+        'OURS: Full Model (large - FUNSD)' $funsdLargeFull `
+        'w/o Boundary Loss (large - FUNSD)' $funsdLargeNoBdr `
+        '--' '+1.21%' '+0.91%'
 
     # 2. Section 2: BASE - FUNSD
     $sec2 = Make-QuadBlock `
-        'Layoutlmv3 goc - base - funsd' $funsdBaseBase `
-        'Segment + bdr loss - base - funsd' $funsdBaseNoHpe `
-        'OURS - BASE - FUNSD' $funsdBaseFull `
-        'new segment - base - funsd' $funsdBaseNoBdr `
+        'Baseline LayoutLMv3 (base - FUNSD)' $funsdBaseBase `
+        'w/o HPE (base - FUNSD)' $funsdBaseNoHpe `
+        'OURS: Full Model (base - FUNSD)' $funsdBaseFull `
+        'w/o Boundary Loss (base - FUNSD)' $funsdBaseNoBdr `
         '+1.41%' '+1.66%' '+1.70%'
 
     # 3. Section 3: BASE - CORD
     $sec3 = Make-QuadBlock `
-        'Layoutlmv3 goc - BASE - CORD' $cordBaseBase `
-        'Segment + bdr loss - BASE - CORD' $cordBaseNoHpe `
-        'OURS - BASE - CORD' $cordBaseFull `
-        'new segment - BASE - CORD' $cordBaseNoBdr `
+        'Baseline LayoutLMv3 (base - CORD)' $cordBaseBase `
+        'w/o HPE (base - CORD)' $cordBaseNoHpe `
+        'OURS: Full Model (base - CORD)' $cordBaseFull `
+        'w/o Boundary Loss (base - CORD)' $cordBaseNoBdr `
         '+0.38%' '+0.19%' '+0.34%'
 
     # 4. Section 4: LARGE - CORD
     $sec4 = Make-QuadBlock `
-        'Layoutlmv3 goc - large - cord' $cordLargeBase `
-        'Segment + bdr loss - large - cord' $null `
-        'OURS - LARGE - CORD' $cordLargeFullMock `
-        'new segment - large - cord' $null `
-        '--' '+0.18%' '--'
+        'Baseline LayoutLMv3 (large - CORD)' $cordLargeBase `
+        'w/o HPE (large - CORD)' $cordLargeNoHpe `
+        'OURS: Full Model (large - CORD)' $cordLargeFull `
+        'w/o Boundary Loss (large - CORD)' $cordLargeNoBdr `
+        '--' '+0.20%' '--'
 
     # 5. Section 5: Token-Segment Ablation
     $sec5 = Make-QuadBlock `
-        'Ablation: w/o Token-Segment (Base FUNSD)' $funsdBaseNoSeg `
-        'Reference Baseline (Base FUNSD)' $funsdBaseBase `
-        'Ablation: w/o Token-Segment (Base CORD)' $cordBaseNoSeg `
-        'Reference Baseline (Base CORD)' $cordBaseBase `
+        'w/o Token-Segment SCM (base - FUNSD)' $funsdBaseNoSeg `
+        'Reference Baseline (base - FUNSD)' $funsdBaseBase `
+        'w/o Token-Segment SCM (base - CORD)' $cordBaseNoSeg `
+        'Reference Baseline (base - CORD)' $cordBaseBase `
         '+0.44%' '--' '-0.13%'
 
     # Combine All Sections into Unified Matrix

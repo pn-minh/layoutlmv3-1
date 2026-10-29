@@ -38,7 +38,7 @@
 | **Cell 16** | Full Model (3 seeds) | `large` | `FUNSD` | `full` | ✅ Done | `6509.2s` (`108.5m`) | `92.31 ± 0.51` | `92.60 ± 0.10` | **`92.45 ± 0.26`** |
 | **Cell 17** | Full Model (3 seeds) | `large` | `CORD` | `full` | ✅ Done | `18241.4s` (`304.0m`) | `97.28 ± 0.04` | `97.43 ± 0.04` | **`97.35 ± 0.04`** |
 | **Cell 18** | Ablation: w/o Boundary Loss (3 seeds) | `large` | `FUNSD` | `no_boundary` | ✅ Done | `6630.2s` (`110.5m`) | `91.97 ± 0.37` | `92.33 ± 0.23` | **`92.15 ± 0.24`** |
-| **Cell 19** | Ablation: w/o Boundary Loss (3 seeds) | `large` | `CORD` | `no_boundary` | ⏸️ Paused | Est. `~50-60 min` (MaxSteps=500 accelerated) | — | — | — |
+| **Cell 19** | Ablation: w/o Boundary Loss (3 seeds) | `large` | `CORD` | `no_boundary` | 🔄 Running | Seed 42 ✅ (`3263s`), Seed 123 🔄 | `97.25` (Seed 42) | `97.40` (Seed 42) | **`97.33`** (Seed 42) |
 | **Cell 20** | Ablation: w/o Token-Segment (3 seeds) | `large` | `FUNSD` | `no_segment` | ⏸️ Paused | Est. `~30-35 min` | — | — | — |
 | **Cell 21** | Ablation: w/o Token-Segment (3 seeds) | `large` | `CORD` | `no_segment` | ⏸️ Paused | Est. `~50-60 min` (MaxSteps=500 accelerated) | — | — | — |
 | **Cell 22** | Ablation: w/o HPE (3 seeds) | `large` | `FUNSD` | `no_hpe` | ⏸️ Paused | Est. `~35-40 min` | — | — | — |
