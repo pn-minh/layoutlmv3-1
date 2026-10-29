@@ -24,11 +24,11 @@ eval_loss,0.2169,0.1913,0.2370,0.2151 +/- 0.0229,,eval_loss,0.2214,0.1924,0.2180
 ,,,,,,,,,,,,,,,,,,,,,,
 Baseline LayoutLMv3 (large - CORD),,,,,,w/o HPE (large - CORD),,,,,,OURS: Full Model (large - CORD),,,,,,w/o Boundary Loss (large - CORD),,,,
 Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,Delta F1,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,Delta F1,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD
-eval_accuracy,0.9779,0.9775,0.9788,0.9781 +/- 0.0006,,eval_accuracy,--,--,--,--,,eval_accuracy,0.9762,0.9771,0.9771,0.9768 +/- 0.0005,,eval_accuracy,--,--,--,--
-eval_f1,0.9714,0.9699,0.9733,0.9715 +/- 0.0017,,eval_f1,--,--,--,--,--,eval_f1,0.9733,0.9733,0.9740,0.9735 +/- 0.0004,+0.20%,eval_f1,--,--,--,--
-eval_precision,0.9696,0.9666,0.9725,0.9696 +/- 0.0030,,eval_precision,--,--,--,--,,eval_precision,0.9725,0.9725,0.9733,0.9728 +/- 0.0004,,eval_precision,--,--,--,--
-eval_recall,0.9733,0.9733,0.9740,0.9735 +/- 0.0004,,eval_recall,--,--,--,--,,eval_recall,0.9740,0.9740,0.9748,0.9743 +/- 0.0004,,eval_recall,--,--,--,--
-eval_loss,0.2093,0.2009,0.2092,0.2065 +/- 0.0048,,eval_loss,--,--,--,--,,eval_loss,0.2423,0.2073,0.2148,0.2215 +/- 0.0185,,eval_loss,--,--,--,--
+eval_accuracy,0.9779,0.9775,0.9788,0.9781 +/- 0.0006,,eval_accuracy,--,--,--,--,,eval_accuracy,0.9762,0.9771,0.9771,0.9768 +/- 0.0005,,eval_accuracy,0.9775,0.9771,0.9720,0.9755 +/- 0.0031
+eval_f1,0.9714,0.9699,0.9733,0.9715 +/- 0.0017,,eval_f1,--,--,--,--,--,eval_f1,0.9733,0.9733,0.9740,0.9735 +/- 0.0004,+0.20%,eval_f1,0.9733,0.9718,0.9653,0.9701 +/- 0.0042
+eval_precision,0.9696,0.9666,0.9725,0.9696 +/- 0.0030,,eval_precision,--,--,--,--,,eval_precision,0.9725,0.9725,0.9733,0.9728 +/- 0.0004,,eval_precision,0.9725,0.9710,0.9635,0.9690 +/- 0.0049
+eval_recall,0.9733,0.9733,0.9740,0.9735 +/- 0.0004,,eval_recall,--,--,--,--,,eval_recall,0.9740,0.9740,0.9748,0.9743 +/- 0.0004,,eval_recall,0.9740,0.9725,0.9672,0.9712 +/- 0.0036
+eval_loss,0.2093,0.2009,0.2092,0.2065 +/- 0.0048,,eval_loss,--,--,--,--,,eval_loss,0.2423,0.2073,0.2148,0.2215 +/- 0.0185,,eval_loss,0.1729,0.1804,0.1915,0.1816 +/- 0.0094
 ,,,,,,,,,,,,,,,,,,,,,,
 w/o Token-Segment SCM (base - FUNSD),,,,,,Reference Baseline (base - FUNSD),,,,,,w/o Token-Segment SCM (base - CORD),,,,,,Reference Baseline (base - CORD),,,,
 Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,Delta F1,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD,Delta F1,Metric,Seed 42,Seed 123,Seed 1993,Mean +/- STD

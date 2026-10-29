@@ -24,7 +24,43 @@ $CsvPath = Join-Path $ScriptDir "tracker.csv"
 function Load-Json($filename) {
     $p = Join-Path $SummariesDir $filename
     if (Test-Path $p) {
-        return (Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json)
+        $data = Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json
+        # If format uses .metrics instead of .per_seed/.mean_std, normalize it
+        if ($null -eq $data.per_seed -and $null -ne $data.metrics) {
+            $per_seed = [PSCustomObject]@{
+                '42' = [PSCustomObject]@{
+                    'eval_precision' = $data.metrics.eval_precision.values[0]
+                    'eval_recall' = $data.metrics.eval_recall.values[0]
+                    'eval_f1' = $data.metrics.eval_f1.values[0]
+                    'eval_accuracy' = $data.metrics.eval_accuracy.values[0]
+                    'eval_loss' = $data.metrics.eval_loss.values[0]
+                }
+                '123' = [PSCustomObject]@{
+                    'eval_precision' = $data.metrics.eval_precision.values[1]
+                    'eval_recall' = $data.metrics.eval_recall.values[1]
+                    'eval_f1' = $data.metrics.eval_f1.values[1]
+                    'eval_accuracy' = $data.metrics.eval_accuracy.values[1]
+                    'eval_loss' = $data.metrics.eval_loss.values[1]
+                }
+                '1993' = [PSCustomObject]@{
+                    'eval_precision' = $data.metrics.eval_precision.values[2]
+                    'eval_recall' = $data.metrics.eval_recall.values[2]
+                    'eval_f1' = $data.metrics.eval_f1.values[2]
+                    'eval_accuracy' = $data.metrics.eval_accuracy.values[2]
+                    'eval_loss' = $data.metrics.eval_loss.values[2]
+                }
+            }
+            $mean_std = [PSCustomObject]@{
+                'eval_precision' = [PSCustomObject]@{ 'mean' = $data.metrics.eval_precision.mean; 'std' = $data.metrics.eval_precision.std }
+                'eval_recall' = [PSCustomObject]@{ 'mean' = $data.metrics.eval_recall.mean; 'std' = $data.metrics.eval_recall.std }
+                'eval_f1' = [PSCustomObject]@{ 'mean' = $data.metrics.eval_f1.mean; 'std' = $data.metrics.eval_f1.std }
+                'eval_accuracy' = [PSCustomObject]@{ 'mean' = $data.metrics.eval_accuracy.mean; 'std' = $data.metrics.eval_accuracy.std }
+                'eval_loss' = [PSCustomObject]@{ 'mean' = $data.metrics.eval_loss.mean; 'std' = $data.metrics.eval_loss.std }
+            }
+            $data | Add-Member -MemberType NoteProperty -Name 'per_seed' -Value $per_seed -Force
+            $data | Add-Member -MemberType NoteProperty -Name 'mean_std' -Value $mean_std -Force
+        }
+        return $data
     }
     return $null
 }
@@ -160,7 +196,7 @@ function Sync-QuadSheet {
         'w/o HPE (large - CORD)' $cordLargeNoHpe `
         'OURS: Full Model (large - CORD)' $cordLargeFull `
         'w/o Boundary Loss (large - CORD)' $cordLargeNoBdr `
-        '--' '+0.20%' '--'
+        '--' '+0.20%' '-0.14%'
 
     # 5. Section 5: Token-Segment Ablation
     $sec5 = Make-QuadBlock `

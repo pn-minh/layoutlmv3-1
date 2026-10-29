@@ -7,6 +7,51 @@
     123,
     1993
   ],
+  "per_seed": {
+    "42": {
+      "eval_precision": 0.972540,
+      "eval_recall": 0.974026,
+      "eval_f1": 0.973282,
+      "eval_accuracy": 0.977504,
+      "eval_loss": 0.172858
+    },
+    "123": {
+      "eval_precision": 0.971014,
+      "eval_recall": 0.972498,
+      "eval_f1": 0.971756,
+      "eval_accuracy": 0.977080,
+      "eval_loss": 0.180400
+    },
+    "1993": {
+      "eval_precision": 0.963470,
+      "eval_recall": 0.967150,
+      "eval_f1": 0.965307,
+      "eval_accuracy": 0.971986,
+      "eval_loss": 0.191455
+    }
+  },
+  "mean_std": {
+    "eval_precision": {
+      "mean": 0.969008,
+      "std": 0.004856
+    },
+    "eval_recall": {
+      "mean": 0.971225,
+      "std": 0.003610
+    },
+    "eval_f1": {
+      "mean": 0.970115,
+      "std": 0.004233
+    },
+    "eval_accuracy": {
+      "mean": 0.975523,
+      "std": 0.003071
+    },
+    "eval_loss": {
+      "mean": 0.181571,
+      "std": 0.009354
+    }
+  },
   "metrics": {
     "eval_precision": {
       "values": [
