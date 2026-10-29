@@ -75,15 +75,22 @@ def prepare_cord(project_dir: Path):
         shutil.rmtree(str(tmp_dir))
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    # Download official CORD-1k parts 1 & 2 from Google Drive using gdown (handles large-file confirmation tokens)
-    import gdown
-    drive_ids = [
-        ("1MqhTbcj-AHXOqYoeoh12aRUwIprzTJYI", tmp_dir / "CORD-1k-001.zip"),
-        ("1wYdp5nC9LnHQZ2FcmOoC0eClyWvcuARU", tmp_dir / "CORD-1k-002.zip"),
+    # Download official CORD-1k parts 1 & 2 directly from Google Drive usercontent
+    cord_downloads = [
+        (
+            "https://drive.usercontent.google.com/download?id=1MqhTbcj-AHXOqYoeoh12aRUwIprzTJYI&export=download&confirm=t",
+            tmp_dir / "CORD-1k-001.zip",
+            "CORD Part 1 (2.1GB)"
+        ),
+        (
+            "https://drive.usercontent.google.com/download?id=1wYdp5nC9LnHQZ2FcmOoC0eClyWvcuARU&export=download&confirm=t",
+            tmp_dir / "CORD-1k-002.zip",
+            "CORD Part 2 (187MB)"
+        ),
     ]
-    for file_id, zip_target in drive_ids:
-        # Use gdown.download API directly to reliably fetch CORD archive parts without CLI entry point mismatch
-        gdown.download(id=file_id, output=str(zip_target), quiet=False)
+    for url, zip_target, label in cord_downloads:
+        # Download with real-time ETA tracking and extract immediately
+        download_with_eta(url, zip_target, label)
         with zipfile.ZipFile(str(zip_target), "r") as zf:
             zf.extractall(str(tmp_dir))
         zip_target.unlink()
