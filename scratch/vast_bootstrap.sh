@@ -53,3 +53,4 @@ python3 scratch/backup_summaries.py /workspace/layoutlmv3-1/layoutlmv3/logs
 echo "=========================================================="
 echo "[VAST.AI] BOOTSTRAP COMPLETE: 16 SUMMARIES RESTORED"
 echo "=========================================================="
+

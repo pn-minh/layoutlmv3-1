@@ -76,14 +76,14 @@ def prepare_cord(project_dir: Path):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     # Download official CORD-1k parts 1 & 2 from Google Drive using gdown (handles large-file confirmation tokens)
+    import gdown
     drive_ids = [
         ("1MqhTbcj-AHXOqYoeoh12aRUwIprzTJYI", tmp_dir / "CORD-1k-001.zip"),
         ("1wYdp5nC9LnHQZ2FcmOoC0eClyWvcuARU", tmp_dir / "CORD-1k-002.zip"),
     ]
     for file_id, zip_target in drive_ids:
-        subprocess.check_call(
-            [sys.executable, "-m", "gdown", "--id", file_id, "-O", str(zip_target)]
-        )
+        # Use gdown.download API directly to reliably fetch CORD archive parts without CLI entry point mismatch
+        gdown.download(id=file_id, output=str(zip_target), quiet=False)
         with zipfile.ZipFile(str(zip_target), "r") as zf:
             zf.extractall(str(tmp_dir))
         zip_target.unlink()
