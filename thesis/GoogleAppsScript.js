@@ -184,6 +184,14 @@ function doPost(e) {
     // ==========================================
     // ACTION 3: DETAILED PER-SEED QUAD-BLOCK TRACKER
     // ==========================================
+    var rows = data.rows;
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "ERROR",
+        message: "No rows received. Sheet was not cleared."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getActiveSheet();
     sheet.clear();
@@ -215,10 +223,6 @@ function doPost(e) {
     }
          
     var startRow = 4;
-    var rows = data.rows;
-    if (!rows || rows.length === 0) {
-      return ContentService.createTextOutput("No rows received.");
-    }
     
     var numRows = rows.length;
     var numCols = rows[0].length;
