@@ -12,13 +12,22 @@ import requests
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyTnMY4wH9BwXUeNKKWqUdL_BClo-8ai76o70kQM0sT-nh7wv9oN64BpumGGAoalhSM1w/exec"
 
 def load_json(summaries_dir: Path, filename: str):
-    p = summaries_dir / filename
-    if p.exists():
-        try:
-            with open(p, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[WARN] Error reading {p}: {e}")
+    candidates = [
+        summaries_dir / filename,
+        Path("/workspace/layoutlmv3-1/layoutlmv3/logs") / filename,
+        Path("/content/layoutlmv3-1/layoutlmv3/logs") / filename,
+        Path("scratch/colab_summaries") / filename,
+        Path("layoutlmv3/logs") / filename,
+        Path("../scratch/colab_summaries") / filename,
+        Path("../layoutlmv3/logs") / filename,
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[WARN] Error reading {p}: {e}")
     return None
 
 def fmt_n(val):
@@ -230,7 +239,9 @@ def sync_quad_sheet(summaries_dir: Path, webhook_url: str = WEBHOOK_URL):
             print(f"[WARN] Failed to push to Google Sheet: {e}")
 
 if __name__ == "__main__":
-    summaries_dir = Path("/content/layoutlmv3-1/layoutlmv3/logs")
+    summaries_dir = Path("/workspace/layoutlmv3-1/layoutlmv3/logs")
+    if not summaries_dir.exists():
+        summaries_dir = Path("/content/layoutlmv3-1/layoutlmv3/logs")
     if not summaries_dir.exists():
         summaries_dir = Path("scratch/colab_summaries")
     sync_quad_sheet(summaries_dir)

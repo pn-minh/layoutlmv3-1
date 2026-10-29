@@ -58,7 +58,8 @@ def sync_sheet():
     try:
         script_path = REPO_DIR / "scratch" / "sync_google_sheet.py"
         if script_path.exists():
-            res = subprocess.run(["python3", str(script_path)], capture_output=True, text=True)
+            py_bin = "/venv/layoutlmv3/bin/python" if Path("/venv/layoutlmv3/bin/python").exists() else sys.executable
+            res = subprocess.run([py_bin, str(script_path)], capture_output=True, text=True)
             log(f"[SHEET] sync_google_sheet output: {res.stdout.strip()}")
     except Exception as e:
         log(f"[WARN] Error during Google Sheet sync: {e}")
@@ -79,7 +80,15 @@ def run_suite_step(cell_num: int, dataset: str, variant: str, mode: str, label: 
     log(f"STARTING CELL {cell_num}: {label} ({dataset.upper()} | {variant} | {mode})")
     log("======================================================================")
 
+    sum_path = LOG_DIR / summary_file
     log_path = Path(f"/tmp/cell_{cell_num}.log")
+
+    if sum_path.exists():
+        log(f"[SKIP] Summary already exists for Cell {cell_num}: {sum_path}")
+        upload_to_gdrive(sum_path)
+        sync_sheet()
+        return
+
     cmd = (
         f"source /workspace/miniconda3/etc/profile.d/conda.sh && conda activate layoutlmv3 && "
         f"export PYTHONUNBUFFERED=1 && cd /workspace/layoutlmv3-1/layoutlmv3 && "
@@ -92,17 +101,21 @@ def run_suite_step(cell_num: int, dataset: str, variant: str, mode: str, label: 
     elapsed = time.time() - t0
     log(f"Cell {cell_num} execution finished in {elapsed:.1f}s ({elapsed/60.0:.2f} min) with returncode {proc.returncode}")
 
+    # Upload execution log immediately
+    if log_path.exists():
+        upload_to_gdrive(log_path, f"cell_{cell_num}.log")
+
+    if proc.returncode != 0:
+        log(f"[FATAL] Cell {cell_num} failed with returncode {proc.returncode}!")
+        raise RuntimeError(f"Cell {cell_num} failed with returncode {proc.returncode}")
+
     # Verify summary
-    sum_path = LOG_DIR / summary_file
     if sum_path.exists():
         log(f"Verified summary exists: {sum_path}")
         upload_to_gdrive(sum_path)
     else:
-        log(f"[WARN] Expected summary not found: {sum_path}")
-
-    # Upload execution log
-    if log_path.exists():
-        upload_to_gdrive(log_path, f"cell_{cell_num}.log")
+        log(f"[FATAL] Expected summary not found: {sum_path}")
+        raise RuntimeError(f"Summary missing for cell {cell_num}: {sum_path}")
 
     # Sync Google Sheet & Commit locally
     sync_sheet()
@@ -122,6 +135,17 @@ def run_aggregation():
         "no_segment": "Ablation: w/o Token-Segment",
         "no_hpe": "Ablation: w/o HPE",
     }
+
+    missing = []
+    for variant in ["base", "large"]:
+        for dataset in ["funsd", "cord"]:
+            for mode in modes:
+                summary_path = LOG_DIR / f"{dataset}-{variant}-{mode}_3seed_summary.json"
+                if not summary_path.exists():
+                    missing.append(summary_path.name)
+    if missing:
+        log(f"[FATAL] Cannot aggregate! Missing summaries: {missing}")
+        raise RuntimeError(f"Missing summaries: {missing}")
 
     table_lines = []
     table_lines.append(f"| {'Variant':<7} | {'Dataset':<7} | {'Configuration':<48} | {'Precision (%)':<16} | {'Recall (%)':<16} | {'F1 (%)':<16} |")
