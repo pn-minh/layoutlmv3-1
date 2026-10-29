@@ -1,18 +1,12 @@
 # Colab A100-SXM4-80GB Live Execution & Ablation Tracker
 
 ## Hardware, Optimization & Environment Status
-- **Colab Instance:** `NVIDIA A100-SXM4-80GB` (81,920 MiB VRAM) | **System RAM:** `167 GiB` (`164 GiB` free)
-- **Active Connection:** Persistent Cloudflare SSH Tunnel via local forwarder `127.0.0.1:2222`
-- **Repository:** `https://github.com/pn-minh/layoutlmv3-1` (`6b0cccf`)
-- **Active Optimizations Applied:**
-  - **FP16 Mixed Precision:** Enabled via `--fp16 True` (utilizes Ampere Tensor Cores with dynamic loss scaling).
-  - **Maximized Micro-Batching (Zero Math Drift):**
-    - `CORD`: Micro-batch `16`, Accumulation `4` (retains exact effective batch size = $16 \times 4 = 64$, saturating A100 VRAM at **69.1 GB / 81.9 GB** and halving forward/backward passes).
-    - `FUNSD`: Micro-batch `8`, Accumulation `2` (retains exact effective batch size = $8 \times 2 = 16$).
-  - **Ampere Hardware Acceleration:** `torch.backends.cuda.matmul.allow_tf32 = True` & `torch.backends.cudnn.benchmark = True`.
-  - **DMA Memory Pinned Transfers:** `--dataloader_pin_memory True` (non-blocking page-locked host-to-GPU data transfers).
-  - **DataLoader Workers:** `--dataloader_num_workers 8` (parallel multi-threaded prefetching).
-  - **Length-Grouped Batching:** `--group_by_length True` (minimizes redundant padding tokens in attention blocks).
+- **Compute Instance:** Vast.ai `NVIDIA A100-SXM4-80GB` (`58195778`) — **Status:** 🛑 **DESTROYED** (Halted and deleted per user request to prevent additional costs).
+- **Repository:** `https://github.com/pn-minh/layoutlmv3-1` (`main`)
+- **Master Deliverables:**
+  - Google Drive: `LayoutLMv3_Ablation_Results_Completed_Cells.zip` (All 19 summaries and execution logs).
+  - Google Sheets: [Live Tracker](https://docs.google.com/spreadsheets/d/173WXkbMXDCEVs4pYBRNXGTHihOda18adbJRJ7RpFw7o/edit) fully synchronized (39 rows updated).
+  - GitHub: All 19 ablation summaries + `FINAL_AGGREGATED_ABLATION_TABLE.md` committed and pushed.
 
 ---
 
@@ -21,8 +15,8 @@
 | Cell | Stage / Experiment | Variant | Dataset | Mode | Status | Elapsed / Est. Time | 3-Seed Precision (%) | 3-Seed Recall (%) | 3-Seed F1 (%) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Cell 1** | Hardware Check & Repo Clone | — | — | — | ✅ Done | `6.0s` (Est. `10-15s`) | — | — | — |
-| **Cell 2** | Miniconda (`py3.7`) + Packages Setup | — | — | — | ✅ Done | `178.3s` (`2.97m` / Est. `3-5m`) | — | — | — |
-| **Cell 3** | Download & Verify `FUNSD` + `CORD` | — | — | — | ✅ Done | `632.1s` (`10.5m` / Est. `2-3m`) | — | — | — |
+| **Cell 2** | Miniconda (`py3.7`) + Packages Setup | — | — | — | ✅ Done | `178.3s` (`2.97m`) | — | — | — |
+| **Cell 3** | Download & Verify `FUNSD` + `CORD` | — | — | — | ✅ Done | `632.1s` (`10.5m`) | — | — | — |
 | **Cell 4** | Baseline (3 seeds) | `base` | `FUNSD` | `baseline` | ✅ Done | `2044.8s` (`34.1m`) | `89.32 ± 1.31` | `90.53 ± 0.48` | **`89.92 ± 0.85`** |
 | **Cell 5** | Baseline (3 seeds) | `base` | `CORD` | `baseline` | ✅ Done | `7274.8s` (`121.2m`) | `96.50 ± 0.39` | `96.94 ± 0.28` | **`96.72 ± 0.33`** |
 | **Cell 6** | Full Model (3 seeds) | `base` | `FUNSD` | `full` | ✅ Done | `4153.8s` (`69.2m`) | `91.82 ± 0.05` | `91.33 ± 0.28` | **`91.58 ± 0.16`** |
@@ -39,8 +33,8 @@
 | **Cell 17** | Full Model (3 seeds) | `large` | `CORD` | `full` | ✅ Done | `18241.4s` (`304.0m`) | `97.28 ± 0.04` | `97.43 ± 0.04` | **`97.35 ± 0.04`** |
 | **Cell 18** | Ablation: w/o Boundary Loss (3 seeds) | `large` | `FUNSD` | `no_boundary` | ✅ Done | `6630.2s` (`110.5m`) | `91.97 ± 0.37` | `92.33 ± 0.23` | **`92.15 ± 0.24`** |
 | **Cell 19** | Ablation: w/o Boundary Loss (3 seeds) | `large` | `CORD` | `no_boundary` | ✅ Done | `9413.6s` (`156.9m`) | `96.90 ± 0.49` | `97.12 ± 0.36` | **`97.01 ± 0.42`** |
-| **Cell 20** | Ablation: w/o Token-Segment (3 seeds) | `large` | `FUNSD` | `no_segment` | 🔄 Migrating to Vast.ai | Est. `~12-15 min` (BS=16, ACC=1) | — | — | — |
-| **Cell 21** | Ablation: w/o Token-Segment (3 seeds) | `large` | `CORD` | `no_segment` | 🔄 Migrating to Vast.ai | Est. `~35-40 min` (MaxSteps=500 accelerated) | — | — | — |
-| **Cell 22** | Ablation: w/o HPE (3 seeds) | `large` | `FUNSD` | `no_hpe` | 🔄 Migrating to Vast.ai | Est. `~12-15 min` (BS=16, ACC=1) | — | — | — |
-| **Cell 23** | Ablation: w/o HPE (3 seeds) | `large` | `CORD` | `no_hpe` | 🔄 Migrating to Vast.ai | Est. `~35-40 min` (MaxSteps=500 accelerated) | — | — | — |
-| **Cell 24** | Final Summary Comparison Table | — | — | — | ⏳ Pending Vast.ai | Est. `~5s` | — | — | — |
+| **Cell 20** | Ablation: w/o Token-Segment (3 seeds) | `large` | `FUNSD` | `no_segment` | ✅ Done | `4610.1s` (`76.8m`) | `90.34 ± 0.45` | `91.68 ± 0.08` | **`91.01 ± 0.23`** |
+| **Cell 21** | Ablation: w/o Token-Segment (3 seeds) | `large` | `CORD` | `no_segment` | ✅ Done | `7863.6s` (`131.1m`) | `96.69 ± 0.15` | `96.98 ± 0.17` | **`96.84 ± 0.13`** |
+| **Cell 22** | Ablation: w/o HPE (3 seeds) | `large` | `FUNSD` | `no_hpe` | ✅ Done | `5993.0s` (`99.9m`) | `92.67 ± 0.13` | `92.72 ± 0.28` | **`92.69 ± 0.18`** |
+| **Cell 23** | Ablation: w/o HPE (3 seeds) | `large` | `CORD` | `no_hpe` | 🛑 Halted | Stopped per user request | — | — | — |
+| **Cell 24** | Final Aggregated Master Table | — | — | — | ✅ Done | Completed | — | — | — |
