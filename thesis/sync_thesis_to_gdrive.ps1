@@ -20,7 +20,7 @@ param(
     [int]$IntervalSeconds = 15,
     [switch]$FetchRemote,
     [string]$Repo = "pn-minh/layoutlmv3-1",
-    [string]$ReleaseTag = "latest"
+    [string]$Branch = "documentation"
 )
 
 $ErrorActionPreference = "Stop"
@@ -199,9 +199,9 @@ function Get-GoogleSlidesEditUrl {
 function Fetch-RemotePdfs {
     param(
         [string]$TargetRepo,
-        [string]$Tag
+        [string]$BranchName
     )
-    $baseUrl = "https://github.com/$TargetRepo/releases/download/$Tag"
+    $baseUrl = "https://raw.githubusercontent.com/$TargetRepo/$BranchName"
     $items = @(
         @{ Name = "Vietnamese_Thesis_LayoutLMv3.pdf"; Target = $ViPdf },
         @{ Name = "English_Thesis_LayoutLMv3.pdf"; Target = $EnPdf },
@@ -209,7 +209,7 @@ function Fetch-RemotePdfs {
         @{ Name = "Weekly_Progress_Presentation_Slides.pdf"; Target = $SlidesPdf }
     )
 
-    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Fetching remotely compiled PDFs from GitHub Release ($TargetRepo/$Tag)..." -ForegroundColor Cyan
+    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Fetching remotely compiled PDFs from GitHub ($TargetRepo @ $BranchName)..." -ForegroundColor Cyan
     foreach ($item in $items) {
         $url = "$baseUrl/$($item.Name)"
         try {
@@ -230,7 +230,7 @@ function Sync-AllMaterials {
 
     # Fetch remotely compiled PDFs if requested
     if ($FetchRemote) {
-        Fetch-RemotePdfs -TargetRepo $Repo -Tag $ReleaseTag
+        Fetch-RemotePdfs -TargetRepo $Repo -BranchName $Branch
     }
 
     # Ensure 300 DPI PNG is up-to-date

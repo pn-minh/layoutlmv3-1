@@ -1,4 +1,4 @@
-name: Compile Thesis & Presentation PDFs
+name: Compile Thesis & Documentation
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   compile:
-    name: Build PDFs with Tectonic
+    name: Build PDFs and Publish to Documentation Branch
     runs-on: ubuntu-latest
 
     steps:
@@ -65,13 +65,35 @@ jobs:
           echo "=== Compiling Weekly Presentation Slides ==="
           tectonic -X compile thesis/presentation/weekly_update_slides.tex --outdir thesis/presentation
 
-      - name: Prepare Distribution Artifacts
+      - name: Prepare Documentation Distribution
         run: |
           mkdir -p dist
           cp thesis/vi/main.pdf dist/Vietnamese_Thesis_LayoutLMv3.pdf
           cp thesis/en/main.pdf dist/English_Thesis_LayoutLMv3.pdf
           cp thesis/presentation/weekly_update_slides.pdf dist/Weekly_Progress_Presentation_Slides.pdf
           cp thesis/figures/model_architecture_heads_style.pdf dist/Model_Architecture_Diagram.pdf
+          cp thesis/presentation/weekly_update_script.md dist/Weekly_Progress_Presentation_Script.md
+          cp thesis/presentation/weekly_update_script_vi.md dist/Weekly_Progress_Presentation_Script_VI.md
+
+          cat << 'EOF' > dist/README.md
+          # Project Documentation & Compiled Documents
+
+          All documents in this branch are compiled automatically from the latest commit on `main`.
+          Click any link below to open and preview the document natively in GitHub's PDF viewer:
+
+          ### 📄 Thesis Manuscripts
+          - **[Vietnamese Thesis (PDF)](Vietnamese_Thesis_LayoutLMv3.pdf)** — *Nghiên cứu cải tiến mô hình thị giác - ngôn ngữ cho bài toán trích xuất thông tin khóa trên tài liệu*
+          - **[English Thesis (PDF)](English_Thesis_LayoutLMv3.pdf)** — *Research on Enhancing Vision-Language Model for Document Key Information Extraction*
+
+          ### 📊 Presentation & Model Diagram
+          - **[Weekly Progress Presentation Slides (PDF)](Weekly_Progress_Presentation_Slides.pdf)** (20 Slides)
+          - **[Model Architecture Diagram (PDF)](Model_Architecture_Diagram.pdf)** (Full End-to-End Diagram)
+
+          ### 📝 Speaker Scripts
+          - **[Presentation Script - Vietnamese (Markdown)](Weekly_Progress_Presentation_Script_VI.md)**
+          - **[Presentation Script - English (Markdown)](Weekly_Progress_Presentation_Script.md)**
+          EOF
+
           ls -lh dist/
 
       - name: Upload Build Artifacts
@@ -82,30 +104,14 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publish to GitHub Release (latest)
-        uses: softprops/action-gh-release@v2
+      - name: Deploy to documentation Branch
         if: github.ref == 'refs/heads/main'
-        with:
-          tag_name: latest
-          name: "Latest Compiled Thesis & Presentation PDFs"
-          body: |
-            ## Automated Thesis Build (${{ github.sha }})
-            
-            Built automatically via Tectonic on commit [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}).
-            
-            ### Direct PDF Downloads:
-            - **Vietnamese Thesis:** [Vietnamese_Thesis_LayoutLMv3.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Vietnamese_Thesis_LayoutLMv3.pdf)
-            - **English Thesis:** [English_Thesis_LayoutLMv3.pdf](https://github.com/${{ github.repository }}/releases/download/latest/English_Thesis_LayoutLMv3.pdf)
-            - **Presentation Slides:** [Weekly_Progress_Presentation_Slides.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Weekly_Progress_Presentation_Slides.pdf)
-            - **Model Architecture Diagram:** [Model_Architecture_Diagram.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Model_Architecture_Diagram.pdf)
-            
-            ### Online Commenting & Annotation (Hypothes.is):
-            - [Annotate Vietnamese Thesis Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/Vietnamese_Thesis_LayoutLMv3.pdf)
-            - [Annotate English Thesis Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/English_Thesis_LayoutLMv3.pdf)
-            - [Annotate Presentation Slides Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/Weekly_Progress_Presentation_Slides.pdf)
-          files: dist/*.pdf
-          draft: false
-          prerelease: false
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b documentation
+          git add -A
+          git commit -m "Deploy compiled documentation [${{ github.sha }}]"
+          git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git documentation
