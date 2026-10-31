@@ -1,0 +1,20 @@
+\chapter*{Mở đầu}
+\addcontentsline{toc}{chapter}{Mở đầu}
+Trong kỷ nguyên chuyển đổi số hiện nay, hàng tỷ tài liệu nghiệp vụ như hóa đơn tài chính, biên lai bán lẻ, hợp đồng pháp lý, biểu mẫu hành chính và hồ sơ y tế được lưu hành mỗi ngày dưới dạng ảnh quét hoặc tệp PDF tĩnh. Khác với văn bản thuần túy có cấu trúc tuyến tính một chiều, các tài liệu giàu thị giác VRD (Visually Rich Documents) truyền tải ngữ nghĩa thông qua sự giao thoa chặt chẽ giữa nội dung ngôn ngữ, bố cục hình học hai chiều (như bảng biểu, cột dọc, các khối khóa -- giá trị) và các tín hiệu thị giác (như phông chữ, độ đậm nhạt, đường kẻ phân cách) \cite{cui2021document, huang2022layoutlmv3}. Do đó, bài toán Trích xuất thông tin chính KIE (Key Information Extraction) nhằm tự động nhận diện và phân loại các trường thông tin quan trọng từ VRD đã trở thành một trong những bài toán cốt lõi của lĩnh vực Trí tuệ nhân tạo cho Tài liệu Document AI.
+
+Sự ra đời của các mô hình Transformer đa phương thức tiền huấn luyện, đặc biệt là LayoutLM \cite{xu2020layoutlm}, LayoutLMv2 \cite{xu2021layoutlmv2} và LayoutLMv3 \cite{huang2022layoutlmv3}, đã thiết lập chuẩn mực mới cho bài toán KIE thông qua việc phát biểu KIE dưới dạng bài toán gán nhãn chuỗi ở mức token theo lược đồ BIO (Beginning-Inside-Outside). Tuy nhiên, khi triển khai thực tế trên các biểu mẫu phức tạp hoặc hóa đơn nhiều cột, mô hình LayoutLMv3 nguyên bản bộc lộ những điểm yếu cố hữu về nhận thức cấu trúc vĩ mô và tính nhất quán ranh giới thực thể. Thứ nhất, việc chỉ cung cấp tọa độ hộp giới hạn $(x_0, y_0, x_1, y_1)$ rời rạc buộc cơ chế tự chú ý phải tự suy diễn ngầm định các cấu trúc dòng, khối và cột. Thứ hai, việc dự đoán nhãn độc lập cho từng token mà thiếu sự trao đổi thông tin trực tiếp ở cấp độ phân đoạn dễ dẫn đến hiện tượng ``trôi nhãn BIO'' ở các thực thể văn bản dài hoặc sự nhầm lẫn giữa các vùng phụ thuộc ngữ cảnh lân cận (như \texttt{HEADER} và \texttt{QUESTION} trong biểu mẫu). Thứ ba, ranh giới chuyển tiếp giữa hai thực thể liền kề trên cùng một dòng thường không có ràng buộc giám sát trực tiếp, làm phát sinh lỗi cắt cụt hoặc nối gộp thực thể.
+
+Nhận thấy những hạn chế trên, khóa luận này tập trung nghiên cứu và phát triển khung kiến trúc mở rộng nhận thức cấu trúc trên nền tảng LayoutLMv3 (triển khai trong mô hình \texttt{LayoutLMv3ForSegmentTokenClassification}) tích hợp đồng thời ba kỹ thuật cải tiến: Mã hóa vị trí phân cấp HPE (Hierarchical Position Encoding), Mô-đun ngữ cảnh phân đoạn SCM (Segment Context Module) có cổng dư ReZero, và Hàm mất mát ranh giới nội dòng/thực thể. Kết quả thực nghiệm kiểm chứng qua 3 hạt giống ngẫu nhiên trên hạ tầng tính toán hiệu năng cao NVIDIA A100-SXM4-80GB với hai tập dữ liệu chuẩn FUNSD \cite{jaume2019funsd} và CORD \cite{park2019cord} cho thấy phương pháp đề xuất cải thiện rõ rệt cả độ chính xác F1 mức thực thể lẫn độ ổn định hội tụ so với mô hình cơ sở.
+
+Nội dung của khóa luận được trình bày theo cấu trúc 5 chương như sau:
+
+\textbf{Chương 1:} Giới thiệu tổng quan về Trí tuệ nhân tạo cho Tài liệu Document AI, bài toán Trích xuất thông tin chính KIE, các thách thức cốt lõi trong KIE và phát biểu bài toán cụ thể mà khóa luận giải quyết.
+
+\textbf{Chương 2:} Trình bày cơ sở lý thuyết và các công trình nghiên cứu liên quan, bao gồm kiến trúc Transformer đa phương thức, mô hình cơ sở LayoutLMv3 và nền tảng của phương pháp đề xuất.
+
+\textbf{Chương 3:} Trình bày chi tiết phương pháp và kiến trúc mô hình đề xuất, bao gồm cơ sở toán học và thuật toán của Mã hóa vị trí phân cấp HPE, Mô-đun ngữ cảnh phân đoạn SCM và Hàm mất mát ranh giới thực thể.
+
+\textbf{Chương 4:} Trình bày môi trường thực nghiệm, bộ dữ liệu chuẩn, các chỉ số đánh giá, cấu hình huấn luyện cũng như kết quả thực nghiệm và nghiên cứu cắt giảm thành phần.
+
+\textbf{Kết luận:} Tóm lược những kết quả đạt được của khóa luận, phân tích các hạn chế và đề xuất định hướng phát triển trong tương lai.
+

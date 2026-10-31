@@ -1,0 +1,114 @@
+/,Method,training,Kích thước,Kết quả
+"I. Đa tác vụ (KIE, VQA,...)",,,,
+1. Encoder,,,,
+"LayoutLMv3
+https://arxiv.org/pdf/2204.08387","- Văn bản -> text embedding (ROBERTA)
+- Mảnh ảnh -> image embedding 
+- Concated embedding -> Multimodal transformer (thêm mã hóa vị trí nữa, 12 lớp trans) -> đầu ra là embedding. Nếu làm KIE thì phải thêm các head vào nữa","Training: Pretrain trên 11 triệu tài liệu IIT-CDIP
+Inference: rất nhah","base:133M
+large:368M","- FUNSD: 92.08
+- CORD: 97.46
+- DocILE: 
+F1 = 69,8 
+AP = 55,3
+Prec = 70,1
+Recall = 69,4
+- SROIE: 
+- KLC: "
+"USTC-iFLYTEK
+https://ceur-ws.org/Vol-3497/paper-052.pdf","- Text -> text embedding (sentence-BERT)
+- Ảnh -> image embedding (Swin transformer + FPN)
+- Tổng hợp đặc trưng -> đi qua Graph attention layer","Pretraining: lâu, 2.7 trang tài liệu
+Finetuning: cũng hơi lâu tí
+Infer: nặng vì chạy nhiều bước, ensemble nữa ",ko biết cụ thể là bao nhiêu nhưng mà khá nặng ,"- DocILE: 
+F1 = 71,25
+AP = 74,25
+Prec = 71,41
+Recall = 77,31"
+2. LLM,Khả năng zero shot tốt hơn,,,
+"LayTextLLM
+https://arxiv.org/pdf/2407.01976v2
+","- Tọa độ -> 1 token (Spatial layout projector_
+- Token + văn bản cho đi qua LLM ","Pretraining và SFT đều rất nặng
+Infer thì nhẹ và nhanh",Llaama 7 tỷ,"FUNSD: 63,3
+CORD: 87,3
+SROIE: 89,4"
+"docLayLLM
+https://arxiv.org/pdf/2408.15045","Đóng gói câu Prompt chung: ví dụ: patches: {Patch_1:M};""text, [left, top, right, bottom]"": {(Text_i, Box_i)_1:N} {Question} 
+Luồng 1: Prompt -> bộ nhúng gốc của LLM 
+Luồng 2 Mảnh ảnh-> VE (khởi tạo từ LayoutLMv3) 
+Luồng 3: Các bbox -> Layout Embedder 
+Tổ hợp embedding và cho qua LLM (dùng Llama) suy luận 
+","Pre training: rất lâu, Finetuning thì được
+Inference: tối ưu và nhẹ","LLama: 8B tham số
+LayoutLmv3: 368M","FUNSD: 84-86
+CORD: 71-83
+SROIE: 84-86
+DeepForm: 77.07
+KLC: 40.73"
+3. End-to-end,,,,
+DONUT ,ẢNH -> visual encoder (Swin) -> embedding -> textual deocoder (BART) -> chuỗi token -> JSON,"CORD hoặc Ticket ở độ phân giải nhỏ (1280×960) mất khoảng 0,5 giờ trên 1 GPU A100.",143M,"CORD: 84,1"
+4. Encoder + LLM,,,,
+"toàn thư đọc, mà thấy cx phức tạp, ko có code nên thôi nhé",,,,
+II. Chỉ làm KIE thôi ,,,,
+"PM3-KIE
+https://aclanthology.org/2025.findings-acl.1075
+","Tổng hợp kết quả từ các model fine-grained và coars-grained (các mô hình này là từ các paper khác, freeze hết)
+- Tổng hợp bằng lớp suy luận: nhận dự đoán từ các mô hình và điểm số từ LLM, có 10 rule mà con người đặt ra để đưa ra quyết định xác suất cuối cùng ",Nhanh và rẻ vì chỉ cần huấn luyện các lớp suy luận xác suất kia thôi . suy luận thì phải tùy vào tốc độ infer của các base models ,Nhẹ ,"DeepForm:
+- ID: 93,7
+- OOD: 90.5"
+"P2NET
+https://aclanthology.org/2025.findings-acl.552","Ghép các câu hỏi và ngữ cảnh (Vbản đầu vào ấy)) cùng với ảnh và tọa độ đưa vào mô hình LayoutXLM để mã hóa-> hai FFN để tạo ra ma trận điểm (Score matrix Y).  Áp dụng cơ chế Information Isolation để nhân với ma trận Y, loại bỏ các kết nối sai.  Sử dụng các quy tắc liên kết token (Token Linking) để giải mã và trích xuất song song các kết quả.  
+Mình phải train để tối ưu cái Y, sau đó dùng ma trận Y đó để cho ra kết quả cuối cùng ","Train nhanh, infer cx nhanh","Nhẹ, t nghĩ layoutxlm chiếm phần lớn ","SROIE: 96.46
+CORD: 96.14"
+"SAIL
+https://arxiv.org/abs/2412.17092","Thuộc về loại method in-context learning. training free
+văn bản -> Edoc, Eent bằng sentence-BERT
+Tạo ảnh bố cục I từ các tọa độ hộp 
+Lự chọn ví dụ: dựa trên mẫu test để tìm ra 3 loại ví dụ phì hợp nhất từ tập train nhờ vào tương tốc cấp tài liệu, thực thể, bố cục 
+Kết hợp các ví dụ trên vào 1 prompt -> LLM -> nhãn cho mẫu test","Ko train
+Infer: nếu dùng backbone nhẹ 6 tỷ thì ko lâu nma kết quả ko ổn lắm đâu, nếu dùng LLM lớn như gpt 3.5 t nghĩ là lâu đó (thư định chạy thử)",,"Trên gpt-4 (1.8 nghìn tỷ tham số)
+- FUNSD: 84.67 (F1)
+- CORD: 96,41
+- SROIE: 98,18"
+"GENKIE
+https://arxiv.org/pdf/2310.16131","Text+ layout encdoer
+Visual encoder
+Decoder: nhạn prompt -> văn bản đầu ra
+Có cơ chế tự sửa lỗi OCR: bằng cách kết hợp thêm ngữ nghĩa từ prômt, embedding -> đoán và tái tạo/sưaả lỗi OCR ",rât snhẹ ,180M,"F1: 
+FUNSD: 83,45
+corrd: 95,75
+sroie: 97,4"
+II. Các bài cải tiến layoutlmv3,,,,
+AETNet https://arxiv.org/html/2211.14777v2,Tăng cường liên kết giữa văn bản và hình ảnh. Phương pháp là thêm module phụ và hàm loss alignment,layoutlmv3,AAAI 2022,"Large
+Funsd: 92.33 (tăng 1,39), 
+Cord: 97.52 (tăng 0.51)
+Base
+Funsd: 91.55 (tăng 1.73)
+Cord: 97.04 (Tăng 1.07)"
+ROAP https://arxiv.org/pdf/2601.05470,"giải quyết vấn đề của các mô hình hiện tại: thiếu khả năng hiểu thứ tự đọc logic và nhiễu từ các token hình ảnh
+Xây 1 pipeline nhẹ gắn vào layoutlmv3 để tối ưu hóa phân phối attention
+thành phần chính: Adaptive XY gap (thuật toán để trích xuất thứ tự đọc), Textual-token sub-block attention prior (cơ chế triệt tiêu nhiễu từ các token hình ảnh)",,1/2026,"Large
+funsd: 91,50 (tăng 1,3)
+cord: 97,99 (tăng 1,26)
+Base
+funsd"
+"OTCR
+https://aclanthology.org/2026.magmar-main.10.pdf",ko nhồi nhét mọi thông tin hình ảnh mà coi hình ảnh như 1 người hỗ trợ có chọn lọc. Mô hình học cách định tuyến các đặc trưng hình ảnh quan trọng đến đúng các token văn bản cần thiết thông qua kĩ thuật optimal transport,,MAGMaR 2026 workshop ACL,"Large
+funsd: 92,33 (tăng 0,52)
+cord: 97,35 (tăng 0,33)
+Base
+funsd: 91,95 (tăng 1,1)
+cord: 97,01 (tăng 1,06)
+"
+"DocExtractNet
+link
+Information Processing & Management- Q1","Kết hợp layoutlmv3 mới các mô hình khác để hệ thống mạnh hơn. kết hợp 3 module chính: 
++ ImageEnhance: mạng phụ song song để cải thiện chất lượng ảnh đầu vào
++ PrecisionHints: Sử dụng P-Tuning để thêm các  trainable prompt embeddings, giúp khôi phục và bổ sung các cặp key-value bị thiếu or bị nhiễu
++ CrossModalFusion: căn chỉnh và kết hợp đặc trưng văn bản và hình ảnh",,,"Large:
+funsd: 92,14 (tăng 0,06)
+cord: 97,65 (tăng 0.19)
+Base:
+funsd: 91,8 (tăng 1,5)
+cord: 97,38 (tăng 0,82)"

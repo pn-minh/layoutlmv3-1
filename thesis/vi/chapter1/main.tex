@@ -1,0 +1,82 @@
+\chapter{Giới thiệu}
+\section{Trí tuệ nhân tạo cho Tài liệu và Trích xuất thông tin chính KIE (Key Information Extraction)}
+Trí tuệ nhân tạo cho Tài liệu Document AI là lĩnh vực nghiên cứu liên ngành kết hợp giữa Xử lý ngôn ngữ tự nhiên NLP (Natural Language Processing), Thị giác máy tính và Học sâu nhằm tự động đọc, hiểu và trích xuất dữ liệu có cấu trúc từ các tài liệu kỹ thuật số hoặc ảnh chụp tài liệu \cite{cui2021document}. Đối tượng trung tâm của Document AI là các \textbf{Tài liệu giàu thị giác VRD (Visually Rich Documents)}, bao gồm hóa đơn GTGT, biên lai thanh toán, biểu mẫu đăng ký, báo cáo tài chính và hồ sơ hành chính.
+
+Ở thời điểm bất kỳ trong một quy trình số hóa doanh nghiệp hoặc Tự động hóa quy trình bằng robot RPA (Robotic Process Automation), hệ thống nhận đầu vào là một ảnh tài liệu $\mathcal{I}$ đi kèm với tập hợp gồm $M$ từ (hoặc vùng văn bản) được trích xuất thông qua hệ thống Nhận dạng ký tự quang học OCR (Optical Character Recognition):
+\begin{equation}
+    \mathcal{O} = \left\{ \left(w_m, \mathbf{b}_m\right) \right\}_{m=1}^{M},
+\end{equation}
+trong đó $w_m$ là chuỗi ký tự của từ thứ $m$ và $\mathbf{b}_m = \left(x_0^{(m)}, y_0^{(m)}, x_1^{(m)}, y_1^{(m)}\right) \in [0, 1000]^4$ biểu diễn tọa độ hộp giới hạn hai chiều đã chuẩn hóa theo kích thước trang tài liệu (với $(x_0, y_0)$ là góc trên bên trái và $(x_1, y_1)$ là góc dưới bên phải).
+
+\textbf{Trích xuất thông tin chính KIE (Key Information Extraction)} là tác vụ trọng tâm bậc nhất trên VRD \cite{jaume2019funsd, park2019cord, huang2022layoutlmv3}. Mục tiêu của KIE là tự động xác định các cụm từ mang thông tin nghiệp vụ cốt lõi (chẳng hạn như tên mặt hàng, đơn giá, tổng tiền thanh toán trên biên lai; hoặc tiêu đề biểu mẫu, câu hỏi và câu trả lời tương ứng trên tờ khai) và phân loại chúng vào tập các thực thể ngữ nghĩa $\mathcal{E} = \{e_1, e_2, \dots, e_K\}$ được định nghĩa trước. Trong hầu hết các hệ thống hiện đại, KIE được phát biểu dưới dạng bài toán \textbf{gán nhãn chuỗi ở mức token} sử dụng lược đồ gán nhãn $\text{BIO}$ (\textit{Beginning-Inside-Outside}):
+\begin{itemize}
+    \item Nhãn $\text{B-}c$: Đánh dấu token bắt đầu của một thực thể thuộc loại $c \in \mathcal{E}$.
+    \item Nhãn $\text{I-}c$: Đánh dấu token nằm bên trong (tiếp nối) của thực thể thuộc loại $c \in \mathcal{E}$.
+    \item Nhãn $\text{O}$: Đánh dấu token không thuộc bất kỳ trường thông tin cần trích xuất nào (văn bản nền hoặc ký hiệu nhiễu).
+\end{itemize}
+Một thực thể dự đoán chỉ được tính là hoàn toàn chính xác khi và chỉ khi cả loại thực thể $c$ lẫn điểm bắt đầu ($\text{B-}c$) và toàn bộ chuỗi tiếp nối ($\text{I-}c$) của nó trùng khớp tuyệt đối với nhãn chuẩn ground-truth \cite{jaume2019funsd}.
+
+\section{Các vấn đề thách thức trong Trích xuất thông tin chính}
+
+\subsection{Hạn chế của biểu diễn tọa độ phẳng hai chiều}
+Các mô hình tiền huấn luyện tài liệu kinh điển như LayoutLM \cite{xu2020layoutlm}, LayoutLMv2 \cite{xu2021layoutlmv2} và LayoutLMv3 \cite{huang2022layoutlmv3} nhúng thông tin bố cục bằng cách tra cứu tọa độ hộp $(x_0, y_0, x_1, y_1)$ cùng kích thước $(w, h)$ vào các bảng nhúng vị trí 2D. Mặc dù cách tiếp cận này cung cấp vị trí điểm ảnh chính xác cho từng token, nó lại xem tài liệu như một mặt phẳng tọa độ rời rạc và bỏ qua \textbf{cấu trúc phân cấp logic vĩ mô} của trang văn bản:
+\begin{enumerate}
+    \item \textbf{Cấu trúc dòng ngang:} Trên các tài liệu quét bị nghiêng nhẹ hoặc có khoảng cách dòng nhỏ, hai từ nằm trên cùng một dòng ngang có thể có tung độ $y$ chênh lệch nhỏ, buộc mạng tự chú ý toàn cục phải tự học quy tắc căn dòng từ dữ liệu thô.
+    \item \textbf{Cấu trúc khối cục bộ:} Các đoạn văn bản hoặc cụm trường khóa -- giá trị tạo thành từng vùng ngữ nghĩa khép kín nhưng không được phân tách tường minh trong không gian nhúng tọa độ phẳng.
+    \item \textbf{Cấu trúc cột dọc:} Trong hóa đơn bán lẻ (như bộ dữ liệu CORD) hoặc biểu mẫu đa cột (như bộ dữ liệu FUNSD), các trường cùng vai trò ngữ nghĩa (ví dụ: cột số lượng, cột đơn giá, cột thành tiền) luôn thẳng hàng theo trục dọc $x$. Khi thiếu chỉ báo cột tường minh, mô hình dễ nhầm lẫn giữa các trường số học nằm ở các cột khác nhau.
+\end{enumerate}
+
+\subsection{Hiện tượng trôi nhãn BIO và xung đột độ mịn phân đoạn -- token}
+\label{sec:granularity_conflict}
+Trong các mô hình phân biệt dựa trên nền tảng LayoutLMv3, dù các token có trao đổi thông tin thông qua các lớp Transformer tự chú ý, đầu phân loại cuối cùng vẫn đưa ra quyết định dự đoán nhãn độc lập cho từng token thứ $i$ dựa trên véc-tơ ẩn $\mathbf{h}_i$. Cách thiết kế này dẫn đến hai dạng lỗi phổ biến trong thực nghiệm:
+\begin{itemize}
+    \item \textbf{Hiện tượng trôi nhãn BIO trong thực thể dài:} Đối với các thực thể tự do gồm nhiều từ (ví dụ: một đoạn văn bản trả lời dài hàng chục token thuộc nhãn \texttt{ANSWER} trên tập dữ liệu FUNSD), mô hình có thể dự đoán đúng các token đầu là $\text{B-ANSWER}, \text{I-ANSWER}$, nhưng đến giữa câu lại chuyển đột ngột sang $\text{O}$ hoặc $\text{I-QUESTION}$. Chỉ cần một token giữa chuỗi bị lệch nhãn, toàn bộ thực thể dài đó sẽ bị đánh giá là sai hoàn toàn theo chuẩn đánh giá F1 mức thực thể nghiêm ngặt.
+    \item \textbf{Nhầm lẫn toàn bộ phân đoạn do thiếu ngữ cảnh lân cận:} Nhiều phân đoạn ngắn có nội dung từ vựng gần giống nhau (ví dụ: cụm từ \textit{``Date:''} hoặc \textit{``Name:''} vừa có thể là tiêu đề mục \texttt{HEADER}, vừa có thể là câu hỏi \texttt{QUESTION} tùy thuộc vào việc phân đoạn liền kề phía sau nó là một ô điền câu trả lời \texttt{ANSWER} hay là một mục con).
+\end{itemize}
+
+Một giải pháp tự nhiên để khắc phục hiện tượng trôi nhãn là thực hiện gộp toàn bộ các token thuộc cùng một phân đoạn cấu trúc thành một véc-tơ đại diện duy nhất trước khi phân loại. Tuy nhiên, trong quá trình khảo sát và phát triển kiến trúc của khóa luận, việc gộp cứng này làm nảy sinh \textbf{xung đột giữa cấu trúc vĩ mô và độ mịn cục bộ}: nếu mọi token trong cùng phân đoạn chỉ nhận đúng một véc-tơ gộp giống hệt nhau, bộ phân loại sẽ mất đi khả năng phân biệt giữa token khởi đầu ($\text{B-}c$) và các token tiếp nối ($\text{I-}c$), cũng như làm mờ đi ranh giới giữa các thực thể con nằm chung trong một dòng OCR.
+
+\subsection{Sự bất định tại ranh giới chuyển tiếp thực thể nội dòng}
+Trên các hóa đơn và biểu mẫu thực tế, hệ thống OCR hoặc bộ tách dòng đôi khi ghép hai thực thể khác nhau nằm gần nhau trên cùng một dòng ngang (ví dụ: số lượng mặt hàng \texttt{MENU.CNT} nằm sát tên mặt hàng \texttt{MENU.NM}, hoặc cặp nhãn câu hỏi \texttt{QUESTION} và nội dung trả lời \texttt{ANSWER} viết liền trên một dòng). Khi hàm mục tiêu huấn luyện chỉ sử dụng duy nhất mất mát Entropy chéo trên từng vị trí token độc lập, mô hình không bị phạt trực tiếp khi tạo ra các biểu diễn ẩn $\mathbf{h}_i$ và $\mathbf{h}_{i+1}$ quá giống nhau tại điểm chuyển tiếp giữa hai thực thể khác nhau, hoặc quá khác biệt ở bên trong cùng một thực thể liên tục.
+
+\section{Các hướng tiếp cận chính trong bài toán KIE}
+
+\subsection{Ba nhóm kiến trúc phổ biến cho hiểu tài liệu giàu thị giác}
+Dựa trên cách thức khai thác và tích hợp các phương thức dữ liệu (văn bản, bố cục 2D, hình ảnh), các phương pháp giải quyết bài toán KIE hiện nay có thể được phân thành ba nhóm chính \cite{cui2021document, phamthi2025dakta}:
+
+\subsubsection{Nhóm mô hình chỉ dựa trên văn bản một chiều}
+Nhóm phương pháp đầu tiên sử dụng trực tiếp các mô hình ngôn ngữ tiền huấn luyện như BERT \cite{devlin2019bert} hoặc RoBERTa trên chuỗi các từ thu được từ OCR đã sắp xếp theo thứ tự đọc từ trái sang phải, từ trên xuống dưới. Với tập chuỗi token đầu vào $X = (x_1, x_2, \dots, x_L)$, mô hình học ánh xạ $f_{\text{text}}: X \rightarrow \mathcal{Y}^L$. Ưu điểm của hướng tiếp cận này là cấu trúc đơn giản và tốc độ suy luận nhanh. Tuy nhiên, vì hoàn toàn bỏ qua tọa độ không gian 2D và thông tin thị giác, hiệu năng của chúng suy giảm nghiêm trọng khi cấu trúc bảng biểu hoặc nhiều cột phá vỡ thứ tự đọc tuyến tính (chẳng hạn BERT chỉ đạt $60.26\%$ F1 trên tập dữ liệu biểu mẫu FUNSD \cite{huang2022layoutlmv3}).
+
+\subsubsection{Nhóm mô hình đa phương thức tiền huấn luyện nhận thức bố cục}
+Để khắc phục hạn chế của mô hình văn bản thuần túy, nhóm phương pháp thứ hai tích hợp trực tiếp tọa độ hộp giới hạn 2D và đặc trưng ảnh tài liệu vào kiến trúc Transformer:
+\begin{itemize}
+    \item \textbf{Dòng họ LayoutLM:} LayoutLM \cite{xu2020layoutlm} tiên phong bổ sung lớp nhúng vị trí 2D $(x_0, y_0, x_1, y_1)$ vào bộ mã hóa BERT. LayoutLMv2 \cite{xu2021layoutlmv2} và DocFormer \cite{appalaraju2021docformer} tích hợp thêm mạng tích chập CNN ResNeXt-FPN để trích xuất bản đồ đặc trưng thị giác kết hợp với độ lệch tự chú ý nhận thức không gian. LayoutLMv3 \cite{huang2022layoutlmv3} đơn giản hóa và thống nhất kiến trúc bằng cách thay thế hoàn toàn mạng CNN nặng nề bằng phép nhúng mảnh ảnh tuyến tính và tiền huấn luyện với mục tiêu che mặt nạ hợp nhất trên cả văn bản MLM (Masked Language Modeling), hình ảnh MIM (Masked Image Modeling) và căn chỉnh từ -- mảnh ảnh WPA (Word-Patch Alignment).
+    \item \textbf{Các mô hình tăng cường cấu trúc và hình học:} StructuralLM \cite{li2021structurallm} khai thác vị trí mức ô; BROS \cite{hong2022bros} mã hóa vị trí tương đối giữa các khối văn bản trong không gian 2D; LiLT \cite{wang2022lilt} tách biệt luồng xử lý bố cục và văn bản qua cơ chế tương tác hai chiều; trong khi GeoLayoutLM \cite{luo2023geolayoutlm} và GraphLayoutLM \cite{li2023graphlayoutlm} sử dụng các ràng buộc hình học đa mức hoặc mạng đồ thị bố cục trong giaiền huấn luyện.
+\end{itemize}
+
+\subsubsection{Nhóm mô hình ngôn ngữ lớn sinh tự hồi quy LLM (Large Language Model)}
+Gần đây, các mô hình ngôn ngữ lớn đa phương thức như LayoutLLM \cite{luo2024layoutllm} và DocLLM \cite{wang2024docllm} phát biểu lại bài toán KIE dưới dạng tác vụ sinh văn bản tự hồi quy. Dù có khả năng suy luận ngữ nghĩa mạnh mẽ trên chuỗi dài, các kiến trúc sinh tự hồi quy đòi hỏi chi phí tính toán và dung lượng bộ nhớ GPU rất lớn, gây khó khăn cho các hệ thống RPA doanh nghiệp yêu cầu độ trễ thấp. Quan trọng hơn, quá trình giải mã sinh văn bản bị tách rời khỏi tọa độ hộp giới hạn đầu vào, dẫn tới nguy cơ ảo giác hoặc không thể ánh xạ chính xác chuỗi văn bản sinh ra quay ngược về tọa độ OCR gốc trên trang tài liệu \cite{wang2024docllm, luo2024layoutllm}. Vì vậy, việc nâng cao khả năng nhận thức cấu trúc cho các mô hình phân biệt gọn nhẹ như LayoutLMv3 ở giai đoạn tinh chỉnh mang ý nghĩa thực tiễn rất cao.
+
+\subsection{Các chiến lược mô hình hóa cấu trúc ở giai đoạn tinh chỉnh}
+Để tăng cường nhận thức cấu trúc cho mô hình phân biệt mà không phải gánh chịu chi phí tiền huấn luyện lại trên hàng triệu trang tài liệu, các chiến lược thích ứng ở giai đoạn tinh chỉnh tập trung vào ba hướng chính:
+\begin{enumerate}
+    \item \textbf{Làm giàu không gian nhúng đầu vào:} Phân cụm các token theo cấu trúc hình học (dòng, khối, cột) và bổ sung các véc-tơ nhúng phân cấp tương ứng vào đầu vào của mạng xương sống.
+    \item \textbf{Mô hình hóa ngữ cảnh mức phân đoạn:} Tổng hợp thông tin của các token trong cùng một vùng cấu trúc thành biểu diễn mức phân đoạn, cho phép các phân đoạn lân cận trao đổi thông tin theo thứ tự đọc trước khi phản hồi ngược về từng token.
+    \item \textbf{Giám sát phụ trợ về ranh giới và hình học:} Bổ sung các hàm mất mát phụ trợ (như mất mát phân định ranh giới thực thể hoặc tách biệt không gian ngữ nghĩa -- hình học) nhằm định hướng cho mạng xương sống học được các biểu diễn ẩn sắc nét hơn tại các biên chuyển tiếp thực thể.
+\end{enumerate}
+
+\section{Bài toán đồ án}
+Từ những phân tích về hạn chế của mô hình LayoutLMv3 nguyên bản cũng như yêu cầu thực tiễn của bài toán KIE trên tài liệu giàu thị giác, mục tiêu của khóa luận là nghiên cứu, thiết kế và kiểm chứng thực nghiệm một kiến trúc mở rộng gọn nhẹ trên nền tảng LayoutLMv3 (gồm cả hai biến thể \texttt{layoutlmv3-base} và \texttt{layoutlmv3-large}). Kiến trúc đề xuất giải quyết đồng thời bài toán thiếu hụt cấu trúc vĩ mô, hiện tượng trôi nhãn BIO trong phân đoạn đa token và sự nhập nhằng tại ranh giới chuyển tiếp thực thể thông qua ba thành phần: \textbf{Mã hóa vị trí phân cấp HPE (Hierarchical Position Encoding)}, \textbf{Mô-đun ngữ cảnh phân đoạn SCM (Segment Context Module)} và \textbf{Hàm mất mát ranh giới nội dòng}.
+
+Bài toán cụ thể mà khóa luận giải quyết được phát biểu hình thức như sau:
+
+\noindent\textbf{Đầu vào:} Một tài liệu giàu thị giác $\mathcal{D} = (\mathcal{I}, \mathcal{T}, \mathcal{B}, \mathcal{S})$, trong đó:
+\begin{itemize}
+    \item $\mathcal{I} \in \mathbb{R}^{3 \times H_{\text{img}} \times W_{\text{img}}}$ là ảnh màu RGB của trang tài liệu (được chuẩn hóa kích thước về $224 \times 224$).
+    \item $\mathcal{T} = (t_1, t_2, \dots, t_L)$ là chuỗi gồm $L$ token văn bản sau khi phân tách từ subword từ kết quả OCR.
+    \item $\mathcal{B} = (\mathbf{b}_1, \mathbf{b}_2, \dots, \mathbf{b}_L)$ với $\mathbf{b}_i = (x_0^{(i)}, y_0^{(i)}, x_1^{(i)}, y_1^{(i)}) \in [0, 1000]^4$ là tọa độ hộp giới hạn chuẩn hóa của từng token $t_i$.
+    \item $\mathcal{S} = (s_1, s_2, \dots, s_L)$ với $s_i \in \{-1, 0, 1, \dots, K-1\}$ là chỉ số phân đoạn gán theo thứ tự đọc cho các token cùng thuộc một vùng/dòng OCR.
+\end{itemize}
+
+\noindent\textbf{Đầu ra:} Chuỗi nhãn dự đoán $\hat{\mathbf{Y}} = (\hat{y}_1, \hat{y}_2, \dots, \hat{y}_L)$ với $\hat{y}_i \in \mathcal{Y}_{\text{BIO}} = \{\text{O}\} \cup \{\text{B-}c, \text{I-}c \mid c \in \mathcal{E}\}$ sao cho tập hợp các thực thể trích xuất được (xác định bởi cả loại thực thể $c$ và đoạn vị trí bắt đầu -- kết thúc) đạt độ chính xác F1 mức thực thể và độ ổn định cao nhất trên các tập dữ liệu kiểm thử chuẩn FUNSD và CORD.
+

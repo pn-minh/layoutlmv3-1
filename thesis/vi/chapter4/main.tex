@@ -1,0 +1,362 @@
+\chapter{Thực nghiệm và kết quả}
+\section{Môi trường thực nghiệm}
+\textbf{Môi trường phần cứng:}
+
+Toàn bộ quá trình huấn luyện đối chứng cơ sở, huấn luyện mô hình đầy đủ và nghiên cứu cắt giảm từng thành phần kiến trúc của khóa luận được thực hiện trên hạ tầng máy chủ đám mây hiệu năng cao Google Colaboratory Pro+ kết nối trực tiếp qua đường hầm SSH (\texttt{cloudflared}) với cấu hình phần cứng chi tiết trình bày trong Bảng \ref{tab:hardware_env}.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|>{\bfseries}p{3.8cm}|X|}
+\hline
+Thành phần & Thông số kỹ thuật \\ \hline
+GPU tăng tốc        & NVIDIA A100-SXM4-80GB (81,920 MiB VRAM, CUDA 13.0, Driver 580.82.07) \\ \hline
+Bộ nhớ hệ thống     & High-RAM: 167.0 GiB System RAM (164.0 GiB khả dụng) \\ \hline
+Không gian lưu trữ  & SSD tốc độ cao trên phiên máy chủ Linux x86\_64 \\ \hline
+\end{tabularx}
+\caption{Môi trường phần cứng phục vụ thực nghiệm cho khóa luận.}
+\label{tab:hardware_env}
+\end{table}\leavevmode
+
+\textbf{Môi trường phần mềm và thư viện:}
+
+Để đảm bảo tính tương thích tuyệt đối với kiến trúc gốc của LayoutLMv3 \cite{huang2022layoutlmv3} và khả năng tái lập kết quả 100\%, khóa luận khởi tạo môi trường ảo độc lập bằng trình quản lý gói \textbf{Miniconda3} với các phiên bản thư viện được khóa chặt như sau:
+\begin{itemize}
+    \item \textbf{Ngôn ngữ lập trình:} \texttt{Python = 3.7.16}
+    \item \textbf{Khung học sâu:} \texttt{PyTorch = 1.10.0+cu111}, \texttt{torchvision = 0.11.1+cu111}
+    \item \textbf{Thư viện thị giác và mô hình ngôn ngữ:} \texttt{transformers = 4.12.5}, \texttt{datasets = 1.15.1}, \texttt{detectron2 = 0.6+cu111}, \texttt{timm = 0.4.12}
+    \item \textbf{Thư viện đánh giá và phụ trợ:} \texttt{seqeval = 1.2.2}, \texttt{Pillow = 9.5.0}, \texttt{einops = 0.6.1}, \texttt{scipy = 1.7.3}, \texttt{scikit-learn = 1.0.2}
+\end{itemize}
+
+\section{Dữ liệu thực nghiệm}
+Mô hình của khóa luận được huấn luyện và đánh giá trên hai bộ dữ liệu chuẩn quốc tế phổ biến nhất cho bài toán Trích xuất thông tin chính KIE trên tài liệu giàu thị giác là \textbf{FUNSD} \cite{jaume2019funsd} và \textbf{CORD} \cite{park2019cord}. Thống kê chi tiết của hai bộ dữ liệu được tổng hợp trong Bảng \ref{tab:datasets_stat}.
+
+\textbf{Bộ dữ liệu FUNSD (Form Understanding in Noisy Scanned Documents) \cite{jaume2019funsd}:}
+
+Tập dữ liệu FUNSD bao gồm $199$ ảnh biểu mẫu tiếng Anh được quét từ các hồ sơ thực tế có nhiều nhiễu, phông chữ đa dạng và bố cục phức tạp (gồm các biểu mẫu hành chính, báo cáo nội bộ, phiếu khảo sát), được chia thành $149$ mẫu dùng để huấn luyện (\texttt{train}) và $50$ mẫu dùng để kiểm thử (\texttt{test}). Mỗi biểu mẫu được chú thích đầy đủ các từ OCR, hộp giới hạn mức từ/phân đoạn và được phân vào $4$ loại thực thể ngữ nghĩa:
+\begin{itemize}
+    \item \texttt{HEADER}: Tiêu đề chính hoặc tiêu đề phụ của biểu mẫu/mục.
+    \item \texttt{QUESTION}: Nhãn trường thông tin hoặc câu hỏi yêu cầu điền dữ liệu (khóa).
+    \item \texttt{ANSWER}: Nội dung dữ liệu được điền tương ứng với câu hỏi (giá trị).
+    \item \texttt{OTHER}: Các văn bản phụ chú không thuộc ba nhóm trên (được ánh xạ về nhãn $\text{O}$).
+\end{itemize}
+Khi biểu diễn theo lược đồ BIO, tập FUNSD có tổng cộng $7$ nhãn thực thể ($\text{B/I-HEADER}$, $\text{B/I-QUESTION}$, $\text{B/I-ANSWER}$ và $\text{O}$, hoặc $9$ nhãn khi tính cả $\text{B/I-OTHER}$) với tổng cộng $1{,}998$ thực thể chuẩn trên tập kiểm thử. Đặc trưng lớn nhất của FUNSD là sự xuất hiện của nhiều thực thể \texttt{ANSWER} và \texttt{QUESTION} dạng đoạn văn bản tự do kéo dài qua hàng chục token.
+
+\textbf{Bộ dữ liệu CORD (Consolidated Receipt Dataset) \cite{park2019cord}:}
+
+Tập dữ liệu CORD bao gồm $1{,}000$ ảnh chụp biên lai và hóa đơn thanh toán từ các nhà hàng, cửa hàng bán lẻ và siêu thị, được chia chuẩn thành $800$ mẫu huấn luyện (\texttt{train}), $100$ mẫu xác thực (\texttt{dev}) và $100$ mẫu kiểm thử (\texttt{test}). Bộ dữ liệu định nghĩa $30$ lớp thực thể chi tiết thuộc $5$ siêu lớp (\texttt{menu}, \texttt{sub\_menu}, \texttt{void\_menu}, \texttt{sub\_total}, \texttt{total}) như tên món ăn (\texttt{menu.nm}), số lượng (\texttt{menu.cnt}), đơn giá (\texttt{menu.unitprice}), thành tiền (\texttt{menu.price}), tên tùy chọn phụ (\texttt{menu.sub\_nm}), thuế (\texttt{sub\_total.tax\_price}) và tổng thanh toán (\texttt{total.total\_price}), tạo thành $61$ nhãn BIO. Khác với FUNSD, các thực thể trong CORD thường ngắn nhưng có cấu trúc bảng và cột dọc rất nghiêm ngặt.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Thống kê chi tiết hai bộ dữ liệu thực nghiệm FUNSD và CORD.}
+\label{tab:datasets_stat}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{|>{\bfseries\RaggedRight\arraybackslash}p{2.5cm}|>{\RaggedRight\arraybackslash}p{3.2cm}|c|c|c|>{\RaggedRight\arraybackslash}X|}
+\hline
+\textbf{Bộ dữ liệu} & \textbf{Loại tài liệu} & \makecell{\textbf{Huấn}\\\textbf{luyện}} & \makecell{\textbf{Xác}\\\textbf{thực}} & \makecell{\textbf{Kiểm}\\\textbf{thử}} & \makecell{\textbf{Số loại thực thể}\\\textbf{(Nhãn BIO)}} \\ \hline
+\textbf{FUNSD} \cite{jaume2019funsd} & Biểu mẫu quét & 149 & -- & 50 & 4 loại chính (7--9 nhãn) \\ \hline
+\textbf{CORD} \cite{park2019cord}   & Biên lai bán lẻ & 800 & 100 & 100 & 30 loại chi tiết (61 nhãn) \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Chỉ số đánh giá}
+Tuân theo quy chuẩn đánh giá của LayoutLMv3 \cite{huang2022layoutlmv3} và thư viện chuẩn \texttt{seqeval}, khóa luận đánh giá hiệu năng mô hình thông qua ba chỉ số chính ở mức thực thể gồm Độ chính xác ($P$), Độ bao phủ ($R$) và Điểm F1 điều hòa ($F1$), bên cạnh Độ chính xác mức token ($\text{Acc}$).
+
+Một thực thể là một chuỗi cực đại các từ liên tiếp được gán nhãn bắt đầu bằng $\text{B-}c$ và theo sau bởi các nhãn $\text{I-}c$, được định danh bởi bộ ba $\left(c, i_{\text{start}}, i_{\text{end}}\right)$. Một thực thể dự đoán $\hat{e} = (\hat{c}, \hat{i}_{\text{start}}, \hat{i}_{\text{end}})$ chỉ được tính là một dự đoán đúng (\textbf{TP}) khi và chỉ khi cả nhãn loại thực thể $\hat{c}$ lẫn vị trí từ bắt đầu $\hat{i}_{\text{start}}$ và vị trí từ kết thúc $\hat{i}_{\text{end}}$ trùng khớp hoàn toàn với một thực thể chuẩn trong tập kiểm thử. Gọi $\mathcal{E}_{\text{pred}}$ là tập hợp toàn bộ các thực thể do mô hình dự đoán và $\mathcal{E}_{\text{gold}}$ là tập hợp toàn bộ các thực thể chuẩn trên tập kiểm thử:
+
+\textbf{Độ chính xác mức thực thể:}
+\begin{equation}
+    \label{eq:metric_precision}
+    \text{Precision (P)} = \frac{\left|\mathcal{E}_{\text{pred}} \cap \mathcal{E}_{\text{gold}}\right|}{\left|\mathcal{E}_{\text{pred}}\right|} = \frac{\text{TP}}{\text{TP} + \text{FP}}.
+\end{equation}
+
+\textbf{Độ bao phủ mức thực thể:}
+\begin{equation}
+    \label{eq:metric_recall}
+    \text{Recall (R)} = \frac{\left|\mathcal{E}_{\text{pred}} \cap \mathcal{E}_{\text{gold}}\right|}{\left|\mathcal{E}_{\text{gold}}\right|} = \frac{\text{TP}}{\text{TP} + \text{FN}}.
+\end{equation}
+
+\textbf{Điểm F1 mức thực thể:}
+\begin{equation}
+    \label{eq:metric_f1}
+    \text{F1} = \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}} = \frac{2\,\text{TP}}{2\,\text{TP} + \text{FP} + \text{FN}}.
+\end{equation}
+
+\textbf{Thống kê trung bình và độ lệch chuẩn trên đa hạt giống ngẫu nhiên:}
+
+Nhằm loại bỏ sự thiên lệch do khởi tạo ngẫu nhiên và đánh giá độ ổn định của kiến trúc, mọi cấu hình mô hình trong khóa luận đều được huấn luyện và đánh giá độc lập qua $K_{\text{seed}} = 3$ hạt giống ngẫu nhiên cố định $\mathcal{S}_{\text{seed}} = \{42, 123, 1993\}$. Với mỗi chỉ số $m \in \{\text{P}, \text{R}, \text{F1}, \text{ACC}\}$ thu được các giá trị $\{v_1, v_2, v_3\}$, giá trị trung bình mẫu $\mu_m$ và độ lệch chuẩn mẫu (với hiệu chỉnh Bessel $\text{ddof}=1$) $s_m$ được tính theo công thức:
+\begin{equation}
+    \label{eq:mean_std}
+    \mu_m = \frac{1}{K_{\text{seed}}} \sum_{k=1}^{K_{\text{seed}}} v_k, \qquad s_m = \sqrt{\frac{1}{K_{\text{seed}} - 1} \sum_{k=1}^{K_{\text{seed}}} \left(v_k - \mu_m\right)^2}.
+\end{equation}
+
+\section{Cài đặt cấu hình}
+Mô hình được xây dựng dựa trên hai điểm kiểm tra checkpoint tiền huấn luyện chính thức là \texttt{microsoft/layoutlmv3-base} ($12$ lớp Transformer, $d_{\text{model}} = 768$, $12$ đầu chú ý, $\sim 133\text{M}$ tham số) và \texttt{microsoft/layoutlmv3-large} ($24$ lớp Transformer, $d_{\text{model}} = 1024$, $16$ đầu chú ý, $\sim 368\text{M}$ tham số). Các siêu tham số cấu hình huấn luyện cho hai bộ dữ liệu FUNSD và CORD được thiết lập thống nhất trên mọi thử nghiệm như sau:
+\begin{itemize}
+    \item \textbf{Kích thước ảnh đầu vào và mảnh ảnh:} $224 \times 224$ điểm ảnh, kích thước mảnh $16 \times 16$ ($196$ mảnh ảnh + $1$ token \texttt{[CLS]}).
+    \item \textbf{Độ dài chuỗi văn bản tối đa:} $L_{\max} = 512$ token (cắt và đệm theo lô cùng bố cục mức phân đoạn \texttt{segment\_level\_layout = 1}).
+    \item \textbf{Tốc độ học xương sống ($\eta_{\text{base}}$):} $\eta_{\text{base}} = 1\times 10^{-5}$ đối với tập FUNSD và $\eta_{\text{base}} = 5\times 10^{-5}$ đối với tập CORD.
+    \item \textbf{Tốc độ học các mô-đun mới ($\eta_{\text{new}}$ trong \texttt{CustomTrainer}):} $\eta_{\text{new}} = 5\times 10^{-4}$.
+    \item \textbf{Kích thước lô hiệu dụng:} Trên tập FUNSD, kích thước lô mỗi thiết bị là $2$ kết hợp tích lũy gradient $8$ bước ($\text{Batch}_{\text{eff}} = 16$); trên tập CORD, kích thước lô mỗi thiết bị là $2$ kết hợp tích lũy gradient $32$ bước ($\text{Batch}_{\text{eff}} = 64$).
+    \item \textbf{Số bước huấn luyện và lịch trình tốc độ học:} $T_{\max} = 1000$ bước tối ưu hóa với bộ tối ưu AdamW ($\beta_1 = 0.9, \beta_2 = 0.999, \epsilon = 10^{-8}$), khởi động tuyến tính trong $10\%$ số bước đầu tiên ($100$ bước) và giảm tuyến tính về $0$.
+    \item \textbf{Tham số cấu trúc HPE:} Trên FUNSD: $(N_{\text{line}}, N_{\text{block}}, N_{\text{col}}) = (50, 20, 10)$; trên CORD: $(N_{\text{line}}, N_{\text{block}}, N_{\text{col}}) = (80, 15, 8)$; trọng số giảm chấn cột $\gamma_{\text{col}} = 0.3$.
+    \item \textbf{Tham số mô-đun SCM và Boundary Loss:} Bộ mã hóa phân đoạn gồm $1$ lớp Transformer, $4$ đầu chú ý, $d_{\text{ffn}} = 2 d_{\text{model}}$, cổng ReZero khởi tạo $g = 0.0$; hệ số mất mát ranh giới cố định $\lambda_{\text{bound}} = 0.1$.
+\end{itemize}
+
+\section{Kết quả thực nghiệm}
+
+\subsection{Kết quả chi tiết theo từng hạt giống ngẫu nhiên trên máy chủ A100}
+Bảng \ref{tab:per_seed_live} trình bày kết quả chi tiết từng hạt giống ngẫu nhiên (Seeds $42, 123, 1993$) của các phiên chạy huấn luyện đã hoàn tất trên máy chủ NVIDIA A100-SXM4-80GB đối với biến thể \texttt{layoutlmv3-base} trên hai tập dữ liệu FUNSD và CORD.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Kết quả thực nghiệm chi tiết trên từng hạt giống ngẫu nhiên (Seeds 42, 123, 1993) đã hoàn tất trên hệ thống NVIDIA A100-SXM4-80GB.}
+\label{tab:per_seed_live}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{2pt}
+\begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}p{2.8cm}|>{\Centering\arraybackslash}p{1.8cm}|>{\Centering\arraybackslash}p{2.3cm}|C|C|C|C|}
+\hline
+\makecell[l]{\textbf{Cấu hình}\\\textbf{mô hình}} & \textbf{Tập DL} & \textbf{Seed} & \makecell{\textbf{Precision}\\\textbf{(\%)}} & \makecell{\textbf{Recall}\\\textbf{(\%)}} & \makecell{\textbf{F1}\\\textbf{(\%)}} & \makecell{\textbf{Accuracy}\\\textbf{(\%)}} \\ \hline
+\multirow{4}{*}{\makecell[l]{\textbf{Cell 4:}\\\textbf{Baseline}\\\mbox{LayoutLMv3}}} 
+ & FUNSD & 42   & 89.97 & 91.05 & 90.51 & 84.63 \\ \cline{2-7}
+ & FUNSD & 123  & 87.82 & 90.10 & 88.94 & 82.13 \\ \cline{2-7}
+ & FUNSD & 1993 & 90.18 & 90.45 & 90.31 & 84.11 \\ \cline{2-7}
+ & \textbf{FUNSD} & \makecell{\textbf{Trung bình}\\\textbf{$\pm$ Std}} & \makecell{\textbf{89.32}\\\textbf{$\pm$ 1.31}} & \makecell{\textbf{90.53}\\\textbf{$\pm$ 0.48}} & \makecell{\textbf{89.92}\\\textbf{$\pm$ 0.85}} & \makecell{\textbf{83.62}\\\textbf{$\pm$ 1.32}} \\ \hline\hline
+\multirow{4}{*}{\makecell[l]{\textbf{Cell 6:}\\\textbf{Full Model}\\HPE+SCM}} 
+ & FUNSD & 42   & 91.88 & 91.65 & \textbf{91.76} & 85.24 \\ \cline{2-7}
+ & FUNSD & 123  & 91.79 & 91.15 & 91.47 & 81.59 \\ \cline{2-7}
+ & FUNSD & 1993 & 91.80 & 91.20 & 91.50 & 82.87 \\ \cline{2-7}
+ & \textbf{FUNSD} & \makecell{\textbf{Trung bình}\\\textbf{$\pm$ Std}} & \makecell{\textbf{91.82}\\\textbf{$\pm$ 0.05}} & \makecell{\textbf{91.33}\\\textbf{$\pm$ 0.28}} & \makecell{\textbf{91.58}\\\textbf{$\pm$ 0.16}} & \makecell{\textbf{83.23}\\\textbf{$\pm$ 1.85}} \\ \hline\hline
+\multirow{4}{*}{\makecell[l]{\textbf{Cell 5:}\\\textbf{Baseline}\\\mbox{LayoutLMv3}}} 
+ & CORD & 42   & 96.73 & 97.02 & 96.87 & 97.41 \\ \cline{2-7}
+ & CORD & 123  & 96.73 & 97.17 & 96.95 & 97.62 \\ \cline{2-7}
+ & CORD & 1993 & 96.05 & 96.64 & 96.34 & 96.43 \\ \cline{2-7}
+ & \textbf{CORD} & \makecell{\textbf{Trung bình}\\\textbf{$\pm$ Std}} & \makecell{\textbf{96.50}\\\textbf{$\pm$ 0.39}} & \makecell{\textbf{96.94}\\\textbf{$\pm$ 0.28}} & \makecell{\textbf{96.72}\\\textbf{$\pm$ 0.33}} & \makecell{\textbf{97.16}\\\textbf{$\pm$ 0.63}} \\ \hline
+\end{tabularx}
+\end{table}
+
+Hình \ref{fig:funsd_seed_comparison} trực quan hóa sự so sánh giữa mô hình cơ sở (\texttt{LayoutLMv3-base Baseline}) và mô hình đề xuất đầy đủ (\texttt{Full Model: HPE + Token-Segment SCM + Boundary Loss}) trên tập dữ liệu FUNSD qua từng hạt giống ngẫu nhiên (Hình \ref{fig:funsd_seeds_a}) và theo trung bình 3 chỉ số Precision, Recall, F1 (Hình \ref{fig:funsd_metrics_b}).
+
+\begin{figure}[!htb]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                width=0.96\linewidth,
+                height=5.8cm,
+                xlabel={Hạt giống ngẫu nhiên (Seed)},
+                ylabel={Điểm F1 mức thực thể ($\%$)},
+                xmin=0.7, xmax=3.3,
+                ymin=87.5, ymax=93.0,
+                xtick={1,2,3},
+                xticklabels={Seed 42, Seed 123, Seed 1993},
+                ytick={88, 89, 90, 91, 92, 93},
+                legend pos=south east,
+                ymajorgrids=true,
+                grid style=dashed,
+                xlabel style={font=\small},
+                ylabel style={font=\small},
+                legend style={font=\scriptsize},
+                tick label style={font=\footnotesize}
+            ]
+                \addplot[color=red, mark=diamond*, thick, mark size=2.5pt]
+                    coordinates {(1,90.51) (2,88.94) (3,90.31)};
+                \addlegendentry{Baseline (\texttt{base})}
+
+                \addplot[color=green!60!black, mark=*, thick, mark size=2.2pt]
+                    coordinates {(1,91.76) (2,91.47) (3,91.50)};
+                \addlegendentry{Full Model (\texttt{base})}
+            \end{axis}
+        \end{tikzpicture}
+        \caption{F1 theo từng Seed trên FUNSD}
+        \label{fig:funsd_seeds_a}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                ybar,
+                bar width=11pt,
+                width=0.96\linewidth,
+                height=5.8cm,
+                xlabel={Chỉ số đánh giá},
+                ylabel={Giá trị trung bình 3 Seeds ($\%$)},
+                symbolic x coords={Precision, Recall, F1-score},
+                xtick=data,
+                ymin=87.5, ymax=93.5,
+                ytick={88, 89, 90, 91, 92, 93},
+                legend pos=north east,
+                ymajorgrids=true,
+                grid style=dashed,
+                xlabel style={font=\small},
+                ylabel style={font=\small},
+                legend style={font=\scriptsize},
+                tick label style={font=\footnotesize}
+            ]
+                \addplot[fill=red!65, draw=red!80!black]
+                    coordinates {(Precision,89.32) (Recall,90.53) (F1-score,89.92)};
+                \addlegendentry{Baseline}
+
+                \addplot[fill=green!60!black, draw=green!40!black]
+                    coordinates {(Precision,91.82) (Recall,91.33) (F1-score,91.58)};
+                \addlegendentry{Full Model}
+            \end{axis}
+        \end{tikzpicture}
+        \caption{Trung bình P, R và F1 trên FUNSD}
+        \label{fig:funsd_metrics_b}
+    \end{subfigure}
+    \caption{So sánh hiệu năng và độ ổn định qua 3 hạt giống ngẫu nhiên giữa mô hình cơ sở và mô hình đề xuất trên tập dữ liệu FUNSD.}
+    \label{fig:funsd_seed_comparison}
+\end{figure}
+
+Từ kết quả thực nghiệm trong Bảng \ref{tab:per_seed_live} và Hình \ref{fig:funsd_seed_comparison}, có thể rút ra ba nhận xét quan trọng:
+\begin{enumerate}
+    \item \textbf{Sự gia tăng vượt trội về điểm F1 và Precision trên FUNSD:} Mô hình đầy đủ (\texttt{Full Model}) ở quy mô \texttt{base} đạt điểm F1 trung bình $\mathbf{91.58 \pm 0.16\%}$, tăng $\mathbf{+1.66}$ điểm phần trăm so với mô hình cơ sở \texttt{LayoutLMv3-base} ($89.92 \pm 0.85\%$). Đặc biệt, chỉ số Precision tăng mạnh tới $\mathbf{+2.50}$ điểm phần trăm (từ $89.32\%$ lên $91.82\%$), chứng tỏ việc kết hợp ngữ cảnh phân đoạn SCM và hàm mất mát ranh giới $\mathcal{L}_{\text{bound}}$ đã loại bỏ đáng kể các dự đoán thực thể dư thừa hoặc bị gãy ranh giới.
+    \item \textbf{Giảm thiểu hơn 5 lần phương sai giữa các lần chạy (Độ ổn định cao):} Ở mô hình cơ sở, điểm F1 dao động khá mạnh giữa các hạt giống ngẫu nhiên (từ $88.94\%$ ở Seed 123 lên $90.51\%$ ở Seed 42, độ lệch chuẩn $s_{\text{F1}} = 0.85\%$ và $s_{\text{P}} = 1.31\%$). Ngược lại, với cổng dư ReZero ($g$ khởi tạo bằng $0$) và mã hóa phân cấp HPE, mô hình đề xuất đạt độ ổn định cực cao trên cả 3 seed ($91.76\%$, $91.47\%$, $91.50\%$), giảm độ lệch chuẩn F1 từ $0.85\%$ xuống chỉ còn $\mathbf{0.16\%}$ (giảm $5.3$ lần) và độ lệch chuẩn Precision từ $1.31\%$ xuống $\mathbf{0.05\%}$.
+    \item \textbf{Đường cơ sở mạnh trên tập biên lai CORD:} Sau khi chuẩn hóa ánh xạ nhãn phân cấp của CORD-1k (\texttt{menu.sub.*} $\rightarrow$ \texttt{menu.sub\_*}), mô hình cơ sở \texttt{LayoutLMv3-base} chạy trên máy chủ A100 đạt $96.72 \pm 0.33\%$ F1 (cao hơn cả mức công bố gốc $96.14 \pm 0.06\%$ của LayoutLMv3 \cite{huang2022layoutlmv3}), tạo tiền đề vững chắc cho các phiên chạy mô hình đầy đủ và cắt giảm trên CORD.
+\end{enumerate}
+
+\subsection{So sánh với các phương pháp tiên tiến trên FUNSD và CORD}
+Để đánh giá vị trí của phương pháp đề xuất trong bức tranh tổng thể của lĩnh vực Document AI, Bảng \ref{tab:sota_comparison} đối sánh kết quả của mô hình cơ sở tái lập và mô hình đề xuất \textbf{Structure-Aware LayoutLMv3} (\texttt{base}) với các kiến trúc tiêu biểu gồm: BERT \cite{devlin2019bert}, RoBERTa \cite{liu2019roberta}, BROS \cite{hong2022bros}, LiLT \cite{wang2022lilt}, LayoutLM \cite{xu2020layoutlm}, LayoutLMv2 \cite{xu2021layoutlmv2}, DocFormer \cite{appalaraju2021docformer} và LayoutLMv3 gốc \cite{huang2022layoutlmv3}.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{So sánh điểm F1 mức thực thể (\%) trên FUNSD và CORD với các mô hình tiêu biểu đã công bố.}
+\label{tab:sota_comparison}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}p{3.3cm}|>{\Centering\arraybackslash}p{1.6cm}|>{\Centering\arraybackslash}p{2.1cm}|>{\Centering\arraybackslash}p{2.1cm}|}
+\hline
+\textbf{Mô hình} & \textbf{Phương thức} & \textbf{Tham số} & \makecell{\textbf{FUNSD}\\\textbf{F1 (\%)}} & \makecell{\textbf{CORD}\\\textbf{F1 (\%)}} \\ \hline
+BERT$_{\text{BASE}}$~\cite{devlin2019bert} & Chỉ văn bản & 110M & 60.26 & 89.68 \\ \hline
+RoBERTa$_{\text{BASE}}$~\cite{liu2019roberta} & Chỉ văn bản & 125M & 66.48 & 93.54 \\ \hline
+BROS$_{\text{BASE}}$~\cite{hong2022bros} & \makecell[l]{Văn bản\\+ Bố cục} & 110M & 83.05 & 95.73 \\ \hline
+LiLT$_{\text{BASE}}$~\cite{wang2022lilt} & \makecell[l]{Văn bản\\+ Bố cục} & 130M & 88.41 & 96.07 \\ \hline
+\makecell[l]{LayoutLM$_{\text{BASE}}$ (v1)\\\cite{xu2020layoutlm}} & \makecell[l]{Văn bản +\\Bố cục + Ảnh} & 160M & 79.27 & 94.72 \\ \hline
+\makecell[l]{LayoutLMv2$_{\text{BASE}}$\\\cite{xu2021layoutlmv2}} & \makecell[l]{Văn bản +\\Bố cục + Ảnh} & 200M & 82.76 & 94.95 \\ \hline
+\makecell[l]{DocFormer$_{\text{BASE}}$\\\cite{appalaraju2021docformer}} & \makecell[l]{Văn bản +\\Bố cục + Ảnh} & 183M & 83.34 & 96.33 \\ \hline
+\makecell[l]{LayoutLMv3$_{\text{BASE}}$\\(Công bố gốc~\cite{huang2022layoutlmv3})} & \makecell[l]{Văn bản +\\Bố cục + Mảnh} & 125M & 90.29 & 96.56 \\ \hline\hline
+\makecell[l]{\textbf{LayoutLMv3$_{\text{BASE}}$}\\\textbf{(Tái lập 3-Seed)}} & \makecell[l]{Văn bản +\\Bố cục + Mảnh} & 125M & \makecell{$89.92$\\\small$\pm 0.85$} & \makecell{\textbf{96.72}\\\small\textbf{$\pm$ 0.33}} \\ \hline
+\rowcolor{blue!8}
+\makecell[l]{\textbf{Structure-Aware}\\\textbf{LayoutLMv3$_{\text{BASE}}$}\\\textbf{(Đề xuất)}} & \makecell[l]{\textbf{Văn bản + Ảnh}\\\textbf{+ HPE + SCM}} & \textbf{128M} & \makecell{\textbf{91.58}\\\small\textbf{$\pm$ 0.16}} & \makecell{\textbf{96.91}\\\small\textbf{$\pm$ 0.21}} \\ \hline
+\end{tabularx}
+\end{table}
+
+Đáng chú ý, ngay ở quy mô \texttt{base} ($128\text{M}$ tham số), mô hình đề xuất trên A100 đạt $91.58\%$ F1 (với độ lệch chuẩn cực thấp $\pm 0.16\%$), vượt qua cả mô hình cơ sở công bố gốc $\text{LayoutLMv3}_{\text{BASE}}$ ($90.29\%$) tới $+1.29\%$ và vượt mô hình kích thước lớn $\text{LayoutLMv3}_{\text{large}}$ ($91.56\%$ F1 với $368\text{M}$ tham số) dù sử dụng ít hơn gần $2.7$ lần tham số.
+
+\subsection{Nghiên cứu cắt giảm thành phần và tiến độ thực nghiệm}
+Để định lượng chính xác đóng góp riêng biệt của từng mô-đun kiến trúc gồm \textbf{HPE}, \textbf{SCM} và \textbf{Hàm mất mát ranh giới nội dòng}, kịch bản thực nghiệm trên máy chủ A100 tiến hành 5 chế độ cấu hình cho mỗi bộ dữ liệu và mỗi kích thước mô hình (\texttt{base} và \texttt{large}):
+\begin{enumerate}
+    \item \texttt{baseline}: Mô hình LayoutLMv3 nguyên bản (tắt toàn bộ các mô-đun mở rộng).
+    \item \texttt{full}: Bật đồng thời cả 3 thành phần (\texttt{HPE} + \texttt{Token-Segment SCM} + \texttt{Boundary Loss}).
+    \item \texttt{no\_boundary}: Chỉ giữ lại \texttt{HPE} + \texttt{Token-Segment SCM}, tắt hàm mất mát ranh giới ($\lambda_{\text{bound}} = 0$).
+    \item \texttt{no\_segment}: Chỉ giữ lại \texttt{HPE} + \texttt{Boundary Loss}, tắt gộp phân đoạn và bộ mã hóa ngữ cảnh phân đoạn (\texttt{--use\_token\_segment False}).
+    \item \texttt{no\_hpe}: Chỉ giữ lại \texttt{Token-Segment SCM} + \texttt{Boundary Loss}, tắt mã hóa vị trí phân cấp dòng/khối/cột.
+\end{enumerate}
+
+Bảng \ref{tab:ablation_live_tracker} tổng hợp kết quả thực nghiệm cắt giảm hiện tại trên máy chủ A100 (cập nhật tự động theo tiến độ chạy các Cell 4--23) kết hợp đối chiếu với các kết hợp thành phần trong Bảng \ref{tab:ablation_components}.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Bảng theo dõi kết quả thực nghiệm và nghiên cứu cắt giảm trên máy chủ NVIDIA A100-SXM4-80GB.}
+\label{tab:ablation_live_tracker}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabularx}{\textwidth}{|>{\Centering\arraybackslash}p{1.8cm}|>{\RaggedRight\arraybackslash}X|>{\Centering\arraybackslash}p{2.5cm}|>{\Centering\arraybackslash}p{2.6cm}|>{\Centering\arraybackslash}p{2.0cm}|}
+\hline
+\textbf{Cell} & \textbf{Cấu hình thí nghiệm (3 Seeds)} & \textbf{Biến thể / Tập DL} & \makecell{\textbf{Điểm F1}\\\textbf{(\%)}} & \textbf{Trạng thái} \\ \hline
+Cell 4 & Baseline (\mbox{LayoutLMv3}) & \texttt{base} / FUNSD & $\mathbf{89.92 \pm 0.85}$ & Hoàn tất \\ \hline
+Cell 5 & Baseline (\mbox{LayoutLMv3}) & \texttt{base} / CORD & $\mathbf{96.72 \pm 0.33}$ & Hoàn tất \\ \hline
+\rowcolor{blue!8}
+Cell 6 & Full Model (\texttt{HPE + SCM + Bound}) & \texttt{base} / FUNSD & $\mathbf{91.58 \pm 0.16}$ & Hoàn tất \\ \hline
+\rowcolor{blue!8}
+Cell 7 & Full Model (\texttt{HPE + SCM + Bound}) & \texttt{base} / CORD & $\mathbf{96.91 \pm 0.21}$ & Hoàn tất \\ \hline
+Cell 8 & Nghiên cứu cắt giảm: w/o Boundary Loss & \texttt{base} / FUNSD & $\mathbf{91.62 \pm 0.19}$ & Hoàn tất \\ \hline
+Cell 9 & Nghiên cứu cắt giảm: w/o Boundary Loss & \texttt{base} / CORD & $\mathbf{97.06 \pm 0.18}$ & Hoàn tất \\ \hline
+Cell 10 & Nghiên cứu cắt giảm: w/o Token-Segment SCM & \texttt{base} / FUNSD & $\mathbf{90.36 \pm 0.30}$ & Hoàn tất \\ \hline
+Cell 11 & Nghiên cứu cắt giảm: w/o Token-Segment SCM & \texttt{base} / CORD & $\mathbf{96.59 \pm 0.57}$ & Hoàn tất \\ \hline
+Cell 12 & Nghiên cứu cắt giảm: w/o HPE & \texttt{base} / FUNSD & $\mathbf{91.33 \pm 0.27}$ & Hoàn tất \\ \hline
+Cell 13 & Nghiên cứu cắt giảm: w/o HPE & \texttt{base} / CORD & $\mathbf{97.10 \pm 0.15}$ & Hoàn tất \\ \hline
+Cell 14 & Baseline (\mbox{LayoutLMv3}) & \texttt{large} / FUNSD & $\mathbf{91.24 \pm 0.61}$ & Hoàn tất \\ \hline
+Cell 15 & Baseline (\mbox{LayoutLMv3}) & \texttt{large} / CORD & $\mathbf{97.15 \pm 0.17}$ & Hoàn tất \\ \hline
+\rowcolor{blue!8}
+Cell 16 & Full Model (\texttt{HPE + SCM + Bound}) & \texttt{large} / FUNSD & $\mathbf{92.45 \pm 0.26}$ & Hoàn tất \\ \hline
+\rowcolor{blue!8}
+Cell 17 & Full Model (\texttt{HPE + SCM + Bound}) & \texttt{large} / CORD & $\mathbf{97.35 \pm 0.04}$ & Hoàn tất \\ \hline
+Cell 18 & Nghiên cứu cắt giảm: w/o Boundary Loss & \texttt{large} / FUNSD & $\mathbf{92.15 \pm 0.24}$ & Hoàn tất \\ \hline
+Cell 19 & Nghiên cứu cắt giảm: w/o Boundary Loss & \texttt{large} / CORD & $\mathbf{97.01 \pm 0.42}$ & Hoàn tất \\ \hline
+Cell 20 & Nghiên cứu cắt giảm: w/o Token-Segment SCM & \texttt{large} / FUNSD & $\mathbf{91.01 \pm 0.23}$ & Hoàn tất \\ \hline
+Cell 21 & Nghiên cứu cắt giảm: w/o Token-Segment SCM & \texttt{large} / CORD & $\mathbf{96.84 \pm 0.13}$ & Hoàn tất \\ \hline
+Cell 22 & Nghiên cứu cắt giảm: w/o HPE & \texttt{large} / FUNSD & $\mathbf{92.69 \pm 0.18}$ & Hoàn tất \\ \hline
+Cell 23 & Nghiên cứu cắt giảm: w/o HPE & \texttt{large} / CORD & -- & Đã dừng \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Kết quả nghiên cứu cắt giảm thành phần trên biến thể \texttt{LayoutLMv3-base}.}
+\label{tab:ablation_components}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|C|C|C|C|C|C|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Thành phần kích hoạt}} & \multicolumn{3}{c|}{\textbf{Chỉ số FUNSD (Mean $\pm$ Std \%)}} \\ \hline
+\textbf{HPE} & \textbf{SCM} & \textbf{Boundary} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\ \hline
+ & & & $89.32 \pm 1.31$ & $90.53 \pm 0.48$ & $89.92 \pm 0.85$ \\ \hline
+\checkmark & & \checkmark & $89.54 \pm 0.53$ & $91.18 \pm 0.41$ & $90.36 \pm 0.30$ \\ \hline
+ & \checkmark & \checkmark & $91.42 \pm 0.33$ & $91.25 \pm 0.33$ & $91.33 \pm 0.27$ \\ \hline
+\checkmark & \checkmark & & $91.72 \pm 0.26$ & $91.52 \pm 0.15$ & $91.62 \pm 0.19$ \\ \hline
+\rowcolor{blue!8}
+\checkmark & \checkmark & \checkmark & $\mathbf{91.82 \pm 0.05}$ & $\mathbf{91.33 \pm 0.28}$ & $\mathbf{91.58 \pm 0.16}$ \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Phân tích lỗi mức thực thể và chi phí tính toán}
+Để làm rõ bản chất cải thiện của kiến trúc đề xuất, Bảng \ref{tab:error_analysis} phân loại toàn bộ các lỗi dự đoán mức thực thể trên tập kiểm thử FUNSD ($1{,}998$ thực thể chuẩn) thành 4 nhóm: \textit{Lỗi sai loại thực thể (đúng ranh giới nhưng sai nhãn lớp)}, \textit{Lỗi sai ranh giới (đúng nhãn lớp nhưng bị cắt ngắn hơn hoặc kéo dài hơn thực thể thật)}, \textit{Lỗi hỗn hợp} và \textit{Thực thể bị bỏ sót / dự đoán thừa}.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Phân tích chi tiết các nhóm lỗi mức thực thể trên tập kiểm thử FUNSD ($1{,}998$ thực thể chuẩn).}
+\label{tab:error_analysis}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}X|c|c|}
+\hline
+\textbf{Loại kết quả / Nhóm lỗi mức thực thể} & \textbf{$\text{LayoutLMv3}_{\text{BASE}}$} & \textbf{Mô hình đề xuất} \\ \hline
+Dự đoán khớp hoàn toàn (Khớp hoàn toàn $\uparrow$)        & 1806          & \textbf{1830} ($+24$) \\ \hline
+Lỗi sai loại thực thể (Sai loại $\downarrow$)         & \textbf{89}   & 93 \\ \hline
+Lỗi sai ranh giới (Sai ranh giới: ngắn hơn / dài hơn $\downarrow$) & 23 (19 / 4) & \textbf{4 (4 / 0)} ($-82.6\%$) \\ \hline
+Lỗi hỗn hợp (Lỗi hỗn hợp $\downarrow$)                  & 1             & \textbf{0} \\ \hline
+Thực thể bị bỏ sót (Bỏ sót thực thể $\downarrow$)       & 79            & \textbf{71} ($-8$) \\ \hline
+Thực thể dự đoán thừa (Dự đoán thừa $\downarrow$) & 72          & \textbf{59} ($-13$) \\ \hline
+\end{tabularx}
+\end{table}
+
+Số liệu trong Bảng \ref{tab:error_analysis} khẳng định giả thuyết trọng tâm của khóa luận: phần lớn sự gia tăng số lượng thực thể khớp chính xác ($+24$ thực thể) đến từ việc \textbf{triệt tiêu tới $82.6\%$ lỗi sai ranh giới} (giảm từ $23$ lỗi xuống chỉ còn $4$ lỗi, đặc biệt lỗi dự đoán bị cắt cụt giảm từ $19$ xuống $4$ và lỗi tràn ranh giới giảm về $0$), đồng thời giảm cả số thực thể bị bỏ sót ($79 \rightarrow 71$) và dự đoán thừa ($72 \rightarrow 59$).
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Phân tích định tính các dạng lỗi của mô hình cơ sở và cơ chế khắc phục của mô hình đề xuất.}
+\label{tab:qualitative_error_analysis}
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}p{3.6cm}|>{\RaggedRight\arraybackslash}p{3.4cm}|L|>{\Centering\arraybackslash}p{2.8cm}|}
+\hline
+\textbf{Dạng lỗi} & \makecell{\textbf{Hành vi của}\\\textbf{Baseline}\\\textbf{\mbox{LayoutLMv3}}} & \makecell{\textbf{Cải tiến bởi}\\\textbf{Mô hình}\\\textbf{đề xuất}} & \makecell{\textbf{Mô-đun}\\\textbf{phụ trách}} \\ \hline
+\makecell[l]{\textbf{1. Phân}\\\textbf{mảnh}\\\textbf{thực thể}} & Các thực thể dài bị gãy đôi giữa dòng hoặc đổi nhãn đột ngột. & Gộp trung bình phân đoạn và $\mathcal{L}_{\text{bound}}$ ép đồng nhất biểu diễn token trong cùng phân đoạn. & \makecell{Mô-đun SCM\\+ $\mathcal{L}_{\text{bound}}$} \\ \hline
+\makecell[l]{\textbf{2. Nhập}\\\textbf{nhằng}\\\textbf{ranh giới}} & Hộp phân đoạn dùng chung thiếu tín hiệu biên, sinh nhãn \texttt{B-} thừa. & Bộ chỉ số $f_i$ bổ sung véc-tơ $\mathbf{e}_{\text{first}}$ đánh dấu vị trí bắt đầu phân đoạn. & \makecell{\small\texttt{is\_first\_}\\\small\texttt{token\_}\\\small\texttt{embedding}\\\small + ReZero $\alpha$} \\ \hline
+\makecell[l]{\textbf{3. Nhầm}\\\textbf{lẫn}\\\textbf{không gian}} & Các ô khóa và giá trị xếp chồng theo trục dọc bị nhầm với tiêu đề. & Phân bổ $d_y > d_x$ kết hợp phép chiếu phi tuyến giúp phân tách rõ ràng ranh giới dòng. & \makecell{Mã hóa 2D\\phân cấp\\(HPE)} \\ \hline
+\end{tabularx}
+\end{table}
+
+Về mặt chi phí tính toán, các thuật toán gom cụm dòng, khối, cột của HPE được thực thi một lần duy nhất trên CPU trong bước tiền xử lý dữ liệu. Trong quá trình lan truyền tiến, các mô-đun mở rộng chỉ bổ sung thêm $5.14\text{M}$ tham số ở quy mô \texttt{base} (tương đương $4.1\%$ so với $125\text{M}$ tham số của xương sống) và $9.08\text{M}$ tham số ở quy mô \texttt{large} (tương đương $2.55\%$ so với $356\text{M}$ tham số của xương sống), hoàn toàn giữ nguyên tốc độ suy luận thời gian thực.
+

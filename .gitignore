@@ -1,0 +1,52 @@
+# Tectonic & Local Compiler Binaries
+thesis/bin/
+thesis/bin/*
+
+# LaTeX Auxiliary and Build Artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.nav
+*.snm
+*.vrb
+
+# Generated Target PDFs (Compiled locally or fetched from remote)
+thesis/vi/main.pdf
+thesis/en/main.pdf
+thesis/presentation/weekly_update_slides.pdf
+thesis_en.pdf
+thesis_vi.pdf
+
+# Keep vector figures tracked
+!thesis/figures/*.pdf
+
+# Temporary Preview & Render Artifacts
+thesis/presentation/preview_slide*.png
+thesis/presentation/page*.png
+preview_slide*.png
+thesis/presentation/*.pptx
+
+# Large ZIP Bundles & Binary Archives
+thesis_*.zip
+thesis_full_latex_source.zip
+*.tar.gz
+scratch/checkpoint_eval_metadata.tar.gz
+scratch/LayoutLMv3_Ablation_Results_Completed_Cells.zip
+
+# Python & Environment Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/

@@ -1,0 +1,111 @@
+name: Compile Thesis & Presentation PDFs
+
+on:
+  push:
+    paths:
+      - 'thesis/**'
+      - '.github/workflows/compile_latex.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compile:
+    name: Build PDFs with Tectonic
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Tectonic packages and fonts
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Tectonic
+          key: ${{ runner.os }}-tectonic-${{ hashFiles('thesis/**/*.tex') }}
+          restore-keys: |
+            ${{ runner.os }}-tectonic-
+
+      - name: Install system fonts and dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            fontconfig \
+            fonts-dejavu-core \
+            fonts-freefont-ttf \
+            poppler-utils \
+            curl
+
+      - name: Setup Tectonic LaTeX engine
+        uses: wtfjoke/setup-tectonic@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Tectonic Version
+        run: tectonic --version
+
+      - name: Compile Model Architecture Diagram
+        run: |
+          echo "=== Compiling Model Architecture Diagram ==="
+          tectonic -X compile thesis/figures/model_architecture_heads_style.tex --outdir thesis/figures
+
+      - name: Compile Vietnamese Thesis
+        run: |
+          echo "=== Compiling Vietnamese Thesis ==="
+          tectonic -X compile thesis/vi/main.tex --outdir thesis/vi
+
+      - name: Compile English Thesis
+        run: |
+          echo "=== Compiling English Thesis ==="
+          tectonic -X compile thesis/en/main.tex --outdir thesis/en
+
+      - name: Compile Weekly Presentation Slides
+        run: |
+          echo "=== Compiling Weekly Presentation Slides ==="
+          tectonic -X compile thesis/presentation/weekly_update_slides.tex --outdir thesis/presentation
+
+      - name: Prepare Distribution Artifacts
+        run: |
+          mkdir -p dist
+          cp thesis/vi/main.pdf dist/Vietnamese_Thesis_LayoutLMv3.pdf
+          cp thesis/en/main.pdf dist/English_Thesis_LayoutLMv3.pdf
+          cp thesis/presentation/weekly_update_slides.pdf dist/Weekly_Progress_Presentation_Slides.pdf
+          cp thesis/figures/model_architecture_heads_style.pdf dist/Model_Architecture_Diagram.pdf
+          ls -lh dist/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-thesis-pdfs
+          path: dist/*.pdf
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish to GitHub Release (latest)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest
+          name: "Latest Compiled Thesis & Presentation PDFs"
+          body: |
+            ## Automated Thesis Build (${{ github.sha }})
+            
+            Built automatically via Tectonic on commit [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}).
+            
+            ### Direct PDF Downloads:
+            - **Vietnamese Thesis:** [Vietnamese_Thesis_LayoutLMv3.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Vietnamese_Thesis_LayoutLMv3.pdf)
+            - **English Thesis:** [English_Thesis_LayoutLMv3.pdf](https://github.com/${{ github.repository }}/releases/download/latest/English_Thesis_LayoutLMv3.pdf)
+            - **Presentation Slides:** [Weekly_Progress_Presentation_Slides.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Weekly_Progress_Presentation_Slides.pdf)
+            - **Model Architecture Diagram:** [Model_Architecture_Diagram.pdf](https://github.com/${{ github.repository }}/releases/download/latest/Model_Architecture_Diagram.pdf)
+            
+            ### Online Commenting & Annotation (Hypothes.is):
+            - [Annotate Vietnamese Thesis Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/Vietnamese_Thesis_LayoutLMv3.pdf)
+            - [Annotate English Thesis Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/English_Thesis_LayoutLMv3.pdf)
+            - [Annotate Presentation Slides Online](https://via.hypothes.is/https://github.com/${{ github.repository }}/releases/download/latest/Weekly_Progress_Presentation_Slides.pdf)
+          files: dist/*.pdf
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

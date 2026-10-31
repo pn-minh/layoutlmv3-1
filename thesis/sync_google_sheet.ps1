@@ -198,13 +198,21 @@ function Sync-QuadSheet {
         'w/o Boundary Loss (large - CORD)' $cordLargeNoBdr `
         '--' '+0.20%' '-0.14%'
 
-    # 5. Section 5: Token-Segment Ablation
+    # 5. Section 5: Token-Segment Ablation (base)
     $sec5 = Make-QuadBlock `
         'w/o Token-Segment SCM (base - FUNSD)' $funsdBaseNoSeg `
         'Reference Baseline (base - FUNSD)' $funsdBaseBase `
         'w/o Token-Segment SCM (base - CORD)' $cordBaseNoSeg `
         'Reference Baseline (base - CORD)' $cordBaseBase `
         '+0.44%' '--' '-0.13%'
+
+    # 6. Section 6: Token-Segment Ablation (large)
+    $sec6 = Make-QuadBlock `
+        'w/o Token-Segment SCM (large - FUNSD)' $funsdLargeNoSeg `
+        'Reference Baseline (large - FUNSD)' $funsdLargeBase `
+        'w/o Token-Segment SCM (large - CORD)' $cordLargeNoSeg `
+        'Reference Baseline (large - CORD)' $cordLargeBase `
+        '-0.23%' '--' '-0.31%'
 
     # Combine All Sections into Unified Matrix
     $matrix = @()
@@ -217,6 +225,8 @@ function Sync-QuadSheet {
     $matrix += $sec4
     $matrix += ,$blankRow
     $matrix += $sec5
+    $matrix += ,$blankRow
+    $matrix += $sec6
 
     # Save local CSV
     $csvLines = $matrix | ForEach-Object {

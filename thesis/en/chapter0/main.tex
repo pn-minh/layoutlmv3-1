@@ -1,0 +1,23 @@
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+In the era of global digital transformation, automatic document understanding and structured information extraction from business documents play a pivotal role across banking, finance, insurance, healthcare, e-commerce, and public administration workflows. Every day, millions of invoices, point-of-sale (POS) receipts, tax forms, contracts, and administrative records are digitized as scanned images or PDF files. However, converting these unstructured or semi-structured document images into structured machine-readable records remains a major bottleneck. This challenge forms the core research scope of \textbf{Document Artificial Intelligence (Document AI)}, and more specifically, the fundamental task of \textbf{Key Information Extraction (KIE)} on \textbf{Visually Rich Documents (VRDs)}.
+
+Unlike plain natural language text, Visually Rich Documents convey semantic meaning not only through lexical words, but also through two-dimensional (2D) spatial layouts, tabular alignments, multi-column regions, and visual typography (font sizes, bolding, borders, and checkboxes). Multi-modal pre-trained Transformers—most notably the LayoutLM family and specifically \textbf{LayoutLMv3}—have achieved remarkable breakthroughs by unifying text tokens, 2D bounding coordinates, and document image patches within a single Transformer backbone. Nevertheless, when fine-tuning standard LayoutLMv3 for sequence labeling on complex KIE benchmarks, three critical architectural limitations persist:
+\begin{enumerate}
+    \item \textbf{Isotropic 2D coordinate embeddings:} The model projects horizontal coordinates $(x_0, x_1, w)$ and vertical coordinates $(y_0, y_1, h)$ independently using a shared isotropic embedding dimension, failing to decouple intra-line reading continuity from inter-line hierarchical structure.
+    \item \textbf{Absence of explicit line/segment structural consensus:} Self-attention operates solely at the subword token level without an explicit intermediate representation of physical text lines (segments), leading to inconsistent IOB2 label predictions within the same semantic text block.
+    \item \textbf{Lack of intra-line boundary regularization:} Standard token-level cross-entropy loss treats every token independently and does not explicitly penalize abrupt label transitions between adjacent tokens belonging to the same text line.
+\end{enumerate}
+
+Motivated by these challenges, this undergraduate thesis proposes a \textbf{Structure-Aware Multi-Modal LayoutLMv3 Architecture} that integrates three synergistic architectural and optimization enhancements: (1) \textbf{Hierarchical 2D Positional Encoding (HPE)}, (2) a \textbf{Token-Segment Interaction Module (Segment Consensus Module - SCM)} with ReZero-style learnable gating and segment-start embeddings, and (3) an auxiliary \textbf{Intra-Line Boundary Regularization Loss}.
+
+The remainder of this thesis is organized into five main chapters matching the standard academic format:
+\begin{itemize}
+    \item \textbf{Chapter 1 -- Introduction:} Presents the practical motivation of Document AI and KIE on VRDs, formalizes the multi-modal sequence labeling problem, analyzes existing challenges, and summarizes the main contributions of the thesis.
+    \item \textbf{Chapter 2 -- Background and Related Work:} Reviews foundational architectures including Vision-Language Transformers, BIO/IOB2 sequence tagging, the evolution from LayoutLM and LayoutLMv2 to LayoutLMv3, and segment-aware document understanding methods such as StructuralLM, DocFormer, LiLT, GeoLayoutLM, and reading-order aware pipelines.
+    \item \textbf{Chapter 3 -- Proposed Methodology:} Formulates the mathematical foundations and algorithmic workflow of the three proposed enhancements (HPE, Token-Segment Interaction with ReZero Gating, and Intra-Line Boundary Regularization) atop the LayoutLMv3 backbone.
+    \item \textbf{Chapter 4 -- Experiments and Results:} Details the experimental setup on an NVIDIA A100-SXM4-80GB GPU, the FUNSD and CORD benchmark datasets, entity-level evaluation metrics across 3 random seeds ($\{42, 123, 1993\}$), quantitative comparisons, and systematic ablation studies.
+    \item \textbf{Chapter 5 -- Conclusion:} Reserved for final conclusions and future research directions once all base and large ablation suites complete execution.
+\end{itemize}
+

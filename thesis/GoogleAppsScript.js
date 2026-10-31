@@ -95,6 +95,8 @@ function doPost(e) {
         mimeType = "image/png";
       } else if (filename.toLowerCase().endsWith(".zip")) {
         mimeType = "application/zip";
+      } else if (filename.toLowerCase().endsWith(".pptx")) {
+        mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
       }
       var blob = Utilities.newBlob(bytes, mimeType, filename);
       var file = folder.createFile(blob);

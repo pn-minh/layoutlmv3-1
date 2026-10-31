@@ -1,0 +1,95 @@
+\chapter{Introduction}
+\label{chap:introduction}
+
+\section{Overview of Document AI and Key Information Extraction (KIE)}
+\label{sec:intro_overview}
+
+Modern enterprises and government institutions process massive volumes of business documents every day, including purchase invoices, thermal retail receipts, financial statements, customs declarations, insurance claims, and administrative forms. Historically, extracting critical fields from these documents—such as vendor names, invoice dates, line-item quantities, unit prices, and grand totals—relied on manual data entry or rigid rule-based templates. Manual processing is labor-intensive, costly, and prone to human error, whereas rule-based templates break down immediately whenever document layouts vary across vendors or scanning conditions change.
+
+To overcome these bottlenecks, \textbf{Document Artificial Intelligence (Document AI)}~\cite{cui2021documentai} has emerged as an interdisciplinary research field at the intersection of Natural Language Processing (NLP), Computer Vision (CV), and Pattern Recognition. Within Document AI, \textbf{Key Information Extraction (KIE)} on \textbf{Visually Rich Documents (VRDs)}~\cite{xu2020layoutlm,huang2022layoutlmv3} is the core task responsible for locating, categorizing, and extracting structured semantic entities from unstructured or semi-structured document images.
+
+Unlike standard Named Entity Recognition (NER) on flat 1D text corpora~\cite{devlin2019bert,liu2019roberta}, KIE on VRDs requires reasoning jointly over three complementary modalities:
+\begin{enumerate}
+    \item \textbf{Textual Modality:} The lexical content of words and subword tokens obtained via Optical Character Recognition (OCR) or digital PDF parsers.
+    \item \textbf{Spatial Layout Modality:} The two-dimensional (2D) bounding box coordinates defining where each word and text segment resides on the document canvas, capturing key-value alignments, table columns, and hierarchical blocks.
+    \item \textbf{Visual Modality:} The raw pixel appearance of the document image, encoding non-textual cues such as font weight, italics, table gridlines, section borders, logos, and checkmarks.
+\end{enumerate}
+
+For example, in a scanned administrative form (such as those in the \textbf{FUNSD} benchmark~\cite{jaume2019funsd}), determining whether a phrase is a \texttt{QUESTION} (field key), an \texttt{ANSWER} (field value), or a section \texttt{HEADER} depends heavily on its spatial proximity to adjacent cells and its visual typography. Similarly, on a multi-line retail receipt (such as those in the \textbf{CORD} benchmark~\cite{park2019cord}), distinguishing a line-item subtotal (\texttt{menu.price}) from the receipt's final total (\texttt{total.total\_price}) requires understanding horizontal row alignment and vertical table hierarchy.
+
+\section{Formal Problem Statement}
+\label{sec:problem_statement}
+
+In the standard OCR-dependent KIE paradigm, a visually rich document page is represented as a high-resolution RGB image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$ accompanied by a set of $N$ words (or subword tokens after Byte-Pair Encoding tokenization) extracted by an OCR engine.
+
+Formally, let a tokenized document sample of sequence length $L$ be denoted as a multi-modal tuple:
+\begin{equation}
+    \mathcal{D} = \left\{ (w_i, \mathbf{b}_i, s_i) \right\}_{i=1}^{L} \cup \{\mathbf{I}\},
+    \label{eq:doc_representation}
+\end{equation}
+where:
+\begin{itemize}
+    \item $w_i \in \mathcal{V}$ is the $i$-th subword token drawn from vocabulary $\mathcal{V}$.
+    \item $\mathbf{b}_i = (x_0^{(i)}, y_0^{(i)}, x_1^{(i)}, y_1^{(i)}) \in [0, 1000]^4$ denotes the normalized 2D bounding box coordinates of token $w_i$, where $(x_0^{(i)}, y_0^{(i)})$ is the top-left corner and $(x_1^{(i)}, y_1^{(i)})$ is the bottom-right corner scaled to a canonical $1000 \times 1000$ grid:
+    \begin{equation}
+        x_{0,1}^{(i)} = \left\lfloor \frac{\tilde{x}_{0,1}^{(i)}}{W} \times 1000 \right\rfloor, \quad
+        y_{0,1}^{(i)} = \left\lfloor \frac{\tilde{y}_{0,1}^{(i)}}{H} \times 1000 \right\rfloor.
+    \end{equation}
+    \item $s_i \in \{0, 1, \dots, S-1\}$ is the \textbf{segment (line) index} grouping tokens that belong to the same contiguous visual text line or OCR block ($S \le L$).
+\end{itemize}
+
+We formulate Key Information Extraction as a \textbf{Multi-Modal Sequence Labeling} problem under the standard \textbf{IOB2 (Inside--Outside--Beginning)} tagging scheme. Let $\mathcal{E} = \{e_1, e_2, \dots, e_K\}$ be the set of $K$ semantic entity categories (e.g., $K=3$ active categories on FUNSD: \texttt{HEADER}, \texttt{QUESTION}, \texttt{ANSWER}; and $K=30$ fine-grained receipt subclasses on CORD). Under IOB2 tagging, the discrete label space $\mathcal{Y}$ has cardinality $|\mathcal{Y}| = 2K + 1$:
+\begin{equation}
+    \mathcal{Y} = \{\texttt{O}\} \cup \bigcup_{k=1}^{K} \left\{ \texttt{B-}e_k, \, \texttt{I-}e_k \right\},
+\end{equation}
+where \texttt{B-}$e_k$ marks the first token of an entity span of type $e_k$, \texttt{I-}$e_k$ marks subsequent tokens inside the same entity span, and \texttt{O} denotes background tokens outside any target entity.
+
+The objective is to learn a parameterized multi-modal neural network $f_{\Theta}(\mathcal{D})$ that predicts a sequence of token labels $\hat{\mathbf{Y}} = (\hat{y}_1, \hat{y}_2, \dots, \hat{y}_L) \in \mathcal{Y}^L$ maximizing the conditional probability $P(\mathbf{Y} \mid \mathcal{D}; \Theta)$ and maximizing the strict \textbf{entity-level F1-score} over exact span matches $(s_{\text{start}}, s_{\text{end}}, e_k)$.
+
+\section{Challenges in Existing Multi-Modal KIE Models}
+\label{sec:challenges}
+
+Although \textbf{LayoutLMv3}~\cite{huang2022layoutlmv3} represents a milestone in Document AI by replacing heavy region-based CNN backbones with unified linear patch projections and multi-modal pre-training (MLM, MIM, and WPA), fine-tuning the standard LayoutLMv3 architecture on downstream KIE benchmarks reveals three fundamental structural challenges:
+
+\begin{enumerate}
+    \item \textbf{Isotropic 2D Spatial Coordinate Representation:}
+    In the baseline LayoutLMv3 implementation, each of the six spatial coordinates $(x_0, y_0, x_1, y_1, w, h)$ is embedded into an identical vector dimension $d_c = d / 6$ (e.g., $768 / 6 = 128$ in the \texttt{base} variant) and concatenated blindly. In real-world documents, however, horizontal coordinates $(x_0, x_1, w)$ and vertical coordinates $(y_0, y_1, h)$ play fundamentally asymmetric geometric roles: horizontal shifts govern intra-line word order and tabular column alignment, whereas vertical coordinates govern reading progression across lines and hierarchical document sections. Treating both axes isotropically limits the model's sensitivity to vertical line separation.
+
+    \item \textbf{Lack of Explicit Segment-Level (Line-Level) Structural Consensus:}
+    Even when tokens belonging to the same visual text line share segment-level bounding boxes during data collation, the Transformer self-attention layers in baseline LayoutLMv3 operate exclusively over individual subword tokens $w_i$ and visual patches $p_j$. There is no explicit intermediate representation for the text line/segment $s \in \{0, \dots, S-1\}$ itself. Consequently, long multi-word entities (such as multi-clause questions on FUNSD or long item descriptions on CORD) frequently suffer from \textbf{entity fragmentation}, where tokens within the exact same line are inconsistently assigned conflicting entity classes or broken IOB2 transitions.
+
+    \item \textbf{Absence of Intra-Line Boundary Smoothness Constraints:}
+    Standard token classification optimizes a per-token Cross-Entropy loss independently across positions $i \in \{1, \dots, L\}$. Because no explicit loss term regularizes the distributional divergence between adjacent tokens $(w_i, w_{i+1})$ inside the same line segment ($s_i = s_{i+1}$), the classifier can produce noisy, spurious label flips mid-phrase, degrading both entity-level Precision and Recall.
+\end{enumerate}
+
+\section{Thesis Objectives and Main Contributions}
+\label{sec:contributions}
+
+To directly address the three challenges identified above without incurring the heavy inference overhead of Conditional Random Fields (CRFs) or large graph neural networks, this thesis designs, implements, and rigorously evaluates a \textbf{Structure-Aware LayoutLMv3 Architecture for Key Information Extraction}. Specifically, our main contributions are fourfold:
+
+\begin{enumerate}
+    \item \textbf{Hierarchical 2D Positional Encoding (HPE):}
+    We reformulate the 2D spatial embedding layer by decoupling horizontal intra-line features $(x_0, x_1, w)$ from vertical inter-line features $(y_0, y_1, h)$ via an asymmetric dimensional allocation ($d_x = d/8$ per horizontal attribute, $d_y = 5d/24$ per vertical attribute) followed by a non-linear hierarchical fusion projection (\texttt{Linear} $\to$ \texttt{LayerNorm} $\to$ \texttt{GELU}).
+
+    \item \textbf{Token-Segment Interaction Module (Segment Consensus Module - SCM):}
+    Inspired by multi-granularity segment reasoning~\cite{huang2022layoutlmv3,wang2022lilt}, we introduce a dedicated structural refinement layer on top of the LayoutLMv3 encoder. The module aggregates token hidden states into $S$ line-segment representations via mean pooling, models global inter-segment layout dependencies via Multi-Head Self-Attention (\texttt{SegmentAttention}), and injects segment context back into each token through a \textbf{ReZero-style learnable scalar gate} ($\alpha$ initialized to $0$) alongside a binary \textbf{segment-start indicator embedding} (\texttt{is\_}\allowbreak\texttt{first\_}\allowbreak\texttt{token\_}\allowbreak\texttt{embedding}).
+
+    \item \textbf{Intra-Line Boundary Regularization Loss:}
+    We formulate an auxiliary boundary consistency loss $\mathcal{L}_{\text{bound}}$ that computes the cosine feature dissimilarity between consecutive tokens within the same line segment ($s_i = s_{i+1}$) that share the same base entity category, penalizing internal representation drift and stabilizing entity span boundaries.
+
+    \item \textbf{Rigorous Multi-Seed Evaluation and Reproducible LaTeX/Colab Pipeline:}
+    We execute a comprehensive experimental and ablation protocol on an \textbf{NVIDIA A100-SXM4-80GB} GPU across two standard KIE benchmarks (\textbf{FUNSD} and \textbf{CORD}), reporting strict entity-level Precision, Recall, F1-score, and Accuracy as $\text{Mean} \pm \text{Std}$ over 3 independent random seeds ($\{42, 123, 1993\}$). On FUNSD, our full structure-aware model elevates 3-seed entity F1 from \textbf{89.92 $\pm$ 0.85\%} to \textbf{91.58 $\pm$ 0.16\%} ($+1.66\%$ absolute gain while reducing cross-seed variance by $5.3\times$).
+\end{enumerate}
+
+\section{Thesis Organization}
+\label{sec:thesis_structure}
+
+The remainder of this document is structured into five chapters:
+\begin{itemize}
+    \item \textbf{Chapter~\ref{chap:introduction} (Introduction):} Introduces the background of Document AI and KIE on VRDs, formalizes the multi-modal sequence labeling problem, outlines existing limitations, and states our core contributions.
+    \item \textbf{Chapter~\ref{chap:related_work} (Background and Related Work):} Provides theoretical foundations on Transformer attention mechanisms, BIO/IOB2 sequence tagging, the evolution of the LayoutLM family, and related segment-aware document understanding frameworks.
+    \item \textbf{Chapter~\ref{chap:methodology} (Proposed Methodology):} Details the mathematical formulations, tensor dimensions, architectural diagrams, and forward/training algorithms of our proposed HPE, Token-Segment Interaction (SCM), and Intra-Line Boundary Loss modules.
+    \item \textbf{Chapter~\ref{chap:experiments} (Experiments and Results):} Presents the hardware environment, dataset statistics, evaluation metrics, hyperparameter configurations, multi-seed experimental results, ablation tracking, and error analysis.
+    \item \textbf{Chapter~\ref{chap:conclusion} (Conclusion):} Reserved for final synthesis and future work upon completion of the full ablation matrix.
+\end{itemize}
+

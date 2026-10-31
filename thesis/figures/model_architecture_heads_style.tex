@@ -1,0 +1,327 @@
+\documentclass[border=12pt, multi, tikz]{standalone}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning, calc, fit, backgrounds, shapes.geometric, arrows.meta}
+
+\begin{document}
+
+% Cohesive 3-4 color palette directly matching HEADS (Fig. 1):
+%   1. Steel Blue      (LayoutLMv3 Backbone, Gated Late-Fusion, Softmax, Final Loss)
+%   2. Warm Orange     (Visual/1D Embeddings, E_block, Token Logits)
+%   3. Sage Teal-Green (2D Embeddings, E_col, Segment Context Module, Refined Segments)
+%   4. Neutral Slate   (Outer Input/HPE Containers, Pooled Segments, Connectors)
+
+\definecolor{ContainerBg}{RGB}{246, 247, 249}
+\definecolor{ContainerBorder}{RGB}{130, 138, 150}
+\definecolor{DocLine}{RGB}{190, 196, 206}
+
+% Core Hue 1: Steel Blue (Backbone & Late-Fusion Stack)
+\definecolor{BackboneFill}{RGB}{164, 206, 244}
+\definecolor{BackboneBorder}{RGB}{40, 98, 158}
+\definecolor{BlueSoft}{RGB}{212, 232, 250}
+\definecolor{WordCol}{RGB}{152, 188, 232}
+\definecolor{WordColDark}{RGB}{44, 102, 165}
+
+% Core Hue 2: Warm Orange (Patch/1D Emb, E_block, Token Logits)
+\definecolor{PatchCol}{RGB}{246, 186, 132}
+\definecolor{PatchColDark}{RGB}{192, 92, 20}
+\definecolor{TokPillBg}{RGB}{252, 224, 190}
+\definecolor{TokPillBorder}{RGB}{185, 88, 22}
+
+% Core Hue 3: Sage Teal-Green (Segment Context Module, E_col, 2D Emb)
+\definecolor{ScmBg}{RGB}{194, 226, 218}
+\definecolor{ScmBorder}{RGB}{42, 128, 108}
+\definecolor{Pos2DCol}{RGB}{142, 208, 190}
+\definecolor{Pos2DColDark}{RGB}{38, 128, 104}
+\definecolor{SegPoolCol}{RGB}{125, 135, 145}
+\definecolor{SegRefinedCol}{RGB}{46, 178, 106}
+
+% Segment Logits Pill (Soft Rose-Coral from HEADS Fig. 1)
+\definecolor{SegPillBg}{RGB}{248, 216, 222}
+\definecolor{SegPillBorder}{RGB}{172, 62, 82}
+
+\begin{tikzpicture}[
+    scale=1.0,
+    every node/.style={transform shape},
+    >=stealth,
+    font=\large,
+    flowarrow/.style={->, thick, draw=black!80, line width=0.55mm, rounded corners=6pt},
+    flowline/.style={thick, draw=black!80, line width=0.55mm, rounded corners=6pt},
+    pill/.style={rounded corners=7pt, thick, align=center, inner sep=5.5pt},
+    boxnode/.style={rounded corners=6pt, thick, align=center, fill=white, inner sep=5.5pt}
+]
+
+% Macro to draw a 3D isometric block (exact HEADS Fig. 1 style)
+\newcommand{\drawblock}[5]{% {x}{y}{w}{h}{color}
+    \pgfmathsetmacro{\x}{#1}
+    \pgfmathsetmacro{\y}{#2}
+    \pgfmathsetmacro{\w}{#3}
+    \pgfmathsetmacro{\h}{#4}
+    \fill[#5!80!black] (\x+\w, \y) -- (\x+\w+0.12, \y+0.12) -- (\x+\w+0.12, \y+\h+0.12) -- (\x+\w, \y+\h) -- cycle;
+    \fill[#5!55!white] (\x, \y+\h) -- (\x+0.12, \y+\h+0.12) -- (\x+\w+0.12, \y+\h+0.12) -- (\x+\w, \y+\h) -- cycle;
+    \fill[#5] (\x, \y) rectangle (\x+\w, \y+\h);
+    \draw[black!65, very thin] (\x, \y) rectangle (\x+\w, \y+\h);
+    \draw[black!65, very thin] (\x+\w, \y) -- (\x+\w+0.12, \y+0.12) -- (\x+\w+0.12, \y+\h+0.12) -- (\x+\w, \y+\h);
+    \draw[black!65, very thin] (\x, \y+\h) -- (\x+0.12, \y+\h+0.12) -- (\x+\w+0.12, \y+\h+0.12);
+}
+
+% Macro to draw a contiguous 3-block 3D bar (exact HEADS Fig. 1 embedding bar)
+\newcommand{\drawbar}[5]{% {x}{y}{seg_w}{h}{color}
+    \foreach \i in {0,1,2} {
+        \pgfmathsetmacro{\cx}{#1 + \i*(#3)}
+        \drawblock{\cx}{#2}{#3}{#4}{#5}
+    }
+}
+
+% Macro for clipped circular Adder (+) where inner cross touches outer circle exactly
+\newcommand{\drawadder}[4]{% {name}{x}{y}{color}
+    \node[circle, draw=#4, fill=white, line width=0.60mm, minimum size=0.72cm,
+        path picture={
+            \draw[line width=0.55mm, #4]
+                (path picture bounding box.north) -- (path picture bounding box.south)
+                (path picture bounding box.west) -- (path picture bounding box.east);
+        }] (#1) at (#2, #3) {};
+}
+
+
+% =========================================================================
+% 1. TOP-LEFT CONTAINER: INPUT (Exact HEADS Fig. 1 Layout)
+% =========================================================================
+\draw[rounded corners=9pt, fill=ContainerBg, draw=ContainerBorder, line width=0.55mm] (0.0, 5.20) rectangle (8.65, 10.85);
+\node[font=\Large\bfseries, text=black!88] at (1.55, 10.42) {Input};
+
+% Left: Document Sheet Icon
+\draw[rounded corners=3pt, fill=white, draw=black!55, thick] (0.30, 5.58) rectangle (2.68, 10.00);
+\fill[BackboneBorder!75] (0.46, 9.45) rectangle (2.52, 9.76);
+\foreach \ly in {9.12, 8.79, 8.46, 8.13, 7.80, 7.47, 7.14, 6.81, 6.48, 6.15, 5.85} {
+    \draw[DocLine, line width=1.6pt] (0.46, \ly) -- (2.52, \ly);
+}
+% Highlighted OCR regions on Document
+\draw[PatchColDark, thick, fill=PatchCol!30, fill opacity=0.65] (0.46, 8.34) rectangle (1.38, 8.63);
+\draw[BackboneBorder, thick, fill=WordCol!30, fill opacity=0.65] (1.46, 7.68) rectangle (2.52, 7.97);
+\draw[Pos2DColDark, thick, fill=Pos2DCol!30, fill opacity=0.65] (0.46, 6.69) rectangle (1.68, 6.98);
+
+% Right: White inner rounded card housing 4 Embedding Bars (generous bottom/side padding)
+\draw[rounded corners=8pt, fill=white, draw=ContainerBorder, thick] (3.32, 5.38) rectangle (8.40, 10.62);
+
+% Perspective projection lines from Document to Inner Card (HEADS Fig. 1)
+\draw[gray!70, thick] (2.68, 8.65) -- (3.32, 10.15);
+\draw[gray!70, thick] (2.68, 8.05) -- (3.32, 8.85);
+\draw[gray!70, thick] (2.68, 7.45) -- (3.32, 7.25);
+\draw[gray!70, thick] (2.68, 6.85) -- (3.32, 5.95);
+
+% 4 Stacked 3D Embedding Bars inside the white card (centered at X = 5.86)
+% 1. Word Embedding
+\drawbar{5.05}{9.88}{0.50}{0.36}{WordCol}
+\node[font=\normalsize\bfseries, text=black!88] at (5.86, 9.50) {Word Embedding};
+
+% 2. Linear Embedding
+\drawbar{5.05}{8.62}{0.50}{0.36}{Pos2DCol}
+\node[font=\normalsize\bfseries, text=black!88] at (5.86, 8.24) {Linear Embedding};
+
+% 3. 1D Position Embedding
+\drawbar{5.05}{7.36}{0.50}{0.36}{PatchCol}
+\node[font=\normalsize\bfseries, text=black!88] at (5.86, 6.98) {1D Position Embedding};
+
+% 4. 2D Spatial Embedding
+\drawbar{5.05}{6.10}{0.50}{0.36}{WordCol}
+\node[font=\normalsize\bfseries, text=black!88] at (5.86, 5.72) {2D Spatial Embedding};
+
+
+% =========================================================================
+% 2. BOTTOM-LEFT CONTAINER: HIERARCHICAL POSITION ENCODING (HEADS Fig. 1)
+% =========================================================================
+\draw[flowarrow] (0.96, 5.20) -- (0.96, 4.38)
+    node[midway, right=6pt, font=\large\bfseries, text=black!88] {Extract Spatial Layout};
+
+\draw[rounded corners=9pt, fill=ContainerBg, draw=ContainerBorder, line width=0.55mm] (0.0, 0.0) rectangle (8.65, 4.38);
+\node[font=\large\bfseries, text=black!88] at (4.32, 0.32) {Hierarchical Position Encoding};
+
+% Left Inner Frame: 3 Layout Icons (Line, Col, Block)
+\draw[rounded corners=7pt, fill=white, draw=black!55, thick] (0.25, 0.64) rectangle (1.60, 4.14);
+
+% Icon 1: Line Layout (Horizontal bars)
+\draw[rounded corners=2pt, fill=WordCol!18, draw=WordColDark, thick] (0.38, 3.02) rectangle (1.47, 3.96);
+\fill[WordColDark!75] (0.48, 3.66) rectangle (1.37, 3.82);
+\fill[WordColDark!75] (0.48, 3.40) rectangle (1.37, 3.56);
+\fill[WordColDark!75] (0.48, 3.14) rectangle (1.16, 3.30);
+
+% Icon 2: Column Layout (Vertical bars)
+\draw[rounded corners=2pt, fill=Pos2DCol!20, draw=Pos2DColDark, thick] (0.38, 1.91) rectangle (1.47, 2.85);
+\fill[Pos2DColDark!75] (0.48, 2.03) rectangle (0.89, 2.73);
+\fill[Pos2DColDark!75] (0.97, 2.03) rectangle (1.37, 2.73);
+
+% Icon 3: Block Layout (Spatial regions)
+\draw[rounded corners=2pt, fill=PatchCol!22, draw=PatchColDark, thick] (0.38, 0.80) rectangle (1.47, 1.74);
+\fill[PatchColDark!75] (0.48, 1.36) rectangle (1.37, 1.60);
+\fill[PatchColDark!75] (0.48, 0.92) rectangle (0.91, 1.26);
+\fill[PatchColDark!75] (0.99, 0.92) rectangle (1.37, 1.26);
+
+% 3 Hierarchical Embedding Pills (E_line, E_col, E_block)
+\node[pill, fill=WordCol!45, draw=WordColDark, font=\large\bfseries, minimum width=1.32cm, minimum height=0.68cm] (e_line) at (2.62, 3.49) {$\mathbf{E}_{\text{line}}$};
+\node[pill, fill=Pos2DCol!55, draw=Pos2DColDark, font=\large\bfseries, minimum width=1.32cm, minimum height=0.68cm] (e_col)  at (2.62, 2.38) {$\mathbf{E}_{\text{col}}$};
+\node[pill, fill=PatchCol!55, draw=PatchColDark, font=\large\bfseries, minimum width=1.32cm, minimum height=0.68cm] (e_blk)  at (2.62, 1.27) {$\mathbf{E}_{\text{block}}$};
+
+\draw[flowarrow] (1.60, 3.49) -- (e_line.west);
+\draw[flowarrow] (1.60, 2.38) -- (e_col.west);
+\draw[flowarrow] (1.60, 1.27) -- (e_blk.west);
+
+% Concat Box
+\node[boxnode, draw=black!75, font=\normalsize\bfseries, minimum width=1.25cm, minimum height=0.68cm] (concat_box) at (4.42, 2.38) {concat};
+\draw[flowarrow] (e_line.east) -| (concat_box.north);
+\draw[flowarrow] (e_col.east) -- (concat_box.west);
+\draw[flowarrow] (e_blk.east) -| (concat_box.south);
+
+% Hierarchical Projection Box W_hier
+\node[boxnode, draw=black!75, font=\large\bfseries, minimum width=2.25cm, minimum height=1.62cm] (proj_box) at (7.05, 2.82) {
+    Hierarchical\\[2pt]
+    Projection\\[3pt]
+    $\mathbf{W}_{\text{hier}}$
+};
+\draw[flowarrow] (concat_box.east) -- (concat_box.east -| proj_box.west);
+
+% Output E_hier Pill
+\node[pill, fill=BlueSoft, draw=BackboneBorder, font=\large\bfseries, minimum width=1.52cm, minimum height=0.68cm] (e_hier) at (7.05, 1.08) {$\mathbf{E}_{\text{hier}}$};
+\draw[flowarrow] (proj_box.south) -- (e_hier.north);
+
+
+% =========================================================================
+% 3. EMBEDDING SUMMATION ADDER & CENTER LAYOUTLMV3 BACKBONE PILLAR
+% =========================================================================
+\drawadder{emb_adder}{9.45}{5.00}{black!85}
+
+% Top input embeddings -> Adder (smooth rounded turn)
+\draw[flowarrow] (8.40, 7.80) -| (emb_adder.north);
+% Bottom HPE E_hier -> Adder (smooth rounded turn, with scale factor \beta)
+\draw[flowarrow] (e_hier.east) -| (emb_adder.south);
+\node[anchor=west, font=\large\bfseries, text=BackboneBorder] at (9.52, 2.90) {$\times \beta$};
+
+% Center Tall Pillar: LayoutLMv3 Backbone (Exact HEADS Fig. 1)
+\draw[rounded corners=9pt, fill=BackboneFill, draw=BackboneBorder, line width=0.60mm] (10.40, 0.0) rectangle (12.25, 10.85);
+\node[font=\LARGE\bfseries, text=black!90, rotate=90] at (11.325, 5.425) {LayoutLMv3 Backbone};
+
+\draw[flowarrow] (emb_adder.east) -- (10.40, 5.00);
+
+
+% =========================================================================
+% 4. RIGHT COLUMN: DUAL-PATH SCM, NEURAL NETWORK & LATE-FUSION (HEADS Fig. 1)
+% =========================================================================
+
+% Contextualized Token Representations h_i exiting Backbone
+\drawblock{12.65}{7.52}{0.40}{0.34}{PatchColDark}
+\drawblock{13.05}{7.52}{0.40}{0.34}{WordCol}
+\node[font=\large\bfseries, text=black!85] at (13.92, 7.70) {$\cdots$};
+\drawblock{14.28}{7.52}{0.40}{0.34}{SegRefinedCol}
+\node[font=\Large\bfseries, text=black!90] at (13.68, 7.02) {$\mathbf{h}_i$};
+
+% Smooth rounded line from Backbone into h_i
+\draw[flowline] (12.25, 5.75) -- (13.68, 5.75) -- (13.68, 6.68);
+
+% --- 4.1 Top-Right Container: Segment Context Module (Exact HEADS Fig. 1) ---
+% Drawn BEFORE the Pooling arrow so the Pooling arrowhead inside SCM is 100% visible!
+\draw[rounded corners=9pt, fill=ScmBg, draw=ScmBorder, line width=0.55mm] (14.05, 8.72) rectangle (23.35, 10.85);
+\node[font=\large\bfseries, text=black!90] at (18.70, 10.50) {Segment Context Module};
+
+% Single continuous rounded arrow from h_i up and right into Segment Context Module (s_k)
+\draw[flowarrow] (13.68, 7.98) -- (13.68, 9.58) -- (14.48, 9.58);
+\node[font=\large\bfseries, text=black!88, rotate=90] at (13.28, 8.80) {Pooling};
+
+% Pooled Segment 3D Blocks s_k (Grey)
+\drawblock{14.48}{9.40}{0.38}{0.34}{SegPoolCol}
+\drawblock{14.86}{9.40}{0.38}{0.34}{SegPoolCol}
+\node[font=\large\bfseries, text=black!85] at (15.72, 9.58) {$\cdots$};
+\drawblock{16.10}{9.40}{0.38}{0.34}{SegPoolCol}
+\node[font=\Large\bfseries, text=black!90] at (15.48, 9.02) {$\mathbf{s}_k$};
+
+% Segment Transformer Encoder Box (White rounded box in center of SCM)
+\node[boxnode, draw=ScmBorder, font=\normalsize\bfseries, minimum width=2.40cm, minimum height=1.28cm] (seg_enc) at (18.70, 9.56) {
+    Segment\\[-1pt]
+    Transformer\\[-1pt]
+    Encoder
+};
+\draw[flowarrow] (16.64, 9.56) -- (seg_enc.west);
+
+% Refined Segment 3D Blocks s'_k (Green)
+\drawblock{20.80}{9.40}{0.38}{0.34}{SegRefinedCol}
+\drawblock{21.18}{9.40}{0.38}{0.34}{SegRefinedCol}
+\node[font=\large\bfseries, text=black!85] at (22.04, 9.58) {$\cdots$};
+\drawblock{22.42}{9.40}{0.38}{0.34}{SegRefinedCol}
+\node[font=\Large\bfseries, text=black!90] at (21.80, 9.02) {$\mathbf{s}'_k$};
+
+\draw[flowarrow] (seg_enc.east) -- (20.80, 9.56)
+    node[midway, above=2pt, font=\normalsize\bfseries, text=ScmBorder!90!black] {$+g$};
+
+
+% --- 4.2 Middle-Right: 3-Layer Neural Network Classifier (Connected to Inputs & Outputs!) ---
+\begin{scope}[shift={(17.85, 6.08)}]
+    % Left Layer (3 circles, green-tinted border)
+    \node[circle, draw=ScmBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_in1) at (0, 0.30) {};
+    \node[circle, draw=ScmBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_in2) at (0, 0.90) {};
+    \node[circle, draw=ScmBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_in3) at (0, 1.50) {};
+
+    % Middle Layer (4 circles, orange border)
+    \node[circle, draw=TokPillBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_h1) at (0.85, 0.00) {};
+    \node[circle, draw=TokPillBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_h2) at (0.85, 0.60) {};
+    \node[circle, draw=TokPillBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_h3) at (0.85, 1.20) {};
+    \node[circle, draw=TokPillBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_h4) at (0.85, 1.80) {};
+
+    % Right Layer (3 circles, blue border)
+    \node[circle, draw=BackboneBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_out1) at (1.70, 0.30) {};
+    \node[circle, draw=BackboneBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_out2) at (1.70, 0.90) {};
+    \node[circle, draw=BackboneBorder, fill=white, line width=0.45mm, inner sep=3.0pt] (nn_out3) at (1.70, 1.50) {};
+
+    % Bipartite connections
+    \foreach \ia in {1, 2, 3} {
+        \foreach \ib in {1, 2, 3, 4} {
+            \draw[black!45, thin] (nn_in\ia) -- (nn_h\ib);
+        }
+    }
+    \foreach \ia in {1, 2, 3, 4} {
+        \foreach \ib in {1, 2, 3} {
+            \draw[black!45, thin] (nn_h\ia) -- (nn_out\ib);
+        }
+    }
+\end{scope}
+
+% --- 4.3 Dual Logits Pills (Token Logits & Segment Logits, Exact HEADS Fig. 1) ---
+\node[pill, fill=TokPillBg, draw=TokPillBorder, font=\large\bfseries, minimum width=2.85cm, minimum height=0.88cm] (tok_logits) at (15.10, 5.05) {
+    Token Logits
+};
+
+\node[pill, fill=SegPillBg, draw=SegPillBorder, font=\large\bfseries, minimum width=2.95cm, minimum height=0.88cm] (seg_logits) at (21.85, 5.05) {
+    Segment Logits
+};
+
+% Input 1: h_i -> Top-Left of Neural Network (nn_in3)
+\draw[flowarrow] (14.82, 7.58) -- (nn_in3.west);
+
+% Input 2: Segment Context Module (s'_k) -> Top-Right of Neural Network (nn_out3)
+\draw[flowarrow] (21.80, 8.72) |- (nn_out3.east);
+
+% Output 1: Bottom-Left of Neural Network (nn_in1) -> Token Logits
+\draw[flowarrow] (nn_in1.south) |- (tok_logits.east);
+
+% Output 2: Bottom-Right of Neural Network (nn_out1) -> Segment Logits
+\draw[flowarrow] (nn_out1.south) |- (seg_logits.west);
+
+
+% --- 4.4 Bottom-Right Stack: Gated Late-Fusion -> Softmax -> Objective (Exact HEADS Fig. 1) ---
+\node[pill, fill=BlueSoft, draw=BackboneBorder, font=\large\bfseries, minimum width=4.85cm, minimum height=1.28cm] (late_fusion) at (18.70, 3.55) {
+    Gated Late-Fusion ($\alpha$)\\[2pt]
+    \normalsize $\mathbf{L}_i = \mathbf{L}_i^{\text{seg}} + M_i \cdot \alpha (\mathbf{L}_i^{\text{tok}} - \mathbf{L}_i^{\text{seg}})$
+};
+\draw[flowarrow] (tok_logits.south) |- (late_fusion.west);
+\draw[flowarrow] (seg_logits.south) |- (late_fusion.east);
+
+\node[pill, fill=BlueSoft, draw=BackboneBorder, font=\large\bfseries, minimum width=4.55cm, minimum height=0.92cm] (softmax_node) at (18.70, 1.92) {
+    Softmax $\rightarrow \mathbf{p} = \sigma(\mathbf{L}_i)$
+};
+\draw[flowarrow] (late_fusion.south) -- (softmax_node.north);
+
+\node[pill, fill=ContainerBg, draw=ContainerBorder!90!black, font=\large\bfseries, minimum width=4.85cm, minimum height=0.98cm] (loss_node) at (18.70, 0.48) {
+    $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{bound}}\mathcal{L}_{\text{bound}}$
+};
+\draw[flowarrow] (softmax_node.south) -- (loss_node.north);
+
+\end{tikzpicture}
+\end{document}
