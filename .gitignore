@@ -36,7 +36,9 @@ thesis/presentation/page*.png
 preview_slide*.png
 thesis/presentation/*.pptx
 
-# Large ZIP Bundles & Binary Archives
+# Private evaluation reports
+ai_detection_report.json
+.vscode/
 thesis_*.zip
 thesis_full_latex_source.zip
 *.tar.gz

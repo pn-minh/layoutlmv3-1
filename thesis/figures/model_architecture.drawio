@@ -1,0 +1,307 @@
+<mxfile host="app.diagrams.net" agent="Antigravity" version="24.0.0">
+  <diagram id="human_model_arch" name="Proposed Structure-Aware LayoutLMv3 Architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================================================================= -->
+        <!-- 1. DOCUMENT INPUTS CONTAINER (TOP-LEFT)                           -->
+        <!-- ================================================================= -->
+        <mxCell id="inp_container" value="&lt;b&gt;1. Multimodal Document Input&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#F8FAFC;strokeColor=#475569;fontColor=#1E293B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="370" height="370" as="geometry" />
+        </mxCell>
+
+        <!-- Document Preview Card -->
+        <mxCell id="doc_card" value="&lt;b&gt;Scanned Page&lt;/b&gt;&lt;br/&gt;&lt;font color='#64748B' size='1'&gt;Receipt / Form Image&lt;br/&gt;+ OCR Bounding Boxes&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#64748B;fontSize=11;fontColor=#334155;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="130" height="295" as="geometry" />
+        </mxCell>
+
+        <!-- 4 Input Embedding Branches -->
+        <mxCell id="emb_word" value="Text Word Tokens&lt;br/&gt;&lt;font size='1' color='#92400E'&gt;[RoBERTa Embeddings]&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontStyle=1;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="210" y="85" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="emb_patch" value="Visual Image Patches&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;[16x16 Linear Proj.]&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=11;fontStyle=1;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="210" y="155" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="emb_1d" value="1D Reading Sequence&lt;br/&gt;&lt;font size='1' color='#1E40AF'&gt;[Position Indices 0..N]&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontSize=11;fontStyle=1;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="210" y="225" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="emb_2d" value="2D Spatial Coordinates&lt;br/&gt;&lt;font size='1' color='#374151'&gt;[x0, y0, x1, y1, w, h]&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#4B5563;fontSize=11;fontStyle=1;fontColor=#1F2937;" vertex="1" parent="1">
+          <mxGeometry x="210" y="295" width="180" height="55" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 2. HIERARCHICAL POSITION ENCODING CONTAINER (BOTTOM-LEFT)         -->
+        <!-- ================================================================= -->
+        <mxCell id="hpe_container" value="&lt;b&gt;2. Hierarchical Position Encoding (HPE)&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#FFFBEB;strokeColor=#B45309;fontColor=#78350F;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="370" height="400" as="geometry" />
+        </mxCell>
+
+        <!-- 3 Layout Extraction Visuals -->
+        <mxCell id="hpe_line" value="&lt;b&gt;Line Group&lt;/b&gt;&lt;br/&gt;&lt;font color='#78350F' size='1'&gt;&amp;bull; V-Overlap &amp;ge; 50%&lt;br/&gt;&amp;bull; Horiz. reading order&lt;/font&gt;&lt;br/&gt;&lt;b&gt;E&lt;sub&gt;line&lt;/sub&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="100" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hpe_col" value="&lt;b&gt;Column Group&lt;/b&gt;&lt;br/&gt;&lt;font color='#064E3B' size='1'&gt;&amp;bull; H-Gap &amp;ge; 12% W&lt;br/&gt;&amp;bull; Column slot ID&lt;/font&gt;&lt;br/&gt;&lt;b&gt;E&lt;sub&gt;col&lt;/sub&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="175" y="480" width="100" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hpe_blk" value="&lt;b&gt;Block Group&lt;/b&gt;&lt;br/&gt;&lt;font color='#1E3A8A' size='1'&gt;&amp;bull; Line gap &amp;lt; 1.8x H&lt;br/&gt;&amp;bull; Semantic section&lt;/font&gt;&lt;br/&gt;&lt;b&gt;E&lt;sub&gt;block&lt;/sub&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="290" y="480" width="100" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Concat + Linear Projection -->
+        <mxCell id="hpe_proj" value="&lt;b&gt;Hierarchical Linear Projection (W&lt;sub&gt;hier&lt;/sub&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#475569'&gt;Concat [ E&lt;sub&gt;line&lt;/sub&gt; ; E&lt;sub&gt;col&lt;/sub&gt; ; E&lt;sub&gt;block&lt;/sub&gt; ] &amp;rarr; &amp;Ropf;&lt;sup&gt;d&lt;/sup&gt;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B45309;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="60" y="625" width="330" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Scaled Residual Injection -->
+        <mxCell id="hpe_scale" value="&lt;b&gt;Residual Hierarchical Representation (E&lt;sub&gt;hier&lt;/sub&gt; &amp;times; &amp;beta;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#475569'&gt;Injected into initial token embedding stream&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#B45309;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="330" height="60" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 3. CENTER PILLAR: MULTIMODAL LAYOUTLMV3 BACKBONE                 -->
+        <!-- ================================================================= -->
+        <mxCell id="backbone" value="&lt;b&gt;Multimodal LayoutLMv3 Backbone&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;&amp;bull; 12 Transformer Encoder Layers&lt;br/&gt;&lt;br/&gt;&amp;bull; Unified Text &amp;amp; Visual Patch Attention&lt;br/&gt;&lt;br/&gt;&amp;bull; 2D Spatial Relative Position Bias&lt;br/&gt;&lt;br/&gt;&amp;bull; Multimodal Hidden Dim: d = 768" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2.2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#EFF6FF;strokeColor=#1D4ED8;fontColor=#1E3A8A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="100" width="220" height="660" as="geometry" />
+        </mxCell>
+
+        <!-- Modality Exit Vectors -->
+        <mxCell id="vec_tokens" value="&lt;b&gt;Text Token States (h&lt;sub&gt;i&lt;/sub&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#1E40AF'&gt;Contextualized Word Vectors&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontColor=#1E3A8A;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="270" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vec_patches" value="&lt;b&gt;Image Patch States (v&lt;sub&gt;p&lt;/sub&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;Visual Region Feature Vectors&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontColor=#064E3B;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="580" width="180" height="60" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 4. SEGMENT CONTEXT MODULE (TOP-RIGHT)                             -->
+        <!-- ================================================================= -->
+        <mxCell id="scm_container" value="&lt;b&gt;3. Segment Context Module (SCM)&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#ECFDF5;strokeColor=#047857;fontColor=#064E3B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="950" y="30" width="710" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scm_pool" value="&lt;b&gt;Segment Mean Pool&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;Average tokens in line k&lt;br/&gt;&amp;rarr; Segment vector s&lt;sub&gt;k&lt;/sub&gt;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="980" y="80" width="180" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scm_trans" value="&lt;b&gt;Segment Transformer&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;1-Layer, 4-Head Attention&lt;br/&gt;Inter-segment context c&lt;sub&gt;k&lt;/sub&gt;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="190" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scm_rezero" value="&lt;b&gt;ReZero Residual Gate&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;s&lt;sub&gt;k&lt;/sub&gt; + g &amp;times; (c&lt;sub&gt;k&lt;/sub&gt; - s&lt;sub&gt;k&lt;/sub&gt;)&lt;br/&gt;Refined segment s'&lt;sub&gt;k&lt;/sub&gt;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="80" width="190" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scm_broadcast" value="&lt;b&gt;Broadcast Segment Context + Segment-Start Onset Embedding: h&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;final&lt;/sup&gt; = h&lt;sub&gt;i&lt;/sub&gt; + s'&lt;sub&gt;s(i)&lt;/sub&gt; + e&lt;sup&gt;onset&lt;/sup&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#047857;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="980" y="170" width="640" height="50" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 5. DIRECT TOKEN CLASSIFIER HEAD (MIDDLE-RIGHT)                    -->
+        <!-- ================================================================= -->
+        <mxCell id="cls_container" value="&lt;b&gt;4. Direct Token Classifier Head&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#F8FAFC;strokeColor=#334155;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="950" y="285" width="710" height="135" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls_head" value="&lt;b&gt;Linear Classification Layer&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#475569'&gt;W&lt;sub&gt;cls&lt;/sub&gt; &amp;isin; &amp;Ropf;&lt;sup&gt;|C| &amp;times; d&lt;/sup&gt;&lt;br/&gt;Projects h&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;final&lt;/sup&gt; to entity class logits z&lt;sub&gt;i&lt;/sub&gt;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#334155;fontSize=11;fontColor=#1E293B;" vertex="1" parent="1">
+          <mxGeometry x="980" y="335" width="290" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls_loss" value="&lt;b&gt;Entity Cross-Entropy Loss (&lt;font color='#DC2626'&gt;L&lt;sub&gt;CE&lt;/sub&gt;&lt;/font&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#475569'&gt;Softmax probabilities vs ground truth IOB2 tags&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#DC2626;fontSize=11;fontColor=#991B1B;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="335" width="310" height="60" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 6. DETAILED INTRA-LINE BOUNDARY LOSS MODULE (WITH SHAPES/LINES)   -->
+        <!-- ================================================================= -->
+        <mxCell id="bound_container" value="&lt;b&gt;5. Intra-Line Boundary Loss Classifier (Detailed Supervision)&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#FFFBEB;strokeColor=#D97706;fontColor=#78350F;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="950" y="445" width="710" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- Adjacent Token Pair Shape -->
+        <mxCell id="pair_shape" value="&lt;b&gt;Adjacent Word Pair&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#78350F'&gt;Same text line: [ h&lt;sub&gt;i&lt;/sub&gt; ; h&lt;sub&gt;i+1&lt;/sub&gt; ]&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="980" y="495" width="160" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Boundary MLP Detector -->
+        <mxCell id="bnd_mlp" value="&lt;b&gt;Boundary MLP&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#78350F'&gt;Linear(2d&amp;rarr;d) &amp;rarr; ReLU&lt;br/&gt;&amp;rarr; Linear(d&amp;rarr;1) &amp;rarr; &amp;sigma;&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D97706;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="495" width="150" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Visualized Ground Truth Shapes: Same Entity (0) vs Boundary (1) -->
+        <mxCell id="bnd_visual_same" value="&lt;b&gt;Within Entity:&lt;/b&gt;&amp;nbsp;&amp;nbsp;[Word A]&amp;nbsp;&lt;font color='#2563EB'&gt;&amp;mdash;&amp;mdash;&amp;mdash;&lt;/font&gt;&amp;nbsp;[Word B]&amp;nbsp;&amp;nbsp;&amp;rarr;&amp;nbsp;&amp;nbsp;&lt;b&gt;&lt;font color='#2563EB'&gt;Target = 0&lt;/font&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=12;fillColor=#EFF6FF;strokeColor=#3B82F6;fontSize=10;fontColor=#1E40AF;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="490" width="270" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bnd_visual_split" value="&lt;b&gt;Across Field:&lt;/b&gt;&amp;nbsp;&amp;nbsp;[Field Name]&amp;nbsp;&lt;b&gt;&lt;font color='#DC2626'&gt;|&lt;/font&gt;&lt;/b&gt;&amp;nbsp;[Field Value]&amp;nbsp;&amp;nbsp;&amp;rarr;&amp;nbsp;&amp;nbsp;&lt;b&gt;&lt;font color='#DC2626'&gt;Target = 1&lt;/font&gt;&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=12;fillColor=#FEF2F2;strokeColor=#EF4444;fontSize=10;fontColor=#991B1B;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="530" width="270" height="34" as="geometry" />
+        </mxCell>
+
+        <!-- Binary Loss Output -->
+        <mxCell id="bnd_loss" value="&lt;b&gt;Intra-Line Boundary BCE Loss (&lt;font color='#DC2626'&gt;L&lt;sub&gt;bound&lt;/sub&gt;&lt;/font&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#78350F'&gt;Penalizes false entity merges along the same reading line&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#B45309;fontSize=11;fontColor=#78350F;" vertex="1" parent="1">
+          <mxGeometry x="980" y="585" width="640" height="48" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 7. CROSS-MODAL CONTRASTIVE LOSS MODULE                            -->
+        <!-- ================================================================= -->
+        <mxCell id="cont_container" value="&lt;b&gt;6. Cross-Modal Contrastive Loss (Text-Image Alignment)&lt;/b&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fillColor=#ECFDF5;strokeColor=#059669;fontColor=#064E3B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="950" y="680" width="710" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- Projections -->
+        <mxCell id="cont_txt" value="&lt;b&gt;Text Token Vector&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#1E40AF'&gt;Proj: z&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;text&lt;/sup&gt; = g&lt;sub&gt;text&lt;/sub&gt;(h&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;final&lt;/sup&gt;)&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontSize=11;fontColor=#1E3A8A;" vertex="1" parent="1">
+          <mxGeometry x="980" y="730" width="170" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cont_img" value="&lt;b&gt;Visual Patch Vector&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;Proj: z&lt;sub&gt;p(i)&lt;/sub&gt;&lt;sup&gt;img&lt;/sup&gt; = g&lt;sub&gt;img&lt;/sub&gt;(v&lt;sub&gt;p&lt;/sub&gt;)&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.5;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="980" y="805" width="170" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Alignment Visual: Pull matched, Push negatives -->
+        <mxCell id="cont_visual" value="&lt;b&gt;InfoNCE Temperature (&amp;tau; = 0.07)&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;&lt;font color='#059669'&gt;&amp;harr; &lt;b&gt;PULL:&lt;/b&gt; Matched (Text Token, Image Patch)&lt;/font&gt;&lt;br/&gt;&lt;font color='#DC2626'&gt;&amp;harr; &lt;b&gt;PUSH:&lt;/b&gt; Distractor Non-matching Patches&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#FFFFFF;strokeColor=#059669;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="730" width="230" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Contrastive Loss Output -->
+        <mxCell id="cont_loss" value="&lt;b&gt;Cross-Modal Contrastive Loss (&lt;font color='#DC2626'&gt;L&lt;sub&gt;cont&lt;/sub&gt;&lt;/font&gt;)&lt;/b&gt;&lt;br/&gt;&lt;font size='1' color='#065F46'&gt;Prevents visual representations from drifting during task fine-tuning&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#047857;fontSize=11;fontColor=#064E3B;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="760" width="170" height="85" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- 8. COMBINED MULTI-TASK LOSS (BOTTOM FULL-WIDTH)                   -->
+        <!-- ================================================================= -->
+        <mxCell id="total_loss_banner" value="&lt;b&gt;Joint Multi-Task Training Objective:&lt;/b&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;L&lt;sub&gt;total&lt;/sub&gt;&lt;/b&gt;&amp;nbsp;=&amp;nbsp;&lt;b&gt;L&lt;sub&gt;CE&lt;/sub&gt;&lt;/b&gt;&amp;nbsp;+&amp;nbsp;&lt;b&gt;&amp;lambda;&lt;sub&gt;bound&lt;/sub&gt;&amp;nbsp;&amp;times;&amp;nbsp;L&lt;sub&gt;bound&lt;/sub&gt;&lt;/b&gt;&amp;nbsp;+&amp;nbsp;&lt;b&gt;&amp;lambda;&lt;sub&gt;cont&lt;/sub&gt;&amp;nbsp;&amp;times;&amp;nbsp;L&lt;sub&gt;cont&lt;/sub&gt;&lt;/b&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;font size='1' color='#94A3B8'&gt;(&amp;lambda;&lt;sub&gt;bound&lt;/sub&gt; = 0.2, &amp;lambda;&lt;sub&gt;cont&lt;/sub&gt; = 0.1)&lt;/font&gt;" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#020617;fontColor=#F8FAFC;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="915" width="1200" height="55" as="geometry" />
+        </mxCell>
+
+
+        <!-- ================================================================= -->
+        <!-- CONNECTORS / DATA FLOW ARROWS                                     -->
+        <!-- ================================================================= -->
+        <!-- Document to Embeddings -->
+        <mxCell id="edge_doc_hpe" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B45309;dashed=0;" edge="1" parent="1" source="doc_card" target="hpe_container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HPE to Backbone -->
+        <mxCell id="edge_hpe_proj" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B45309;" edge="1" parent="1" source="hpe_col" target="hpe_proj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_proj_scale" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B45309;" edge="1" parent="1" source="hpe_proj" target="hpe_scale">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_hpe_bb" value="Hierarchical Bias (&amp;beta;)" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2.2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B45309;fontColor=#78350F;fontSize=10;" edge="1" parent="1" source="hpe_scale" target="backbone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Input Embeddings to Backbone -->
+        <mxCell id="edge_emb_bb" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2.2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1D4ED8;" edge="1" parent="1" source="emb_1d" target="backbone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backbone to Token and Patch states -->
+        <mxCell id="edge_bb_tokens" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2.2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1D4ED8;" edge="1" parent="1" source="backbone" target="vec_tokens">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_bb_patches" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2.2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="backbone" target="vec_patches">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Tokens to SCM -->
+        <mxCell id="edge_tokens_scm" value="Mean Pooling" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;fontColor=#064E3B;fontSize=10;" edge="1" parent="1" source="vec_tokens" target="scm_pool">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_scm_1" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="scm_pool" target="scm_trans">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_scm_2" value="+g" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;fontColor=#064E3B;fontStyle=1;" edge="1" parent="1" source="scm_trans" target="scm_rezero">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_scm_3" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="scm_rezero" target="scm_broadcast">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SCM Broadcast to Classifier & Boundary Loss -->
+        <mxCell id="edge_broadcast_cls" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#334155;" edge="1" parent="1" source="scm_broadcast" target="cls_head">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_cls_loss" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#DC2626;" edge="1" parent="1" source="cls_head" target="cls_loss">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Tokens to Boundary Classifier -->
+        <mxCell id="edge_scm_pair" value="Intra-Line Pairs" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D97706;fontColor=#78350F;fontSize=10;" edge="1" parent="1" source="scm_broadcast" target="pair_shape">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_pair_mlp" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D97706;" edge="1" parent="1" source="pair_shape" target="bnd_mlp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_mlp_vis" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D97706;" edge="1" parent="1" source="bnd_mlp" target="bnd_visual_same">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_vis_loss" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B45309;" edge="1" parent="1" source="bnd_visual_split" target="bnd_loss">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Tokens & Patches to Contrastive Module -->
+        <mxCell id="edge_h_cont" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2563EB;" edge="1" parent="1" source="scm_broadcast" target="cont_txt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="930" y="240" />
+              <mxPoint x="930" y="762" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_v_cont" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="vec_patches" target="cont_img">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_txt_vis" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="cont_txt" target="cont_visual">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_img_vis" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="cont_img" target="cont_visual">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_vis_contloss" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#047857;" edge="1" parent="1" source="cont_visual" target="cont_loss">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Losses to Total Objective Banner -->
+        <mxCell id="loss_ce_to_banner" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#DC2626;" edge="1" parent="1" source="cls_loss" target="total_loss_banner">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1640" y="365" />
+              <mxPoint x="1640" y="915" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="loss_bnd_to_banner" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D97706;" edge="1" parent="1" source="bnd_loss" target="total_loss_banner">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1630" y="609" />
+              <mxPoint x="1630" y="915" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="loss_cont_to_banner" style="sketch=1;curveFitting=1;jiggle=1.5;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#059669;" edge="1" parent="1" source="cont_loss" target="total_loss_banner">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
