@@ -85,6 +85,8 @@ jobs:
           cp thesis/presentation/weekly_update_slides.pdf dist/Weekly_Progress_Presentation_Slides.pdf
           cp thesis/figures/model_architecture_heads_style.pdf dist/Model_Architecture_Diagram.pdf
           cp thesis/figures/model_architecture.drawio dist/Model_Architecture_Diagram.drawio
+          cp thesis/figures/model_architecture.jpeg dist/Model_Architecture_Diagram.jpeg
+          cp thesis/figures/model_architecture.jpeg dist/model_architecture.jpeg
           cp thesis/presentation/weekly_update_script.md dist/Weekly_Progress_Presentation_Script.md
           cp thesis/presentation/weekly_update_script_vi.md dist/Weekly_Progress_Presentation_Script_VI.md
 
@@ -100,8 +102,9 @@ jobs:
 
           ### 📊 Presentation & Model Diagram
           - **[Weekly Progress Presentation Slides (PDF)](Weekly_Progress_Presentation_Slides.pdf)** (20 Slides)
+          - **[Model Architecture Diagram (JPEG)](Model_Architecture_Diagram.jpeg)** (High-Resolution 300 DPI Image)
+          - **[Model Architecture Diagram (Draw.io)](Model_Architecture_Diagram.drawio)** (Editable Draw.io Diagram)
           - **[Model Architecture Diagram (PDF)](Model_Architecture_Diagram.pdf)** (Full End-to-End Vector Diagram)
-          - **[Model Architecture Diagram (Draw.io)](Model_Architecture_Diagram.drawio)** (Editable Hand-Drawn Sketch Diagram)
 
           ### 📝 Speaker Scripts
           - **[Presentation Script - Vietnamese (Markdown)](Weekly_Progress_Presentation_Script_VI.md)**

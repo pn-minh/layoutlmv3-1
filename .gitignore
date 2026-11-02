@@ -36,6 +36,10 @@ thesis/presentation/page*.png
 preview_slide*.png
 thesis/presentation/*.pptx
 
+# Dependencies & Node modules
+node_modules/
+package-lock.json
+
 # Private evaluation reports
 ai_detection_report.json
 .vscode/
