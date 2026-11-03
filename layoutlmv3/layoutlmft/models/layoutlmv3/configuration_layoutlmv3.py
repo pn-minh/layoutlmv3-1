@@ -49,6 +49,11 @@ class LayoutLMv3Config(BertConfig):
         lambda_orth_init: float = 0.1,
         # Toggle Token-Segment pooling/SCM independently for ablation studies (default True)
         use_token_segment: bool = True,
+        # Toggle Cross-Modal Contrastive Loss aligning text tokens with visual image patches
+        use_contrastive_loss: bool = False,
+        lambda_contrastive_init: float = 0.1,
+        contrastive_proj_dim: int = 128,
+        contrastive_temperature: float = 0.07,
         **kwargs
     ):
         """Constructs RobertaConfig."""
@@ -82,3 +87,8 @@ class LayoutLMv3Config(BertConfig):
         self.lambda_orth_init = lambda_orth_init
         # Store use_token_segment flag on config object
         self.use_token_segment = use_token_segment
+        # Store Cross-Modal Contrastive Loss hyperparameters on config object
+        self.use_contrastive_loss = use_contrastive_loss
+        self.lambda_contrastive_init = lambda_contrastive_init
+        self.contrastive_proj_dim = contrastive_proj_dim
+        self.contrastive_temperature = contrastive_temperature

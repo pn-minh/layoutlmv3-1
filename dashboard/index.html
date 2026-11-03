@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LayoutLMv3 Vast.ai Live Ablation & Contrastive Loss Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .title h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+    .title p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .badge {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .badge.done {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      border-color: rgba(34, 197, 94, 0.35);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .card-value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .card-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .progress-wrap {
+      width: 100%;
+      height: 10px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      transition: width 0.4s ease;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .pill-done { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+    .pill-run  { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+    .pill-wait { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">
+      <h1>LayoutLMv3 Vast.ai Autonomous Ablation &amp; Contrastive Loss Dashboard</h1>
+      <p id="lastUpdated">Waiting for Vast.ai SSH connection... Auto-refreshing every 3s</p>
+    </div>
+    <div id="pipelineBadge" class="badge">STANDBY — READY FOR VAST.AI SSH</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Active Experiment Cell</div>
+      <div class="card-value" id="activeCellTitle">Cell 23: CORD Large w/o HPE</div>
+      <div class="card-sub" id="activeSeedInfo">Seed: Waiting to start (3 seeds: 42, 123, 1993)</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Current Seed Step Progress</div>
+      <div class="card-value" id="stepValue">0 / 500 (0.0%)</div>
+      <div class="progress-wrap"><div class="progress-bar" id="stepBar" style="width: 0%"></div></div>
+      <div class="card-sub" id="etaValue">Seed ETA: --</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Latest Evaluation Metrics</div>
+      <div class="card-value" id="latestF1">F1: --</div>
+      <div class="card-sub" id="latestPRLoss">Precision: -- | Recall: -- | Loss: --</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Vast.ai GPU Telemetry &amp; Auto-Destruct</div>
+      <div class="card-value" id="gpuUtil">GPU: --</div>
+      <div class="card-sub" id="gpuMemTemp">VRAM: -- | Temp: -- | Auto-Destruct: ARMED</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">ScheduledVast.ai Execution Queue (Cells 23–28)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cell</th>
+            <th>Dataset</th>
+            <th>Variant</th>
+            <th>Mode</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="queueBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Completed 3-Seed Ablation Summaries (Mean ± Std)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Dataset</th>
+            <th>Mode</th>
+            <th>Precision (%)</th>
+            <th>Recall (%)</th>
+            <th>F1 (%)</th>
+          </tr>
+        </thead>
+        <tbody id="summariesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function refresh() {
+      try {
+        const res = await fetch('/api/status?t=' + Date.now());
+        const d = await res.json();
+
+        document.getElementById('lastUpdated').textContent =
+          `Last Updated: ${d.updated_at || new Date().toLocaleTimeString()} | Total Elapsed: ${((d.elapsed_total_sec || 0)/60).toFixed(1)} min`;
+
+        const badge = document.getElementById('pipelineBadge');
+        badge.textContent = d.pipeline_status || 'STANDBY';
+        if ((d.pipeline_status || '').includes('COMPLETE') || (d.pipeline_status || '').includes('DESTRUCT')) {
+          badge.classList.add('done');
+        }
+
+        document.getElementById('activeCellTitle').textContent =
+          `Cell ${d.current_cell || 23}: ${d.current_label || 'Ready'}`;
+        document.getElementById('activeSeedInfo').textContent =
+          d.current_seed ? `Active Seed: ${d.current_seed} (Run ${d.current_seed_idx || 1}/3)` : 'Waiting for execution...';
+
+        const pct = d.step_pct || 0;
+        document.getElementById('stepValue').textContent =
+          `${d.step || 0} / ${d.max_steps || 500} (${pct.toFixed(1)}%)`;
+        document.getElementById('stepBar').style.width = `${Math.min(100, pct)}%`;
+        document.getElementById('etaValue').textContent =
+          `Seed ETA: ${d.seed_eta_sec ? (d.seed_eta_sec / 60).toFixed(1) + ' min (' + Math.round(d.seed_eta_sec) + 's)' : '--'}`;
+
+        if (d.latest_eval && d.latest_eval.eval_f1 != null) {
+          document.getElementById('latestF1').textContent = `F1: ${d.latest_eval.eval_f1.toFixed(2)}%`;
+          document.getElementById('latestPRLoss').textContent =
+            `P: ${d.latest_eval.eval_precision}% | R: ${d.latest_eval.eval_recall}% | Loss: ${d.latest_eval.eval_loss}`;
+        }
+
+        if (d.gpu && d.gpu.name) {
+          document.getElementById('gpuUtil').textContent = `${d.gpu.name} (${d.gpu.util_pct}% Util)`;
+          document.getElementById('gpuMemTemp').textContent =
+            `VRAM: ${Math.round(d.gpu.mem_used_mib)}/${Math.round(d.gpu.mem_total_mib)} MiB | Temp: ${d.gpu.temp_c}°C | Power: ${d.gpu.power_w}W`;
+        }
+
+        const qBody = document.getElementById('queueBody');
+        qBody.innerHTML = '';
+        const doneCells = new Set(d.completed_cells || []);
+        for (const item of (d.cells_plan || [])) {
+          const isDone = doneCells.has(item.cell);
+          const isRun = d.current_cell === item.cell && (d.pipeline_status || '').startsWith('RUNNING');
+          const pill = isDone
+            ? '<span class="status-pill pill-done">Completed</span>'
+            : isRun
+              ? '<span class="status-pill pill-run">Running</span>'
+              : '<span class="status-pill pill-wait">Queued</span>';
+          qBody.innerHTML += `<tr>
+            <td><strong>Cell ${item.cell}</strong></td>
+            <td>${item.dataset.toUpperCase()}</td>
+            <td>${item.variant}</td>
+            <td><code>${item.mode}</code></td>
+            <td>${pill}</td>
+          </tr>`;
+        }
+
+        const sBody = document.getElementById('summariesBody');
+        sBody.innerHTML = '';
+        for (const s of (d.completed_summaries || [])) {
+          sBody.innerHTML += `<tr>
+            <td>${s.variant}</td>
+            <td>${(s.dataset || '').toUpperCase()}</td>
+            <td><code>${s.mode}</code></td>
+            <td>${s.p_mean.toFixed(2)}</td>
+            <td>${s.r_mean.toFixed(2)}</td>
+            <td><strong>${s.f1_mean.toFixed(2)} ± ${s.f1_std.toFixed(2)}</strong></td>
+          </tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>

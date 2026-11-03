@@ -104,6 +104,26 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
             self.semi_head = None
             self.lambda_geo = 0.0
             self.lambda_orth = 0.0
+
+        # ====== CROSS-MODAL CONTRASTIVE LOSS ======
+        # Aligns contextualized text token representations with their corresponding
+        # spatial visual image patches using an InfoNCE objective in a shared
+        # low-dimensional projection space (default 128-d, temperature tau=0.07).
+        # Used only during training -> adds zero latency at inference time.
+        if getattr(config, "use_contrastive_loss", False):
+            proj_dim = int(getattr(config, "contrastive_proj_dim", 128))
+            # Linear projection g_text: R^H -> R^proj_dim for text tokens
+            self.contrastive_text_proj = nn.Linear(config.hidden_size, proj_dim)
+            # Linear projection g_img: R^H -> R^proj_dim for visual image patches
+            self.contrastive_img_proj = nn.Linear(config.hidden_size, proj_dim)
+            # Fixed scalar weight lambda_cont (default 0.1) and temperature tau (default 0.07)
+            self.lambda_contrastive = float(getattr(config, "lambda_contrastive_init", 0.1))
+            self.contrastive_temperature = float(getattr(config, "contrastive_temperature", 0.07))
+        else:
+            self.contrastive_text_proj = None
+            self.contrastive_img_proj = None
+            self.lambda_contrastive = 0.0
+            self.contrastive_temperature = 0.07
                 # ReZero-style gate: starts at 0 so at step 0 the context module is a
         # NO-OP (output == plain mean-pooled vector, i.e. identical to a
         # "segment pooling only, no inter-segment context" ablation). Training
@@ -281,6 +301,134 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
         
         return geo_loss, orth_loss
 
+    def _compute_contrastive_loss(
+        self,
+        text_hidden,
+        image_hidden,
+        bbox,
+        attention_mask,
+        text_len,
+    ):
+        """
+        Cross-Modal Contrastive Loss (L_cont) -- aligns contextualized text tokens
+        with their spatially corresponding visual image patches via Spatial-Overlap InfoNCE.
+
+        How it works:
+          1. LayoutLMv3 divides the document image into a grid of G x G visual
+             patches (e.g., 14 x 14 = 196 patches after index 0, which is the
+             visual CLS token) spanning normalized coordinates [0, 1000] x [0, 1000].
+          2. For each valid text token i with bounding box b_i = (x0, y0, x1, y1),
+             we identify both its center patch p_center(i) and the full set of visual
+             patches P+(i) whose spatial grid cells overlap [x0, x1] x [y0, y1].
+             Using P+(i) prevents patches covered by the same multi-token segment from
+             being falsely penalized as negatives.
+          3. Text token states h_i and visual patch states v_p are projected into a
+             shared 128-d space via g_text and g_img, cast to FP32 for numerical
+             stability under AMP/FP16, and L2-normalized:
+                 z_i^text = normalize(g_text(h_i)),  z_p^img = normalize(g_img(v_p))
+          4. Soft-target InfoNCE cross-entropy over scaled cosine similarities
+             (z_i^text . z_p^img / tau) pulls each token toward its overlapping visual
+             patches (with strongest weight on the center patch) while pushing
+             non-overlapping background/other patches apart.
+        """
+        device = text_hidden.device
+
+        # Require valid bounding boxes and spatial visual patches (index 0 is visual CLS)
+        if bbox is None or image_hidden is None or image_hidden.shape[1] <= 1:
+            return torch.tensor(0.0, device=device)
+
+        # Extract spatial patch representations v_p, excluding the visual CLS token at index 0
+        patch_hidden = image_hidden[:, 1:, :]  # (B, N_patches, H)
+        num_patches = patch_hidden.shape[1]
+        grid_size = int(round(num_patches ** 0.5))
+        if grid_size * grid_size != num_patches or grid_size <= 0:
+            return torch.tensor(0.0, device=device)
+
+        # Align bbox sequence length with text_len (slice or pad with zeros if needed)
+        if bbox.shape[1] >= text_len:
+            text_bbox = bbox[:, :text_len, :]
+        else:
+            pad_len = text_len - bbox.shape[1]
+            pad_box = torch.zeros(
+                bbox.shape[0], pad_len, 4, device=bbox.device, dtype=bbox.dtype
+            )
+            text_bbox = torch.cat([bbox, pad_box], dim=1)
+
+        # Compute bounding box coordinates in float32 in [0, 1000]
+        x0 = text_bbox[:, :, 0].float()
+        y0 = text_bbox[:, :, 1].float()
+        x1 = text_bbox[:, :, 2].float()
+        y1 = text_bbox[:, :, 3].float()
+        cx = 0.5 * (x0 + x1)
+        cy = 0.5 * (y0 + y1)
+
+        # Map center (cx, cy) and box bounds [x0, y0, x1, y1] to 2D patch grid indices in [0, grid_size - 1]
+        col_center = torch.clamp((cx / 1000.0 * grid_size).long(), 0, grid_size - 1)
+        row_center = torch.clamp((cy / 1000.0 * grid_size).long(), 0, grid_size - 1)
+        patch_targets = row_center * grid_size + col_center  # (B, L)
+
+        col_min = torch.clamp((x0 / 1000.0 * grid_size).long(), 0, grid_size - 1)
+        col_max = torch.clamp((x1 / 1000.0 * grid_size).long(), 0, grid_size - 1)
+        row_min = torch.clamp((y0 / 1000.0 * grid_size).long(), 0, grid_size - 1)
+        row_max = torch.clamp((y1 / 1000.0 * grid_size).long(), 0, grid_size - 1)
+
+        # Build validity mask: only active non-padding tokens with positive-area non-full-page bounding boxes
+        has_valid_bbox = (
+            (x1 > x0)
+            & (y1 > y0)
+            & ((x1 - x0 < 995.0) | (y1 - y0 < 995.0))
+        )
+        if attention_mask is not None:
+            valid_mask = (attention_mask[:, :text_len] == 1) & has_valid_bbox
+        else:
+            valid_mask = has_valid_bbox
+
+        if valid_mask.sum() == 0:
+            return torch.tensor(0.0, device=device)
+
+        # Project text tokens and visual patches into shared space in FP32 to prevent FP16 overflow/underflow
+        text_proj = self.contrastive_text_proj(text_hidden).float()
+        img_proj = self.contrastive_img_proj(patch_hidden).float()
+        z_text = F.normalize(text_proj, p=2, dim=-1, eps=1e-6)  # (B, L, D_proj)
+        z_img = F.normalize(img_proj, p=2, dim=-1, eps=1e-6)    # (B, N_patches, D_proj)
+
+        # Compute temperature-scaled cosine similarity logits in FP32: (B, L, N_patches)
+        sim_logits = torch.matmul(z_text, z_img.transpose(1, 2)) / max(
+            self.contrastive_temperature, 1e-3
+        )
+
+        # Build spatial overlap mask P+(i) over the G x G patch grid so multi-patch segments
+        # pull all covered patches positively rather than penalizing them as false negatives
+        grid_arange = torch.arange(grid_size, device=device)
+        patch_rows = grid_arange.view(grid_size, 1).expand(grid_size, grid_size).reshape(1, 1, num_patches)
+        patch_cols = grid_arange.view(1, grid_size).expand(grid_size, grid_size).reshape(1, 1, num_patches)
+        pos_mask = (
+            (patch_rows >= row_min.unsqueeze(-1))
+            & (patch_rows <= row_max.unsqueeze(-1))
+            & (patch_cols >= col_min.unsqueeze(-1))
+            & (patch_cols <= col_max.unsqueeze(-1))
+        )  # (B, L, N_patches)
+
+        # Emphasize the center patch (weight +1.0 on top of spatial overlap weight 1.0)
+        # Reduces to exact one-hot cross-entropy when a token bbox lies within a single patch
+        target_weights = pos_mask.float()
+        target_weights.scatter_add_(
+            2,
+            patch_targets.unsqueeze(-1),
+            torch.ones_like(patch_targets, dtype=torch.float32).unsqueeze(-1),
+        )
+        target_dist = target_weights / target_weights.sum(dim=-1, keepdim=True).clamp(min=1e-6)
+
+        # Compute soft-target InfoNCE loss over all valid tokens in the batch
+        log_probs = F.log_softmax(sim_logits[valid_mask], dim=-1)
+        contrastive_loss = -(target_dist[valid_mask] * log_probs).sum(dim=-1).mean()
+
+        # Guard against numerical instability
+        if torch.isnan(contrastive_loss) or torch.isinf(contrastive_loss):
+            return torch.tensor(0.0, device=device)
+
+        return contrastive_loss.to(text_hidden.dtype)
+
     def forward(
         self,
         input_ids=None,
@@ -399,6 +547,19 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
                     text_len=text_len,
                 )
                 aux_loss = aux_loss + self.lambda_geo * geo_loss + self.lambda_orth * orth_loss
+
+            # ====== CROSS-MODAL CONTRASTIVE LOSS ======
+            # Aligns segment-enriched text token representations (text_hidden) with
+            # their corresponding spatial visual patch representations (image_hidden)
+            if self.contrastive_text_proj is not None and image_hidden.shape[1] > 1:
+                contrastive_loss = self._compute_contrastive_loss(
+                    text_hidden=text_hidden,
+                    image_hidden=image_hidden,
+                    bbox=bbox,
+                    attention_mask=attention_mask,
+                    text_len=text_len,
+                )
+                aux_loss = aux_loss + self.lambda_contrastive * contrastive_loss
         loss = None
         if labels is not None:
             loss_fct = CrossEntropyLoss()

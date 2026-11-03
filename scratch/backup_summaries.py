@@ -268,6 +268,75 @@ summaries = {
             "eval_accuracy": {"values": [0.9775042444821732, 0.9770797962648556, 0.9719864176570459], "mean": 0.9755234861346915, "std": 0.003070534014461043, "mean_pct": 97.55, "std_pct": 0.31},
             "eval_loss": {"values": [0.17285794019699097, 0.18039970099925995, 0.19145503640174866], "mean": 0.18157089253266653, "std": 0.009353703224830028, "mean_pct": 18.16, "std_pct": 0.94}
         }
+    },
+    "funsd-large-no_segment_3seed_summary.json": {
+        "dataset": "funsd", "variant": "large", "mode": "no_segment",
+        "seeds": [42, 123, 1993],
+        "per_seed": {
+            "42": {"eval_precision": 0.908370, "eval_recall": 0.917000, "eval_f1": 0.912665, "eval_accuracy": 0.838999, "eval_loss": 1.548847},
+            "123": {"eval_precision": 0.899510, "eval_recall": 0.917500, "eval_f1": 0.908416, "eval_accuracy": 0.848530, "eval_loss": 1.353719},
+            "1993": {"eval_precision": 0.902463, "eval_recall": 0.916000, "eval_f1": 0.909181, "eval_accuracy": 0.845200, "eval_loss": 1.472265}
+        },
+        "mean_std": {
+            "eval_precision": {"mean": 0.903448, "std": 0.004512},
+            "eval_recall": {"mean": 0.916833, "std": 0.000764},
+            "eval_f1": {"mean": 0.910087, "std": 0.002265},
+            "eval_accuracy": {"mean": 0.844243, "std": 0.004837},
+            "eval_loss": {"mean": 1.458277, "std": 0.098313}
+        },
+        "metrics": {
+            "eval_precision": {"values": [0.9083704804358593, 0.8995098039215687, 0.9024630541871921], "mean": 0.9034477795148733, "std": 0.0045116693197704925, "mean_pct": 90.34, "std_pct": 0.45},
+            "eval_recall": {"values": [0.917, 0.9175, 0.916], "mean": 0.9168333333333334, "std": 0.0007637626158259498, "mean_pct": 91.68, "std_pct": 0.08},
+            "eval_f1": {"values": [0.9126648420004976, 0.9084158415841584, 0.909181141439206], "mean": 0.910087275007954, "std": 0.002264797930902778, "mean_pct": 91.01, "std_pct": 0.23},
+            "eval_accuracy": {"values": [0.8389986219568213, 0.8485300872760679, 0.8451998162609095], "mean": 0.8442428418312663, "std": 0.004837257262875691, "mean_pct": 84.42, "std_pct": 0.48},
+            "eval_loss": {"values": [1.5488470792770386, 1.3537194728851318, 1.4722651243209839], "mean": 1.4582772254943848, "std": 0.09831297818317834, "mean_pct": 145.83, "std_pct": 9.83}
+        }
+    },
+    "cord-large-no_segment_3seed_summary.json": {
+        "dataset": "cord", "variant": "large", "mode": "no_segment",
+        "seeds": [42, 123, 1993],
+        "per_seed": {
+            "42": {"eval_precision": 0.968633, "eval_recall": 0.970808, "eval_f1": 0.969720, "eval_accuracy": 0.972411, "eval_loss": 0.220956},
+            "123": {"eval_precision": 0.965748, "eval_recall": 0.970808, "eval_f1": 0.968272, "eval_accuracy": 0.973260, "eval_loss": 0.189756},
+            "1993": {"eval_precision": 0.966368, "eval_recall": 0.967814, "eval_f1": 0.967091, "eval_accuracy": 0.970713, "eval_loss": 0.231571}
+        },
+        "mean_std": {
+            "eval_precision": {"mean": 0.966916, "std": 0.001519},
+            "eval_recall": {"mean": 0.969810, "std": 0.001729},
+            "eval_f1": {"mean": 0.968361, "std": 0.001317},
+            "eval_accuracy": {"mean": 0.972128, "std": 0.001297},
+            "eval_loss": {"mean": 0.214094, "std": 0.021736}
+        },
+        "metrics": {
+            "eval_precision": {"values": [0.9686333084391336, 0.9657483246463142, 0.9663677130044843], "mean": 0.9669164486966441, "std": 0.0015187547583778022, "mean_pct": 96.69, "std_pct": 0.15},
+            "eval_recall": {"values": [0.9708083832335329, 0.9708083832335329, 0.967814371257485], "mean": 0.969810379241517, "std": 0.0017285936203282025, "mean_pct": 96.98, "std_pct": 0.17},
+            "eval_f1": {"values": [0.9697196261682243, 0.9682717431877567, 0.9670905011219149], "mean": 0.968360623492632, "std": 0.0013168141132023554, "mean_pct": 96.84, "std_pct": 0.13},
+            "eval_accuracy": {"values": [0.9724108658743633, 0.9732597623089984, 0.9707130730050934], "mean": 0.9721279003961517, "std": 0.0012967107229643377, "mean_pct": 97.21, "std_pct": 0.13},
+            "eval_loss": {"values": [0.2209559828042984, 0.18975570797920227, 0.2315714955329895], "mean": 0.21409439543883005, "std": 0.02173593931870286, "mean_pct": 21.41, "std_pct": 2.17}
+        }
+    },
+    "funsd-large-no_hpe_3seed_summary.json": {
+        "dataset": "funsd", "variant": "large", "mode": "no_hpe",
+        "seeds": [42, 123, 1993],
+        "per_seed": {
+            "42": {"eval_precision": 0.926756, "eval_recall": 0.930000, "eval_f1": 0.928375, "eval_accuracy": 0.846808, "eval_loss": 1.443614},
+            "123": {"eval_precision": 0.925425, "eval_recall": 0.924500, "eval_f1": 0.924962, "eval_accuracy": 0.836702, "eval_loss": 1.360572},
+            "1993": {"eval_precision": 0.927928, "eval_recall": 0.927000, "eval_f1": 0.927464, "eval_accuracy": 0.836357, "eval_loss": 1.538985}
+        },
+        "mean_std": {
+            "eval_precision": {"mean": 0.926703, "std": 0.001252},
+            "eval_recall": {"mean": 0.927167, "std": 0.002754},
+            "eval_f1": {"mean": 0.926934, "std": 0.001767},
+            "eval_accuracy": {"mean": 0.839956, "std": 0.005936},
+            "eval_loss": {"mean": 1.447724, "std": 0.089277}
+        },
+        "metrics": {
+            "eval_precision": {"values": [0.9267563527653214, 0.9254254254254254, 0.9279279279279279], "mean": 0.9267032353728916, "std": 0.0012520965564970345, "mean_pct": 92.67, "std_pct": 0.13},
+            "eval_recall": {"values": [0.93, 0.9245, 0.927], "mean": 0.9271666666666668, "std": 0.0027537852736430803, "mean_pct": 92.72, "std_pct": 0.28},
+            "eval_f1": {"values": [0.9283753431494884, 0.9249624812406203, 0.927463731865933], "mean": 0.9269338520853473, "std": 0.0017670557542579044, "mean_pct": 92.69, "std_pct": 0.18},
+            "eval_accuracy": {"values": [0.8468075333027102, 0.8367018833256775, 0.836357372531006], "mean": 0.8399555963864646, "std": 0.005936451090514319, "mean_pct": 84.0, "std_pct": 0.59},
+            "eval_loss": {"values": [1.4436142444610596, 1.3605722188949585, 1.5389851331710815], "mean": 1.4477238655090332, "std": 0.08927742566849287, "mean_pct": 144.77, "std_pct": 8.93}
+        }
     }
 }
 

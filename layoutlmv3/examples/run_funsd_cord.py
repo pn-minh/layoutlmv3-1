@@ -118,6 +118,23 @@ class ModelArguments:
         default=True,
         metadata={"help": "Enable Token-Segment pooling and Segment Context Module (SCM)"}
     )
+    # Cross-Modal Contrastive Loss arguments for aligning text tokens with spatial image patches
+    use_contrastive_loss: bool = field(
+        default=False,
+        metadata={"help": "Enable Cross-Modal Contrastive Loss between text tokens and visual patches"}
+    )
+    lambda_contrastive_init: float = field(
+        default=0.1,
+        metadata={"help": "Weight (lambda_cont) for Cross-Modal Contrastive Loss"}
+    )
+    contrastive_proj_dim: int = field(
+        default=128,
+        metadata={"help": "Shared projection dimension for text-image contrastive alignment"}
+    )
+    contrastive_temperature: float = field(
+        default=0.07,
+        metadata={"help": "InfoNCE temperature parameter (tau) for Cross-Modal Contrastive Loss"}
+    )
 
 
 @dataclass
@@ -330,6 +347,11 @@ def main():
         lambda_orth_init=model_args.lambda_orth_init,
         # Pass use_token_segment into config so LayoutLMv3ForSegmentTokenClassification can toggle SCM
         use_token_segment=model_args.use_token_segment,
+        # Pass Cross-Modal Contrastive Loss settings into config
+        use_contrastive_loss=model_args.use_contrastive_loss,
+        lambda_contrastive_init=model_args.lambda_contrastive_init,
+        contrastive_proj_dim=model_args.contrastive_proj_dim,
+        contrastive_temperature=model_args.contrastive_temperature,
     )
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,

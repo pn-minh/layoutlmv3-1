@@ -58,8 +58,9 @@ else
 fi
 
 # Configure feature flags based on experiment mode:
-# - baseline:     Vanilla LayoutLMv3 (no HPE, no Token-Segment, no Boundary Loss)
-# - full:         All 3 features enabled (HPE + Token-Segment + Boundary Loss)
+# - baseline:     Vanilla LayoutLMv3 (no HPE, no Token-Segment, no Boundary Loss, no Contrastive Loss)
+# - full:         3-module model (HPE + Token-Segment + Boundary Loss; w/o Contrastive Loss)
+# - contrastive:  Full 4-module model (HPE + Token-Segment + Boundary Loss + Cross-Modal Contrastive Loss)
 # - no_boundary:  Without Boundary Loss (HPE + Token-Segment active, Boundary Loss disabled)
 # - no_segment:   Without Token-Segment (HPE + Boundary Loss active, Token-Segment disabled)
 # - no_hpe:       Without HPE (Token-Segment + Boundary Loss active, HPE disabled)
@@ -70,7 +71,7 @@ case "$MODE" in
         EXTRA_ARGS=()
         ;;
     full)
-        # Full model: Token-Segment + HPE (Line/Block/Column) + Intra-Line Boundary Loss
+        # 3-module model: Token-Segment + HPE (Line/Block/Column) + Intra-Line Boundary Loss
         EXTRA_ARGS=(
             --use_segment_head
             --use_token_segment True
@@ -81,6 +82,24 @@ case "$MODE" in
             --max_column_position "$MAX_COL"
             --use_intra_line_boundary True
             --lambda_bound_init 0.1
+        )
+        ;;
+    contrastive|with_contrastive)
+        # Full 4-module model: Token-Segment + HPE (Line/Block/Column) + Intra-Line Boundary Loss + Cross-Modal Contrastive Loss
+        EXTRA_ARGS=(
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.1
+            --use_contrastive_loss True
+            --lambda_contrastive_init 0.1
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.07
         )
         ;;
     no_boundary)
@@ -119,7 +138,7 @@ case "$MODE" in
         )
         ;;
     *)
-        echo "ERROR: Invalid mode '$MODE'. Choose: baseline | full | no_boundary | no_segment | no_hpe"
+        echo "ERROR: Invalid mode '$MODE'. Choose: baseline | full | contrastive | no_boundary | no_segment | no_hpe"
         exit 1
         ;;
 esac
@@ -216,6 +235,7 @@ metrics = [
 ]
 
 results = {m: [] for m in metrics}
+per_seed = {}
 
 for seed in seeds:
     path = f"{base_dir}-seed{seed}/eval_results.json"
@@ -225,10 +245,12 @@ for seed in seeds:
         continue
     with open(path, "r") as f:
         data = json.load(f)
+    per_seed[str(seed)] = {}
     for metric in metrics:
         if metric in data:
             val = float(data[metric])
             results[metric].append(val)
+            per_seed[str(seed)][metric] = val
             print(f"  {metric:18s} = {val:.6f}")
 
 print("\n" + "=" * 70)
@@ -240,6 +262,8 @@ summary = {
     "variant": variant,
     "mode": mode,
     "seeds": seeds,
+    "per_seed": per_seed,
+    "mean_std": {},
     "metrics": {},
 }
 
@@ -251,6 +275,10 @@ for metric in metrics:
     mean = float(np.mean(values))
     std = float(np.std(values, ddof=1)) if len(values) > 1 else 0.0
     print(f"{metric:18s}: {mean:.4f} ± {std:.4f}  (pct: {mean*100:.2f} ± {std*100:.2f})")
+    summary["mean_std"][metric] = {
+        "mean": mean,
+        "std": std,
+    }
     summary["metrics"][metric] = {
         "values": values,
         "mean": mean,
