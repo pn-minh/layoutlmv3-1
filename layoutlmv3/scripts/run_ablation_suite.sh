@@ -33,20 +33,30 @@ else
 fi
 
 # Configure dataset-specific hyperparameters matching the paper & existing scripts
+# Micro-batch and gradient accumulation are sized to fit 40GB A100 GPUs with headroom
+# while preserving the exact effective batch size (16 for FUNSD, 64 for CORD).
 if [ "$DATASET" = "funsd" ]; then
     LR="1e-5"
-    # Set micro-batch size to 8 and accumulation to 2 on A100 GPU (preserves exact effective batch size = 8 * 2 = 16 while cutting forward/backward passes in half)
-    PER_DEV_BS=8
-    GRAD_ACC=2
+    if [ "$VARIANT" = "large" ]; then
+        PER_DEV_BS=4
+        GRAD_ACC=4
+    else
+        PER_DEV_BS=8
+        GRAD_ACC=2
+    fi
     MAX_LINE=100
     MAX_BLOCK=30
     MAX_COL=8
     MAX_STEPS=1000
 elif [ "$DATASET" = "cord" ]; then
     LR="5e-5"
-    # Set micro-batch size to 16 and accumulation to 4 on A100 GPU (preserves exact effective batch size = 16 * 4 = 64 while cutting forward/backward passes in half)
-    PER_DEV_BS=16
-    GRAD_ACC=4
+    if [ "$VARIANT" = "large" ]; then
+        PER_DEV_BS=8
+        GRAD_ACC=8
+    else
+        PER_DEV_BS=16
+        GRAD_ACC=4
+    fi
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
@@ -56,6 +66,10 @@ else
     echo "ERROR: Invalid dataset '$DATASET'. Choose 'funsd' or 'cord'."
     exit 1
 fi
+
+# Isolate HuggingFace datasets cache in /dev/shm (RAM disk) per cell so parallel GPU workers never collide
+export HF_DATASETS_CACHE="/dev/shm/hf_cache_${DATASET}_${VARIANT}_${MODE}"
+mkdir -p "$HF_DATASETS_CACHE"
 
 # Configure feature flags based on experiment mode:
 # - baseline:     Vanilla LayoutLMv3 (no HPE, no Token-Segment, no Boundary Loss, no Contrastive Loss)
@@ -211,8 +225,13 @@ do
     SEED_ELAPSED=$((SEED_END - SEED_START))
     REMAINING_SEEDS=$((TOTAL_SEEDS - SEED_IDX))
     EST_REMAINING=$((REMAINING_SEEDS * SEED_ELAPSED))
+    # Remove multi-GB model weight binary after evaluation completes to preserve container disk space
+    rm -f "$OUT_DIR/pytorch_model.bin"
     echo "[CELL TIMING] Seed ${SEED} finished in ${SEED_ELAPSED}s | Estimated time left for this 3-seed cell: ${EST_REMAINING}s"
 done
+
+# Clean up temporary RAM-disk dataset cache for this cell
+rm -rf "$HF_DATASETS_CACHE"
 
 echo ""
 echo "============================================================"
