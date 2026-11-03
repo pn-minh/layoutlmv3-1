@@ -170,6 +170,11 @@ do
     rm -rf "$OUT_DIR"
     SEED_START=$(date +%s)
 
+    CACHE_ARGS=()
+    if [ "$SEED_IDX" -eq 1 ]; then
+        CACHE_ARGS=(--overwrite_cache)
+    fi
+
     # Run training with A100 hardware optimizations:
     # 1. --fp16 True: Enables mixed precision on Ampere Tensor Cores (~2.5x speedup without loss of accuracy)
     # 2. --dataloader_num_workers 8: Pre-fetches batches using multi-threaded DataLoader workers
@@ -199,7 +204,7 @@ do
         --report_to none \
         --seed "$SEED" \
         --overwrite_output_dir \
-        --overwrite_cache \
+        "${CACHE_ARGS[@]}" \
         "${EXTRA_ARGS[@]}"
 
     SEED_END=$(date +%s)

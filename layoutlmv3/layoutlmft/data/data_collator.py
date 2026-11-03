@@ -13,13 +13,8 @@ from typing import NewType
 InputDataClass = NewType("InputDataClass", Any)
 
 def pre_calc_rel_mat(segment_ids):
-    valid_span = torch.zeros((segment_ids.shape[0], segment_ids.shape[1], segment_ids.shape[1]),
-                             device=segment_ids.device, dtype=torch.bool)
-    for i in range(segment_ids.shape[0]):
-        for j in range(segment_ids.shape[1]):
-            valid_span[i, j, :] = segment_ids[i, :] == segment_ids[i, j]
-
-    return valid_span
+    # Vectorized boolean broadcast equivalent to the nested loop over (B, S, S)
+    return segment_ids.unsqueeze(2) == segment_ids.unsqueeze(1)
 
 @dataclass
 class DataCollatorForKeyValueExtraction(DataCollatorMixin):
