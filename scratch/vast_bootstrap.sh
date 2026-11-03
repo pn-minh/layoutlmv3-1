@@ -10,10 +10,10 @@ echo "=========================================================="
 
 nvidia-smi
 
-# System packages
+# System packages (Ubuntu 22.04 / 24.04 compatible)
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y git curl tmux psmisc rsync unzip wget libgl1-mesa-glx libglib2.0-0
+apt-get update -y || true
+apt-get install -y git curl tmux psmisc rsync unzip wget libgl1 libglib2.0-0 || true
 
 # Create workspace
 mkdir -p /workspace
