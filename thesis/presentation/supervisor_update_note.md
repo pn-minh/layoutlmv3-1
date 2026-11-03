@@ -24,19 +24,14 @@ Theo góp ý của Cô trong buổi trước, em đã bổ sung vào Chương 4 
 - Bổ sung bảng phân tích chi tiết lỗi ranh giới: Mô hình giảm được 36.6% lỗi sai lệch ranh giới thực thể và giảm 31.8% lỗi sáp nhập hai trường thông tin khác nhau trên cùng một dòng.
 - Viết đầy đủ Chương 5 Kết luận: Thẳng thắn nhìn nhận các hạn chế thực tế (phụ thuộc vào chất lượng OCR đầu vào, khó xử lý tốt các văn bản bị xoay nghiêng hoặc biểu mẫu phi chữ nhật phức tạp) và đề xuất các hướng đi tiếp theo rất cụ thể (học gom cụm bằng đồ thị, chưng cất mô hình nhẹ để chạy thực tế trên thiết bị biên/mobile, và đánh giá mở rộng trên tập hóa đơn tiếng Việt MC-OCR).
 
-4. Vẽ lại thủ công toàn bộ sơ đồ kiến trúc mô hình bằng Draw.io
-Em đã dùng Draw.io vẽ lại từ đầu toàn bộ sơ đồ kiến trúc theo phong cách trực quan, rõ ràng và mạch lạc:
-- Trực quan hóa rõ luồng dữ liệu từ Document Input -> HPE -> LayoutLMv3 Backbone -> SCM (với cổng ReZero và Onset Embedding) -> Head phân loại trực tiếp.
-- Riêng khối Boundary Loss và Contrastive Loss được vẽ rất chi tiết bằng các hình khối, đường nét, cặp từ và biểu tượng kéo/đẩy tương phản (Pull/Push), không lạm dụng các công thức toán dài dòng gây rối mắt.
-- Toàn bộ sơ đồ đã được xuất ra định dạng JPEG chất lượng cao để chèn vào bài báo và lưu trữ bản vẽ Draw.io gốc.
+4. Sơ đồ kiến trúc mô hình chuẩn hóa vector (HEADS style)
+Sơ đồ kiến trúc tổng thể của mô hình được giữ nguyên theo bản vẽ vector chuẩn hóa (phong cách HEADS), thể hiện đầy đủ và mạch lạc luồng xử lý từ Document Input -> HPE -> LayoutLMv3 Backbone -> SCM -> Head phân loại trực tiếp và giám sát đa nhiệm.
 
 5. Đường dẫn xem trực tiếp tài liệu cập nhật:
 - Bản thảo Khóa luận tiếng Anh (PDF hoàn chỉnh):
   https://github.com/pn-minh/layoutlmv3-1/blob/documentation/English_Thesis_LayoutLMv3.pdf
-- Sơ đồ kiến trúc mô hình (File JPEG độ phân giải cao):
-  https://github.com/pn-minh/layoutlmv3-1/blob/documentation/Model_Architecture_Diagram.jpeg
-- Sơ đồ kiến trúc mô hình (File Draw.io gốc):
-  https://github.com/pn-minh/layoutlmv3-1/blob/documentation/Model_Architecture_Diagram.drawio
+- Sơ đồ kiến trúc mô hình (File PDF vector nét cao):
+  https://github.com/pn-minh/layoutlmv3-1/blob/documentation/Model_Architecture_Diagram.pdf
 - Mã nguồn và toàn bộ tài liệu trên GitHub:
   https://github.com/pn-minh/layoutlmv3-1
 
