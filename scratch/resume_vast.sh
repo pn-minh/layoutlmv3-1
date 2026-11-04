@@ -10,8 +10,12 @@ set -a
 source /etc/environment 2>/dev/null || true
 set +a
 
+source /workspace/miniconda3/etc/profile.d/conda.sh 2>/dev/null || true
+conda activate layoutlmv3 2>/dev/null || true
+
+echo "[RESUME] Using python: $(which python)"
 echo "[RESUME] Launching vast_runner.py in background with nohup..."
-nohup /workspace/miniconda3/envs/layoutlmv3/bin/python -u /workspace/layoutlmv3-1/scratch/vast_runner.py >> /workspace/bootstrap_and_runner.log 2>&1 < /dev/null &
+nohup python -u /workspace/layoutlmv3-1/scratch/vast_runner.py >> /workspace/bootstrap_and_runner.log 2>&1 < /dev/null &
 RUNNER_PID=$!
 echo "[RESUME] vast_runner.py started with PID: $RUNNER_PID"
 
