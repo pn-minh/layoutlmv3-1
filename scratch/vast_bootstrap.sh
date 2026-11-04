@@ -104,6 +104,7 @@ python scripts/prepare_datasets.py
 # Pre-cache microsoft/layoutlmv3-base and microsoft/layoutlmv3-large into ./models/ so dual-GPU workers never race on download
 python - << 'PY'
 import os
+import torch
 import layoutlmft
 from transformers import AutoConfig, AutoTokenizer, AutoModelForTokenClassification
 for name in ["microsoft/layoutlmv3-base", "microsoft/layoutlmv3-large"]:
@@ -118,7 +119,16 @@ for name in ["microsoft/layoutlmv3-base", "microsoft/layoutlmv3-large"]:
         cfg.save_pretrained(target)
         tok.save_pretrained(target)
         mdl.save_pretrained(target)
-        print(f"[PRE-CACHE] Saved {name} -> {target}", flush=True)
+    bin_path = os.path.join(target, "pytorch_model.bin")
+    if os.path.isfile(bin_path):
+        sd = torch.load(bin_path, map_location="cpu")
+        removed = [k for k in list(sd.keys()) if k.startswith("classifier.")]
+        if removed:
+            for k in removed:
+                del sd[k]
+            torch.save(sd, bin_path + ".tmp")
+            os.replace(bin_path + ".tmp", bin_path)
+            print(f"[PRE-CACHE] Stripped {removed} from {bin_path}", flush=True)
 PY
 
 # Restore all 19 completed 3-seed summaries
