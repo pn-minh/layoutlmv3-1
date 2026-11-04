@@ -1,13 +1,13 @@
 # Vast.ai A100-SXM4-80GB Live Execution & Ablation Tracker
 
 ## Hardware, Optimization & Environment Status
-- **Compute Instance:** Ready for Vast.ai `NVIDIA A100-SXM4-80GB` SSH connection — **Status:** 🟡 **STANDBY (Auto-Runner, Live Local Dashboard & Auto-Self-Destruct Armed)**
-- **Local Live Tracking Dashboard:** Running at `http://localhost:8765` ([`dashboard/index.html`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/dashboard/index.html)) via [`scratch/local_dashboard_server.js`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/scratch/local_dashboard_server.js)
+- **Compute Instance:** Vast.ai `2x NVIDIA A100-PCIE-40GB` (`58981233`) — **Status:** ✅ **ALL 28 CELLS COMPLETED & INSTANCE SELF-DESTRUCTED**
+- **Local Live Tracking Dashboard:** [`dashboard/index.html`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/dashboard/index.html) via [`scratch/local_dashboard_server.js`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/scratch/local_dashboard_server.js)
 - **Repository:** `https://github.com/pn-minh/layoutlmv3-1` (`main`)
 - **Master Deliverables:**
-  - Google Drive: Automatic upload of each `*_3seed_summary.json`, `cell_*.log`, and final `LayoutLMv3_Final_Experiment_Results_All_28_Cells.zip`.
-  - Google Sheets: [Live Tracker](https://docs.google.com/spreadsheets/d/173WXkbMXDCEVs4pYBRNXGTHihOda18adbJRJ7RpFw7o/edit) (8-section Quad-Block table including Contrastive Loss ablations).
-  - Automatic Self-Destruct: Armed in [`scratch/vast_runner.py`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/scratch/vast_runner.py) and [`scratch/local_dashboard_server.js`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/scratch/local_dashboard_server.js) (`vastai destroy instance` + REST API `DELETE`) immediately upon completion.
+  - Google Drive: [Shared Folder](https://drive.google.com/drive/folders/1eibbB-iAHuhbi_Lz2TFb1i_GIscpRDh5) containing all 24 `*_3seed_summary.json` files, `cell_*.log` logs, `FINAL_AGGREGATED_ABLATION_TABLE.md`, `LayoutLMv3_All_Summaries_Snapshot.json`, and `LayoutLMv3_Final_Experiment_Results_All_28_Cells.zip`.
+  - Google Sheets: [Live Tracker](https://docs.google.com/spreadsheets/d/173WXkbMXDCEVs4pYBRNXGTHihOda18adbJRJ7RpFw7o/edit) (8-section Quad-Block table including Contrastive Loss ablations — all 63 rows synced).
+  - Automatic Self-Destruct: Executed automatically by [`scratch/vast_runner.py`](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/scratch/vast_runner.py) immediately after uploading the final master archive.
 
 ---
 
@@ -37,9 +37,9 @@
 | **Cell 20** | Ablation: w/o Token-Segment (3 seeds) | `large` | `FUNSD` | `no_segment` | ✅ Done | `4610.1s` (`76.8m`) | `90.34 ± 0.45` | `91.68 ± 0.08` | **`91.01 ± 0.23`** |
 | **Cell 21** | Ablation: w/o Token-Segment (3 seeds) | `large` | `CORD` | `no_segment` | ✅ Done | `7863.6s` (`131.1m`) | `96.69 ± 0.15` | `96.98 ± 0.17` | **`96.84 ± 0.13`** |
 | **Cell 22** | Ablation: w/o HPE (3 seeds) | `large` | `FUNSD` | `no_hpe` | ✅ Done | `5993.0s` (`99.9m`) | `92.67 ± 0.13` | `92.72 ± 0.28` | **`92.69 ± 0.18`** |
-| **Cell 23** | Ablation: w/o HPE (3 seeds) | `large` | `CORD` | `no_hpe` | ⏳ Queued | Est. `~120–130m` | — | — | — |
-| **Cell 24** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `base` | `FUNSD` | `contrastive` | ⏳ Queued | Est. `~55–65m` | — | — | — |
-| **Cell 25** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `base` | `CORD` | `contrastive` | ⏳ Queued | Est. `~85–95m` | — | — | — |
-| **Cell 26** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `large` | `FUNSD` | `contrastive` | ⏳ Queued | Est. `~95–105m` | — | — | — |
-| **Cell 27** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `large` | `CORD` | `contrastive` | ⏳ Queued | Est. `~125–135m` | — | — | — |
-| **Cell 28** | Final 24-Config Aggregated Master Table | — | — | — | ⏳ Queued | Est. `~1m` | — | — | — |
+| **Cell 23** | Ablation: w/o HPE (3 seeds) | `large` | `CORD` | `no_hpe` | ✅ Done | `10069.0s` (`167.8m`) | `96.88 ± 0.17` | `96.93 ± 0.13` | **`96.91 ± 0.15`** |
+| **Cell 24** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `base` | `FUNSD` | `contrastive` | ✅ Done | `4514.0s` (`75.2m`) | `91.32 ± 0.48` | `91.18 ± 0.40` | **`91.25 ± 0.28`** |
+| **Cell 25** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `base` | `CORD` | `contrastive` | ✅ Done | `5412.4s` (`90.2m`) | `96.51 ± 0.08` | `96.58 ± 0.04` | **`96.55 ± 0.06`** |
+| **Cell 26** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `large` | `FUNSD` | `contrastive` | ✅ Done | `6958.3s` (`116.0m`) | `92.72 ± 0.19` | `93.13 ± 0.42` | **`92.92 ± 0.30`** |
+| **Cell 27** | Full 4-Module (+ Contrastive Loss, 3 seeds) | `large` | `CORD` | `contrastive` | ✅ Done | `10202.0s` (`170.0m`) | `97.11 ± 0.19` | `97.18 ± 0.26` | **`97.14 ± 0.23`** |
+| **Cell 28** | Final 24-Config Aggregated Master Table | — | — | — | ✅ Done | `24.0s` (`0.4m`) | — | — | — |
