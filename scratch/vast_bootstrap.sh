@@ -12,8 +12,10 @@ nvidia-smi
 
 # System packages (Ubuntu 22.04 / 24.04 compatible)
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y || true
-apt-get install -y git curl tmux psmisc rsync unzip wget libgl1 libglib2.0-0 || true
+if ! command -v tmux >/dev/null 2>&1 || ! dpkg -s libgl1 >/dev/null 2>&1; then
+    apt-get update -y || true
+    apt-get install -y git curl tmux psmisc rsync unzip wget libgl1 libglib2.0-0 || true
+fi
 
 # Create workspace
 mkdir -p /workspace
@@ -55,21 +57,45 @@ if ! conda info --envs | grep -q "^layoutlmv3 "; then
 fi
 conda activate layoutlmv3
 
-# Upgrade pip & install PyTorch 1.10.0+cu111 + Detectron2 + requirements
-python -m pip install --upgrade "pip<24.1" "setuptools<68.0" "wheel<0.43"
-python -m pip install torch==1.10.0+cu111 torchvision==0.11.1+cu111 -f https://download.pytorch.org/whl/cu111/torch_stable.html
-python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.10/index.html
-python -m pip install -r layoutlmv3/requirements.txt
-python -m pip install requests psutil vastai
-python -m pip install -e layoutlmv3/
-
-# Ensure huggingface_hub.hf_api import compatibility in datasets/data_files.py if needed
-SITE_PKGS=$(python -c "import site; print(site.getsitepackages()[0])")
-if [ -f "$SITE_PKGS/datasets/data_files.py" ]; then
-    if ! grep -q "import huggingface_hub.hf_api" "$SITE_PKGS/datasets/data_files.py"; then
-        sed -i 's/import huggingface_hub/import huggingface_hub\nimport huggingface_hub.hf_api/' "$SITE_PKGS/datasets/data_files.py" || true
-    fi
+# Upgrade pip & install PyTorch 1.10.0+cu111 + Detectron2 + requirements (skip if already installed)
+if ! python -c "import torch, detectron2, transformers, datasets, seqeval, layoutlmft, psutil, requests" 2>/dev/null; then
+    python -m pip install --upgrade "pip<24.1" "setuptools<68.0" "wheel<0.43"
+    python -m pip install torch==1.10.0+cu111 torchvision==0.11.1+cu111 -f https://download.pytorch.org/whl/cu111/torch_stable.html
+    python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.10/index.html
+    python -m pip install -r layoutlmv3/requirements.txt
+    python -m pip install requests psutil vastai
+    python -m pip install -e layoutlmv3/
 fi
+
+# Ensure huggingface_hub.hf_api import compatibility and relative redirect URL resolution for transformers 4.12.5
+python - << 'PY'
+import site, os, pathlib
+site_pkgs = pathlib.Path(site.getsitepackages()[0])
+
+df_path = site_pkgs / "datasets" / "data_files.py"
+if df_path.exists():
+    txt = df_path.read_text(encoding="utf-8")
+    if "import huggingface_hub.hf_api" not in txt:
+        df_path.write_text(txt.replace("import huggingface_hub", "import huggingface_hub\nimport huggingface_hub.hf_api"), encoding="utf-8")
+
+tf_fu = site_pkgs / "transformers" / "file_utils.py"
+if tf_fu.exists():
+    txt = tf_fu.read_text(encoding="utf-8")
+    target = 'url_to_download = r.headers["Location"]'
+    replacement = 'url_to_download = ("https://huggingface.co" + r.headers["Location"]) if r.headers["Location"].startswith("/") else r.headers["Location"]'
+    if target in txt and replacement not in txt:
+        tf_fu.write_text(txt.replace(target, replacement), encoding="utf-8")
+        print("[PATCH] Patched transformers/file_utils.py for HuggingFace relative redirects.")
+
+req_sess = site_pkgs / "requests" / "sessions.py"
+if req_sess.exists():
+    txt = req_sess.read_text(encoding="utf-8")
+    target = "req = Request(\n            method=method.upper(),"
+    replacement = 'if isinstance(url, str) and url.startswith("/"):\n            url = "https://huggingface.co" + url\n        req = Request(\n            method=method.upper(),'
+    if target in txt and 'url.startswith("/")' not in txt:
+        req_sess.write_text(txt.replace(target, replacement), encoding="utf-8")
+        print("[PATCH] Patched requests/sessions.py for relative URL fallback.")
+PY
 
 # Download and verify FUNSD and CORD datasets
 cd /workspace/layoutlmv3-1/layoutlmv3
