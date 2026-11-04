@@ -104,6 +104,7 @@ python scripts/prepare_datasets.py
 # Pre-cache microsoft/layoutlmv3-base and microsoft/layoutlmv3-large into ./models/ so dual-GPU workers never race on download
 python - << 'PY'
 import os
+import layoutlmft
 from transformers import AutoConfig, AutoTokenizer, AutoModelForTokenClassification
 for name in ["microsoft/layoutlmv3-base", "microsoft/layoutlmv3-large"]:
     short = name.split("/")[-1]
