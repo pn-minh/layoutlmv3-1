@@ -156,7 +156,7 @@ model = LayoutLMv3ForSegmentTokenClassification(cfg).to(device)
 B, L = 2, 16
 input_ids = torch.randint(0, 100, (B, L), device=device)
 bbox = torch.tensor([[100, 100, 300, 150]] * L, device=device).unsqueeze(0).expand(B, L, 4).contiguous()
-attention_mask = torch.ones((B, L + 197), dtype=torch.long, device=device)
+attention_mask = torch.ones((B, L), dtype=torch.long, device=device)
 labels = torch.randint(0, 7, (B, L), device=device)
 seg_id = torch.arange(L, device=device).unsqueeze(0).expand(B, L)
 line_ids = torch.zeros((B, L), dtype=torch.long, device=device)
