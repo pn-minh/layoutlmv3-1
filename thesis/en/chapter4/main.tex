@@ -231,7 +231,7 @@ To rigorously assess the individual contribution of each component—Hierarchica
 \begin{table}[htbp]
 \centering
 \scriptsize
-\caption{Complete 24-configuration master ablation matrix evaluated across 3 random seeds ($\text{Mean} \pm \text{Std}$) on NVIDIA A100 GPUs.}
+\caption{Complete 24-configuration master ablation matrix evaluated across 3 random seeds ($\text{Mean} \pm \text{Std}$) on NVIDIA A100 GPUs. $\Delta$ F1 for the Full 4-Module Model is computed relative to the Vanilla Baseline; $\Delta$ F1 for the four leave-one-out ablation models is computed relative to the Full 4-Module Model.}
 \label{tab:master_ablation_matrix}
 \renewcommand{\arraystretch}{1.2}
 \setlength{\tabcolsep}{2.5pt}
@@ -240,55 +240,55 @@ To rigorously assess the individual contribution of each component—Hierarchica
 \textbf{Scale} & \textbf{Dataset} & \textbf{Model Configuration} & \textbf{Precision (\%)} & \textbf{Recall (\%)} & \textbf{Entity F1 (\%)} & $\Delta$ \textbf{F1} \\ \hline
 \multirow{12}{*}{\texttt{base}} 
 & \multirow{6}{*}{FUNSD} 
-& Baseline LayoutLMv3 & $89.32 \pm 1.31$ & $90.53 \pm 0.48$ & $89.92 \pm 0.85$ & Ref. \\
-& & 3-Module Model (w/o Contrastive) & $\mathbf{91.82 \pm 0.05}$ & $91.33 \pm 0.28$ & $\mathbf{91.58 \pm 0.16}$ & $\mathbf{+1.66\%}$ \\
-& & Full 4-Module Model (+ Contrastive) & $91.32 \pm 0.48$ & $91.18 \pm 0.40$ & $91.25 \pm 0.28$ & $+1.33\%$ \\
-& & Ablation: w/o Boundary Loss & $91.72 \pm 0.26$ & $\mathbf{91.52 \pm 0.15}$ & $91.62 \pm 0.19$ & $+1.70\%$ \\
-& & Ablation: w/o Token-Segment SCM & $89.54 \pm 0.53$ & $91.18 \pm 0.41$ & $90.36 \pm 0.30$ & $+0.44\%$ \\
-& & Ablation: w/o Hierarchical Pos. (HPE) & $91.42 \pm 0.33$ & $91.25 \pm 0.33$ & $91.33 \pm 0.27$ & $+1.41\%$ \\ \cline{2-7}
+& Baseline LayoutLMv3 & $89.32 \pm 1.31$ & $90.53 \pm 0.48$ & $89.92 \pm 0.85$ & Ref. (Base) \\
+& & Full 4-Module Model (HPE+SCM+Cont.+Bdr.) & $91.32 \pm 0.48$ & $91.18 \pm 0.40$ & $91.25 \pm 0.28$ & $+1.33\%$ \\
+& & Ablation: w/o Hierarchical Pos. (HPE) & $91.42 \pm 0.33$ & $91.25 \pm 0.33$ & $91.33 \pm 0.27$ & $+0.08\%$ \\
+& & Ablation: w/o Token-Segment SCM & $89.54 \pm 0.53$ & $91.18 \pm 0.41$ & $90.36 \pm 0.30$ & $\mathbf{-0.89\%}$ \\
+& & Ablation: w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $91.72 \pm 0.26$ & $\mathbf{91.52 \pm 0.15}$ & $\mathbf{91.62 \pm 0.19}$ & $+0.37\%$ \\
+& & Ablation: w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $\mathbf{91.82 \pm 0.05}$ & $91.33 \pm 0.28$ & $91.58 \pm 0.16$ & $+0.33\%$ \\ \cline{2-7}
 & \multirow{6}{*}{CORD} 
-& Baseline LayoutLMv3 & $96.50 \pm 0.39$ & $96.94 \pm 0.28$ & $96.72 \pm 0.33$ & Ref. \\
-& & 3-Module Model (w/o Contrastive) & $96.80 \pm 0.27$ & $97.02 \pm 0.15$ & $96.91 \pm 0.21$ & $+0.19\%$ \\
-& & Full 4-Module Model (+ Contrastive) & $96.51 \pm 0.08$ & $96.58 \pm 0.04$ & $96.55 \pm 0.06$ & $-0.17\%$ \\
-& & Ablation: w/o Boundary Loss & $97.00 \pm 0.18$ & $97.12 \pm 0.19$ & $97.06 \pm 0.18$ & $+0.34\%$ \\
-& & Ablation: w/o Token-Segment SCM & $96.28 \pm 0.71$ & $96.89 \pm 0.42$ & $96.59 \pm 0.57$ & $-0.13\%$ \\
-& & Ablation: w/o Hierarchical Pos. (HPE) & $\mathbf{97.05 \pm 0.16}$ & $\mathbf{97.15 \pm 0.16}$ & $\mathbf{97.10 \pm 0.15}$ & $\mathbf{+0.38\%}$ \\ \hline\hline
+& Baseline LayoutLMv3 & $96.50 \pm 0.39$ & $96.94 \pm 0.28$ & $96.72 \pm 0.33$ & Ref. (Base) \\
+& & Full 4-Module Model (HPE+SCM+Cont.+Bdr.) & $96.51 \pm 0.08$ & $96.58 \pm 0.04$ & $96.55 \pm 0.06$ & $-0.17\%$ \\
+& & Ablation: w/o Hierarchical Pos. (HPE) & $\mathbf{97.05 \pm 0.16}$ & $\mathbf{97.15 \pm 0.16}$ & $\mathbf{97.10 \pm 0.15}$ & $+0.55\%$ \\
+& & Ablation: w/o Token-Segment SCM & $96.28 \pm 0.71$ & $96.89 \pm 0.42$ & $96.59 \pm 0.57$ & $+0.04\%$ \\
+& & Ablation: w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $97.00 \pm 0.18$ & $97.12 \pm 0.19$ & $97.06 \pm 0.18$ & $+0.51\%$ \\
+& & Ablation: w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $96.80 \pm 0.27$ & $97.02 \pm 0.15$ & $96.91 \pm 0.21$ & $+0.36\%$ \\ \hline\hline
 \multirow{12}{*}{\texttt{large}} 
 & \multirow{6}{*}{FUNSD} 
-& Baseline LayoutLMv3 & $90.69 \pm 1.01$ & $91.80 \pm 0.23$ & $91.24 \pm 0.61$ & Ref. \\
-& & 3-Module Model (w/o Contrastive) & $92.31 \pm 0.51$ & $92.60 \pm 0.10$ & $92.45 \pm 0.26$ & $+1.21\%$ \\
-& & Full 4-Module Model (+ Contrastive) & $\mathbf{92.72 \pm 0.19}$ & $\mathbf{93.13 \pm 0.42}$ & $\mathbf{92.92 \pm 0.30}$ & $\mathbf{+1.68\%}$ \\
-& & Ablation: w/o Boundary Loss & $91.97 \pm 0.37$ & $92.33 \pm 0.23$ & $92.15 \pm 0.24$ & $+0.91\%$ \\
-& & Ablation: w/o Token-Segment SCM & $90.34 \pm 0.45$ & $91.68 \pm 0.08$ & $91.01 \pm 0.23$ & $-0.23\%$ \\
-& & Ablation: w/o Hierarchical Pos. (HPE) & $92.67 \pm 0.13$ & $92.72 \pm 0.28$ & $92.69 \pm 0.18$ & $+1.45\%$ \\ \cline{2-7}
+& Baseline LayoutLMv3 & $90.69 \pm 1.01$ & $91.80 \pm 0.23$ & $91.24 \pm 0.61$ & Ref. (Base) \\
+& & Full 4-Module Model (HPE+SCM+Cont.+Bdr.) & $\mathbf{92.72 \pm 0.19}$ & $\mathbf{93.13 \pm 0.42}$ & $\mathbf{92.92 \pm 0.30}$ & $\mathbf{+1.68\%}$ \\
+& & Ablation: w/o Hierarchical Pos. (HPE) & $92.67 \pm 0.13$ & $92.72 \pm 0.28$ & $92.69 \pm 0.18$ & $-0.23\%$ \\
+& & Ablation: w/o Token-Segment SCM & $90.34 \pm 0.45$ & $91.68 \pm 0.08$ & $91.01 \pm 0.23$ & $\mathbf{-1.91\%}$ \\
+& & Ablation: w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $91.97 \pm 0.37$ & $92.33 \pm 0.23$ & $92.15 \pm 0.24$ & $-0.77\%$ \\
+& & Ablation: w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $92.31 \pm 0.51$ & $92.60 \pm 0.10$ & $92.45 \pm 0.26$ & $-0.47\%$ \\ \cline{2-7}
 & \multirow{6}{*}{CORD} 
-& Baseline LayoutLMv3 & $96.96 \pm 0.30$ & $97.35 \pm 0.04$ & $97.15 \pm 0.17$ & Ref. \\
-& & 3-Module Model (w/o Contrastive) & $\mathbf{97.28 \pm 0.04}$ & $\mathbf{97.43 \pm 0.04}$ & $\mathbf{97.35 \pm 0.04}$ & $\mathbf{+0.20\%}$ \\
-& & Full 4-Module Model (+ Contrastive) & $97.11 \pm 0.19$ & $97.18 \pm 0.26$ & $97.14 \pm 0.23$ & $-0.01\%$ \\
-& & Ablation: w/o Boundary Loss & $96.90 \pm 0.49$ & $97.12 \pm 0.36$ & $97.01 \pm 0.42$ & $-0.14\%$ \\
-& & Ablation: w/o Token-Segment SCM & $96.69 \pm 0.15$ & $96.98 \pm 0.17$ & $96.84 \pm 0.13$ & $-0.31\%$ \\
-& & Ablation: w/o Hierarchical Pos. (HPE) & $96.88 \pm 0.17$ & $96.93 \pm 0.13$ & $96.91 \pm 0.15$ & $-0.24\%$ \\ \hline
+& Baseline LayoutLMv3 & $96.96 \pm 0.30$ & $97.35 \pm 0.04$ & $97.15 \pm 0.17$ & Ref. (Base) \\
+& & Full 4-Module Model (HPE+SCM+Cont.+Bdr.) & $97.11 \pm 0.19$ & $97.18 \pm 0.26$ & $97.14 \pm 0.23$ & $-0.01\%$ \\
+& & Ablation: w/o Hierarchical Pos. (HPE) & $96.88 \pm 0.17$ & $96.93 \pm 0.13$ & $96.91 \pm 0.15$ & $-0.23\%$ \\
+& & Ablation: w/o Token-Segment SCM & $96.69 \pm 0.15$ & $96.98 \pm 0.17$ & $96.84 \pm 0.13$ & $\mathbf{-0.30\%}$ \\
+& & Ablation: w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $96.90 \pm 0.49$ & $97.12 \pm 0.36$ & $97.01 \pm 0.42$ & $-0.13\%$ \\
+& & Ablation: w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $\mathbf{97.28 \pm 0.04}$ & $\mathbf{97.43 \pm 0.04}$ & $\mathbf{97.35 \pm 0.04}$ & $+0.21\%$ \\ \hline
 \end{tabularx}
 \end{table}
 
 \subsection{Analysis of Module Impact}
 \label{subsec:module_marginal_analysis}
 
-To quantify the exact impact of each individual module, Table~\ref{tab:module_marginal_impact} and Figure~\ref{fig:module_impact_chart} present the marginal performance drop when removing each module from the enhanced models.
+To quantify the exact impact of each individual module, Table~\ref{tab:module_marginal_impact} and Figure~\ref{fig:module_impact_chart} present the marginal performance change ($\Delta = M_{\text{ablation}} - M_{\text{full}}$) when removing each module from the Full 4-Module Model.
 
 \begin{table}[htbp]
 \centering
 \small
-\caption{Marginal F1 impact ($\Delta$ F1) when removing individual components. Negative values indicate performance degradation upon removal (confirming positive module utility).}
+\caption{Marginal F1 impact ($\Delta$ F1 relative to the Full 4-Module Model) when removing individual components. Negative values indicate performance degradation upon removal (confirming positive module utility).}
 \label{tab:module_marginal_impact}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabularx}{\textwidth}{|>{\RaggedRight\arraybackslash}p{4.6cm}|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|}
 \hline
 \textbf{Removed Module} & \makecell{\textbf{FUNSD}\\\textbf{(\texttt{base})}} & \makecell{\textbf{FUNSD}\\\textbf{(\texttt{large})}} & \makecell{\textbf{CORD}\\\textbf{(\texttt{base})}} & \makecell{\textbf{CORD}\\\textbf{(\texttt{large})}} \\ \hline
-w/o Token-Segment SCM & $\mathbf{-1.22\%}$ & $\mathbf{-1.44\%}$ & $\mathbf{-0.32\%}$ & $\mathbf{-0.51\%}$ \\ \hline
-w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $+0.04\%$ & $-0.30\%$ & $+0.15\%$ & $-0.34\%$ \\ \hline
-w/o Hierarchical Pos. (HPE) & $-0.25\%$ & $+0.24\%$ & $+0.19\%$ & $-0.44\%$ \\ \hline
+w/o Token-Segment SCM & $\mathbf{-0.89\%}$ & $\mathbf{-1.91\%}$ & $+0.04\%$ & $\mathbf{-0.30\%}$ \\ \hline
+w/o Boundary Loss ($\mathcal{L}_{\text{bound}}$) & $+0.37\%$ & $\mathbf{-0.77\%}$ & $+0.51\%$ & $-0.13\%$ \\ \hline
 w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $+0.33\%$ & $\mathbf{-0.47\%}$ & $+0.36\%$ & $+0.21\%$ \\ \hline
+w/o Hierarchical Pos. (HPE) & $+0.08\%$ & $\mathbf{-0.23\%}$ & $+0.55\%$ & $\mathbf{-0.23\%}$ \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -300,8 +300,8 @@ w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $+0.33\%$ & $\mathbf{-0.47\
     bar width=10pt,
     width=0.80\textwidth,
     height=6.0cm,
-    xlabel={Performance Degradation when Removing Module ($\Delta$ F1 \%)},
-    symbolic y coords={Contrastive Loss, HPE Encoding, Boundary Loss, Token-Segment SCM},
+    xlabel={Performance Change Relative to Full 4-Module Model ($\Delta$ F1 \%)},
+    symbolic y coords={HPE Encoding, Contrastive Loss, Boundary Loss, Token-Segment SCM},
     ytick=data,
     yticklabel style={font=\footnotesize\bfseries},
     xmajorgrids=true,
@@ -309,40 +309,40 @@ w/o Contrastive Loss ($\mathcal{L}_{\text{cont}}$) & $+0.33\%$ & $\mathbf{-0.47\
     legend style={at={(0.5,-0.22)}, anchor=north, legend columns=2, font=\footnotesize},
     nodes near coords,
     nodes near coords style={font=\scriptsize, /pgf/number format/fixed, /pgf/number format/precision=2},
-    xmin=-1.6, xmax=0.5
+    xmin=-2.15, xmax=0.6
 ]
 \addplot[fill=red!60, draw=red!90!black] coordinates {
-    (-1.22,Token-Segment SCM)
-    (0.04,Boundary Loss)
-    (-0.25,HPE Encoding)
+    (-0.89,Token-Segment SCM)
+    (0.37,Boundary Loss)
     (0.33,Contrastive Loss)
+    (0.08,HPE Encoding)
 };
 \addplot[fill=blue!60, draw=blue!90!black] coordinates {
-    (-1.44,Token-Segment SCM)
-    (-0.30,Boundary Loss)
-    (0.24,HPE Encoding)
+    (-1.91,Token-Segment SCM)
+    (-0.77,Boundary Loss)
     (-0.47,Contrastive Loss)
+    (-0.23,HPE Encoding)
 };
 \legend{FUNSD (\texttt{base}), FUNSD (\texttt{large})}
 \end{axis}
 \end{tikzpicture}
-\caption{Marginal impact of removing each module on the FUNSD benchmark. Removing the Token-Segment SCM incurs the steepest drop, while Contrastive Loss contributes a substantial $+0.47\%$ boost on the high-capacity \texttt{large} model.}
+\caption{Marginal F1 change ($\Delta = M_{\text{ablation}} - M_{\text{full}}$) when removing each module from the Full 4-Module Model on FUNSD. On \texttt{large}, removing any of the four modules degrades Entity F1 ($-1.91\%$, $-0.77\%$, $-0.47\%$, and $-0.23\%$).}
 \label{fig:module_impact_chart}
 \end{figure}
 
 Key architectural insights from our systematic ablation include:
 \begin{enumerate}[leftmargin=*]
     \item \textbf{Token-Segment SCM is the Primary Driver of Entity Consistency:}
-    Across all four benchmark configurations, eliminating the Token-Segment SCM causes the most severe degradation in F1: $-1.22\%$ on FUNSD \texttt{base}, $-1.44\%$ on FUNSD \texttt{large}, $-0.32\%$ on CORD \texttt{base}, and $-0.51\%$ on CORD \texttt{large}. This confirms that token-level self-attention alone struggles with intra-line semantic fragmentation; explicitly aggregating tokens into segment representations via bi-directional gating enforces contextual homogeneity across whole semantic phrases.
+    Relative to the Full 4-Module Model, eliminating the Token-Segment SCM causes the steepest F1 degradation on FUNSD \texttt{large} ($\mathbf{-1.91\%}$, with Precision dropping by $-2.38\%$ and Recall by $-1.45\%$), FUNSD \texttt{base} ($\mathbf{-0.89\%}$, Precision $-1.78\%$), and CORD \texttt{large} ($\mathbf{-0.30\%}$, Precision $-0.42\%$). This confirms that token-level self-attention alone struggles with intra-line semantic fragmentation; explicitly aggregating tokens into segment representations via bi-directional gating enforces contextual homogeneity across whole semantic phrases.
     
-    \item \textbf{Cross-Modal Contrastive Loss Scales with Model Capacity and Layout Complexity:}
-    On FUNSD \texttt{large}, adding Cross-Modal Contrastive Loss yields a decisive gain of $\mathbf{+0.47\%}$ over the 3-module model ($92.45\% \to 92.92\%$). The 24-layer backbone has sufficient capacity to learn a rich joint metric space that aligns visual features with text embeddings without interfering with classification heads. On simpler or near-ceiling receipt benchmarks (CORD), where visual image patches consist largely of crumpled textures and skewed thermal print, contrastive loss acts as a heavy regularizer that stabilizes variance ($\pm 0.06\%$) while maintaining high overall accuracy.
-
+    \item \textbf{Every Module Contributes Positively at \texttt{large} Scale on Complex Forms:}
+    On FUNSD \texttt{large}, where the Full 4-Module Model reaches $92.92\%$ F1 ($+1.68\%$ over baseline, with evaluation loss dropping by $-0.0961$), removing any single component degrades F1, Precision, and Recall simultaneously: w/o Token-Segment SCM ($-1.91\%$ F1), w/o Boundary Loss ($-0.77\%$ F1), w/o Contrastive Loss ($-0.47\%$ F1), and w/o HPE ($-0.23\%$ F1).
+    
     \item \textbf{Intra-Line Boundary Loss Prevents Multi-Token Fragmentation:}
-    Removing $\mathcal{L}_{\text{bound}}$ drops large-model performance by $-0.30\%$ on FUNSD and $-0.34\%$ on CORD. Supervised penalty on adjacent transition matrices forces the classifier to sharply delineate entity boundaries, preventing multi-word entities from bleeding into surrounding fields.
+    Removing $\mathcal{L}_{\text{bound}}$ from the Full 4-Module Model drops large-model performance by $-0.77\%$ on FUNSD (Precision $-0.75\%$, Recall $-0.80\%$) and $-0.13\%$ on CORD \texttt{large}. Supervised penalty on adjacent transition matrices forces the classifier to sharply delineate entity boundaries, preventing multi-word entities from bleeding into surrounding fields.
 
     \item \textbf{Hierarchical Position Encoding (HPE) Anchors Spatial Layout:}
-    On CORD \texttt{large}, omitting HPE drops performance from $97.35\%$ to $96.91\%$ (a $-0.44\%$ drop). Decomposing token coordinates into line, column, and block embeddings resolves the ambiguity of 1D serialized sequence order in narrow, multi-tier receipt layouts.
+    Omitting HPE from the Full 4-Module Model reduces F1 by $-0.23\%$ on both FUNSD \texttt{large} ($92.92\% \to 92.69\%$) and CORD \texttt{large} ($97.14\% \to 96.91\%$). Decomposing token coordinates into line, column, and block embeddings resolves the ambiguity of 1D serialized sequence order in complex layouts.
 \end{enumerate}
 
 \subsection{Error Analysis on Entity Boundaries}

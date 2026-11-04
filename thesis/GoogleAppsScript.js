@@ -234,19 +234,18 @@ function doPost(e) {
     dataRange.setValues(rows);
     dataRange.setFontSize(11).setVerticalAlignment("middle");
     
-    // 4. Intelligent Styling (Enhanced Quad-Block layout matching reference sheet)
-    // Block column start indices: Block 1 (col 1), Block 2 (col 8), Block 3 (col 16), Block 4 (col 24)
-    // Separator columns: cols 6-7, 14-15, 22-23 (2 blank columns spacing)
-    var blockStarts = [1, 8, 16, 24];
-    var blockWidths = [5, 6, 6, 6];
-    var deltaCols = [0, 13, 21, 29];
+    // 4. Intelligent Styling (6-Table Horizontal Layout, 45 columns)
+    // Block column start indices: Block 1 (col 1), Block 2 (col 8), Block 3 (col 16), Block 4 (col 24), Block 5 (col 32), Block 6 (col 40)
+    // Separator columns: cols 6-7, 14-15, 22-23, 30-31, 38-39 (2 blank columns spacing)
+    var blockStarts = [1, 8, 16, 24, 32, 40];
+    var blockWidths = [5, 6, 6, 6, 6, 6];
+    var deltaCols = [0, 13, 21, 29, 37, 45];
 
     for (var i = 0; i < numRows; i++) {
       var rowIdx = startRow + i;
       var c1 = (rows[i][0] || "").toString().trim();
       var c8 = (numCols >= 8) ? (rows[i][7] || "").toString().trim() : "";
       var c16 = (numCols >= 16) ? (rows[i][15] || "").toString().trim() : "";
-      var c24 = (numCols >= 24) ? (rows[i][23] || "").toString().trim() : "";
       
       // Case A: Section Title Row (TABLE 1, SECTION, etc.)
       if (c1.indexOf("TABLE") === 0 || c1.indexOf("SECTION") === 0) {
@@ -263,41 +262,33 @@ function doPost(e) {
       }
       
       // Case B: Model Configuration Titles Row (Much bigger font 16pt, bold)
-      if (c1.indexOf("Baseline") !== -1 || c1.indexOf("OURS") !== -1 || c1.indexOf("w/o") !== -1 || c8.indexOf("w/o") !== -1 || c16.indexOf("OURS") !== -1) {
+      if (c1.indexOf("Baseline") !== -1 || c8.indexOf("HPE") !== -1 || c16.indexOf("w/o") !== -1) {
         sheet.setRowHeight(rowIdx, 36);
-        
-        // Block 1 Title (Cols 1-5)
-        if (c1) {
-          var b1Range = sheet.getRange(rowIdx, 1, 1, 5);
-          b1Range.merge().setBackground("#f1f3f4").setFontColor("#1a365d").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
-          b1Range.setBorder(true, true, true, true, false, false, "#1a365d", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-        }
-        // Block 2 Title (Cols 8-13)
-        if (numCols >= 13 && c8) {
-          var b2Range = sheet.getRange(rowIdx, 8, 1, 6);
-          b2Range.merge().setBackground("#f3e8fd").setFontColor("#5b21b6").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
-          b2Range.setBorder(true, true, true, true, false, false, "#5b21b6", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-        }
-        // Block 3 Title (Cols 16-21: OURS)
-        if (numCols >= 21 && c16) {
-          var b3Range = sheet.getRange(rowIdx, 16, 1, 6);
-          b3Range.merge().setBackground("#e6f4ea").setFontColor("#137333").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
-          b3Range.setBorder(true, true, true, true, false, false, "#137333", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-        }
-        // Block 4 Title (Cols 24-29)
-        if (numCols >= 29 && c24) {
-          var b4Range = sheet.getRange(rowIdx, 24, 1, 6);
-          b4Range.merge().setBackground("#fef7e0").setFontColor("#b45f06").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
-          b4Range.setBorder(true, true, true, true, false, false, "#b45f06", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+        var titleBgs = ["#f1f3f4", "#e6f4ea", "#f3e8fd", "#e8f0fe", "#fef7e0", "#fce8e6"];
+        var titleColors = ["#1a365d", "#137333", "#5b21b6", "#1967d2", "#b45f06", "#c5221f"];
+        for (var b = 0; b < blockStarts.length; b++) {
+          var sCol = blockStarts[b];
+          var wCol = blockWidths[b];
+          if (sCol + wCol - 1 <= numCols && (rows[i][sCol - 1] || "").toString().trim() !== "") {
+            var bRange = sheet.getRange(rowIdx, sCol, 1, wCol);
+            bRange.merge()
+                  .setBackground(titleBgs[b])
+                  .setFontColor(titleColors[b])
+                  .setFontWeight("bold")
+                  .setFontSize(16)
+                  .setHorizontalAlignment("center")
+                  .setVerticalAlignment("middle");
+            bRange.setBorder(true, true, true, true, false, false, titleColors[b], SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+          }
         }
         continue;
       }
       
-      // Case C: Column Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD | Delta F1)
+      // Case C: Column Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD | Delta)
       // Color 1: Deep steel blue #425D90 with white text, bold, medium bottom border
       if (c1 === "Metric") {
         sheet.setRowHeight(rowIdx, 32);
-        for (var b = 0; b < 4; b++) {
+        for (var b = 0; b < blockStarts.length; b++) {
           var sCol = blockStarts[b];
           var wCol = blockWidths[b];
           if (sCol + wCol - 1 <= numCols) {
@@ -318,7 +309,6 @@ function doPost(e) {
       // Case D: Blank separator row (at least 2 blank rows between sections)
       if (c1 === "" && c8 === "" && c16 === "") {
         sheet.setRowHeight(rowIdx, 16);
-        // Clear borders in separator rows
         sheet.getRange(rowIdx, 1, 1, numCols).setBorder(false, false, false, false, false, false);
         continue;
       }
@@ -326,8 +316,8 @@ function doPost(e) {
       // Case E: Data Row (eval_accuracy, eval_f1, eval_precision, eval_recall, eval_loss)
       sheet.setRowHeight(rowIdx, 28);
       
-      // Format each of the 4 model blocks
-      for (var b = 0; b < 4; b++) {
+      // Format each of the 6 model blocks
+      for (var b = 0; b < blockStarts.length; b++) {
         var sCol = blockStarts[b];
         var wCol = blockWidths[b];
         if (sCol + wCol - 1 <= numCols) {
@@ -351,8 +341,8 @@ function doPost(e) {
           msCell.setHorizontalAlignment("center").setFontWeight("bold").setFontSize(10.5);
           msCell.setBorder(true, true, true, true, false, false, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
           
-          // OURS block subtle background tint
-          if (b === 2) {
+          // Full 4-Module block subtle background tint
+          if (b === 1) {
             sheet.getRange(rowIdx, sCol + 1, 1, 4).setBackground("#f6fbf7");
           }
           
@@ -361,8 +351,8 @@ function doPost(e) {
         }
       }
       
-      // Delta F1 cells (Cols 13, 21, 29)
-      for (var d = 1; d < 4; d++) {
+      // Delta cells (Cols 13, 21, 29, 37, 45)
+      for (var d = 1; d < deltaCols.length; d++) {
         var dCol = deltaCols[d];
         if (numCols >= dCol) {
           var val = (rows[i][dCol - 1] || "").toString().trim();
@@ -384,12 +374,12 @@ function doPost(e) {
     }
     
     // 5. Clean up Separator Columns & Adjust Widths
-    // Separator columns: 6, 7, 14, 15, 22, 23
-    var sepCols = [6, 7, 14, 15, 22, 23];
+    // Separator columns: 6, 7, 14, 15, 22, 23, 30, 31, 38, 39
+    var sepCols = [6, 7, 14, 15, 22, 23, 30, 31, 38, 39];
     for (var s = 0; s < sepCols.length; s++) {
       var sc = sepCols[s];
       if (sc <= numCols) {
-        sheet.setColumnWidth(sc, 24); // Narrow spacing columns
+        sheet.setColumnWidth(sc, 24);
         sheet.getRange(startRow, sc, numRows, 1).setBorder(false, false, false, false, false, false);
       }
     }
@@ -398,11 +388,11 @@ function doPost(e) {
       if (sepCols.indexOf(c) !== -1) continue;
       sheet.autoResizeColumn(c);
       var curW = sheet.getColumnWidth(c);
-      if (c === 1 || c === 8 || c === 16 || c === 24) { // Metric row header column
+      if (blockStarts.indexOf(c) !== -1) { // Metric row header column
         sheet.setColumnWidth(c, Math.max(curW, 115));
-      } else if (c === 13 || c === 21 || c === 29) { // Delta F1 column
+      } else if (deltaCols.indexOf(c) !== -1) { // Delta column
         sheet.setColumnWidth(c, Math.max(curW, 95));
-      } else if (c === 5 || c === 12 || c === 20 || c === 28) { // Mean +/- STD column
+      } else if (blockStarts.indexOf(c - 4) !== -1) { // Mean +/- STD column
         sheet.setColumnWidth(c, Math.max(curW, 135));
       } else { // Seed columns
         sheet.setColumnWidth(c, Math.max(curW, 85));

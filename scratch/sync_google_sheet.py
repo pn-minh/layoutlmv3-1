@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Python implementation of Google Sheet 23-column Quad-Block sync.
-Matches thesis/sync_google_sheet.ps1 exactly.
+Python implementation of Google Sheet 45-column 6-Table Horizontal Layout sync.
+Matches scratch/sync_sheet_updated.js and thesis/sync_google_sheet.ps1.
 """
-import os
 import json
 import datetime
 from pathlib import Path
@@ -42,12 +41,11 @@ def fmt_ms(m, s):
     if m is None:
         return "--"
     try:
-        return f"{float(m):.4f} +/- {float(s):.4f}"
+        return f"{float(m):.4f} ± {float(s):.4f}"
     except (ValueError, TypeError):
         return "--"
 
 def extract_seed_and_ms(obj, m):
-    """Extract (s42, s123, s1993, mean_std_str) from either schema ('per_seed'+'mean_std' or 'metrics')."""
     if not obj:
         return ['--', '--', '--', '--']
     if "per_seed" in obj and "mean_std" in obj:
@@ -73,210 +71,117 @@ def extract_seed_and_ms(obj, m):
         ]
     return ['--', '--', '--', '--']
 
-def make_quad_block(t1, o1, t2, o2, t3, o3, t4, o4, gain2, gain3, gain4):
+def get_displayed_mean(obj, metric):
+    if not obj:
+        return None
+    raw = None
+    if "mean_std" in obj and metric in obj["mean_std"]:
+        raw = obj["mean_std"][metric].get("mean")
+    elif "metrics" in obj and metric in obj["metrics"]:
+        raw = obj["metrics"][metric].get("mean")
+    if raw is None:
+        return None
+    try:
+        return round(float(raw), 4)
+    except (ValueError, TypeError):
+        return None
+
+def calc_metric_delta(target_obj, ref_obj, metric):
+    t = get_displayed_mean(target_obj, metric)
+    r = get_displayed_mean(ref_obj, metric)
+    if t is None or r is None:
+        return "--"
+    diff = t - r
+    if metric == "eval_loss":
+        clean_diff = 0.0 if abs(diff) < 1e-9 else diff
+        return f"{clean_diff:+.4f}"
+    else:
+        pct = diff * 100.0
+        clean_pct = 0.0 if abs(pct) < 1e-9 else pct
+        return f"{clean_pct:+.2f}%"
+
+def make_six_table_section(suffix, base_obj, full_obj, no_hpe_obj, no_seg_obj, no_bdr_obj, no_cont_obj):
     rows = []
-    # Row 0: Titles
-    r0 = [t1, '', '', '', '', '', t2, '', '', '', '', '', t3, '', '', '', '', '', t4, '', '', '', '']
-    # Row 1: Headers
-    r1 = [
-        'Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean +/- STD', '',
-        'Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean +/- STD', 'Delta F1',
-        'Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean +/- STD', 'Delta F1',
-        'Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean +/- STD'
-    ]
+    r0 = [''] * 45
+    r0[0]  = f"Baseline LayoutLMv3 ({suffix})"
+    r0[7]  = f"HPE + SCM + Contrastive Loss + Boundary Loss ({suffix})"
+    r0[15] = f"w/o HPE ({suffix})"
+    r0[23] = f"w/o Token-Segment SCM ({suffix})"
+    r0[31] = f"w/o Boundary Loss ({suffix})"
+    r0[39] = f"w/o Contrastive Loss ({suffix})"
     rows.append(r0)
+
+    r1 = [''] * 45
+    r1[0:5] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD']
+    for s in [7, 15, 23, 31, 39]:
+        r1[s:s+6] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD', 'Delta']
     rows.append(r1)
 
     metrics = ['eval_accuracy', 'eval_f1', 'eval_precision', 'eval_recall', 'eval_loss']
+    ablated_objs = [no_hpe_obj, no_seg_obj, no_bdr_obj, no_cont_obj]
+    abl_starts = [15, 23, 31, 39]
+
     for m in metrics:
-        row = []
-        # Model 1
-        row.extend([m] + extract_seed_and_ms(o1, m))
-        row.append('')
-
-        # Model 2
-        row.extend([m] + extract_seed_and_ms(o2, m))
-        row.append(gain2 if m == 'eval_f1' else '')
-
-        # Model 3
-        row.extend([m] + extract_seed_and_ms(o3, m))
-        row.append(gain3 if m == 'eval_f1' else '')
-
-        # Model 4
-        row.extend([m] + extract_seed_and_ms(o4, m))
-
+        row = [''] * 45
+        # Table 1: Baseline
+        row[0] = m
+        row[1:5] = extract_seed_and_ms(base_obj, m)
+        # Table 2: Full 4-Module vs Baseline
+        row[7] = m
+        row[8:12] = extract_seed_and_ms(full_obj, m)
+        row[12] = calc_metric_delta(full_obj, base_obj, m)
+        # Tables 3..6: Ablations vs Full 4-Module
+        for s, abl_obj in zip(abl_starts, ablated_objs):
+            row[s] = m
+            row[s+1:s+5] = extract_seed_and_ms(abl_obj, m)
+            row[s+5] = calc_metric_delta(abl_obj, full_obj, m)
         rows.append(row)
+
     return rows
 
-def get_mean_f1(obj):
-    if not obj:
-        return None
-    if "mean_std" in obj and "eval_f1" in obj["mean_std"]:
-        return obj["mean_std"]["eval_f1"].get("mean")
-    if "metrics" in obj and "eval_f1" in obj["metrics"]:
-        return obj["metrics"]["eval_f1"].get("mean")
-    return None
-
 def sync_quad_sheet(summaries_dir: Path, webhook_url: str = WEBHOOK_URL):
-    print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Building Quad-Block Per-Seed Data Structure from {summaries_dir}...")
+    funsdLargeBase   = load_json(summaries_dir, "funsd-large-baseline_3seed_summary.json")
+    funsdLargeFull4  = load_json(summaries_dir, "funsd-large-contrastive_3seed_summary.json")
+    funsdLargeNoHpe  = load_json(summaries_dir, "funsd-large-no_hpe_3seed_summary.json")
+    funsdLargeNoSeg  = load_json(summaries_dir, "funsd-large-no_segment_3seed_summary.json")
+    funsdLargeNoBdr  = load_json(summaries_dir, "funsd-large-no_boundary_3seed_summary.json")
+    funsdLargeNoCont = load_json(summaries_dir, "funsd-large-full_3seed_summary.json")
 
-    funsdLargeBase = load_json(summaries_dir, "funsd-large-baseline_3seed_summary.json")
-    funsdLargeFull = load_json(summaries_dir, "funsd-large-full_3seed_summary.json")
-    funsdLargeCont = load_json(summaries_dir, "funsd-large-contrastive_3seed_summary.json")
-    funsdLargeNoBdr = load_json(summaries_dir, "funsd-large-no_boundary_3seed_summary.json")
-    funsdLargeNoHpe = load_json(summaries_dir, "funsd-large-no_hpe_3seed_summary.json")
-    funsdLargeNoSeg = load_json(summaries_dir, "funsd-large-no_segment_3seed_summary.json")
+    funsdBaseBase    = load_json(summaries_dir, "funsd-base-baseline_3seed_summary.json")
+    funsdBaseFull4   = load_json(summaries_dir, "funsd-base-contrastive_3seed_summary.json")
+    funsdBaseNoHpe   = load_json(summaries_dir, "funsd-base-no_hpe_3seed_summary.json")
+    funsdBaseNoSeg   = load_json(summaries_dir, "funsd-base-no_segment_3seed_summary.json")
+    funsdBaseNoBdr   = load_json(summaries_dir, "funsd-base-no_boundary_3seed_summary.json")
+    funsdBaseNoCont  = load_json(summaries_dir, "funsd-base-full_3seed_summary.json")
 
-    funsdBaseBase = load_json(summaries_dir, "funsd-base-baseline_3seed_summary.json")
-    funsdBaseFull = load_json(summaries_dir, "funsd-base-full_3seed_summary.json")
-    funsdBaseCont = load_json(summaries_dir, "funsd-base-contrastive_3seed_summary.json")
-    funsdBaseNoHpe = load_json(summaries_dir, "funsd-base-no_hpe_3seed_summary.json")
-    funsdBaseNoBdr = load_json(summaries_dir, "funsd-base-no_boundary_3seed_summary.json")
-    funsdBaseNoSeg = load_json(summaries_dir, "funsd-base-no_segment_3seed_summary.json")
+    cordBaseBase     = load_json(summaries_dir, "cord-base-baseline_3seed_summary.json")
+    cordBaseFull4    = load_json(summaries_dir, "cord-base-contrastive_3seed_summary.json")
+    cordBaseNoHpe    = load_json(summaries_dir, "cord-base-no_hpe_3seed_summary.json")
+    cordBaseNoSeg    = load_json(summaries_dir, "cord-base-no_segment_3seed_summary.json")
+    cordBaseNoBdr    = load_json(summaries_dir, "cord-base-no_boundary_3seed_summary.json")
+    cordBaseNoCont   = load_json(summaries_dir, "cord-base-full_3seed_summary.json")
 
-    cordBaseBase = load_json(summaries_dir, "cord-base-baseline_3seed_summary.json")
-    cordBaseFull = load_json(summaries_dir, "cord-base-full_3seed_summary.json")
-    cordBaseCont = load_json(summaries_dir, "cord-base-contrastive_3seed_summary.json")
-    cordBaseNoHpe = load_json(summaries_dir, "cord-base-no_hpe_3seed_summary.json")
-    cordBaseNoBdr = load_json(summaries_dir, "cord-base-no_boundary_3seed_summary.json")
-    cordBaseNoSeg = load_json(summaries_dir, "cord-base-no_segment_3seed_summary.json")
+    cordLargeBase    = load_json(summaries_dir, "cord-large-baseline_3seed_summary.json")
+    cordLargeFull4   = load_json(summaries_dir, "cord-large-contrastive_3seed_summary.json")
+    cordLargeNoHpe   = load_json(summaries_dir, "cord-large-no_hpe_3seed_summary.json")
+    cordLargeNoSeg   = load_json(summaries_dir, "cord-large-no_segment_3seed_summary.json")
+    cordLargeNoBdr   = load_json(summaries_dir, "cord-large-no_boundary_3seed_summary.json")
+    cordLargeNoCont  = load_json(summaries_dir, "cord-large-full_3seed_summary.json")
 
-    cordLargeBase = load_json(summaries_dir, "cord-large-baseline_3seed_summary.json")
-    cordLargeFull = load_json(summaries_dir, "cord-large-full_3seed_summary.json")
-    cordLargeCont = load_json(summaries_dir, "cord-large-contrastive_3seed_summary.json")
-    cordLargeNoBdr = load_json(summaries_dir, "cord-large-no_boundary_3seed_summary.json")
-    cordLargeNoHpe = load_json(summaries_dir, "cord-large-no_hpe_3seed_summary.json")
-    cordLargeNoSeg = load_json(summaries_dir, "cord-large-no_segment_3seed_summary.json")
+    sec1 = make_six_table_section("large - FUNSD", funsdLargeBase, funsdLargeFull4, funsdLargeNoHpe, funsdLargeNoSeg, funsdLargeNoBdr, funsdLargeNoCont)
+    sec2 = make_six_table_section("base - FUNSD",  funsdBaseBase,  funsdBaseFull4,  funsdBaseNoHpe,  funsdBaseNoSeg,  funsdBaseNoBdr,  funsdBaseNoCont)
+    sec3 = make_six_table_section("base - CORD",   cordBaseBase,   cordBaseFull4,   cordBaseNoHpe,   cordBaseNoSeg,   cordBaseNoBdr,   cordBaseNoCont)
+    sec4 = make_six_table_section("large - CORD",  cordLargeBase,  cordLargeFull4,  cordLargeNoHpe,  cordLargeNoSeg,  cordLargeNoBdr,  cordLargeNoCont)
 
-    # Dynamic Delta F1 calculation if summaries are present
-    def calc_delta(target_sum, base_sum):
-        if target_sum and base_sum:
-            try:
-                t_f1 = get_mean_f1(target_sum)
-                b_f1 = get_mean_f1(base_sum)
-                if t_f1 is not None and b_f1 is not None:
-                    diff = (float(t_f1) - float(b_f1)) * 100.0
-                    return f"{diff:+.2f}%"
-            except Exception:
-                pass
-        return "--"
-
-    g_funsd_lg_nohpe = calc_delta(funsdLargeNoHpe, funsdLargeBase)
-    g_funsd_lg_full = calc_delta(funsdLargeFull, funsdLargeBase)
-    g_funsd_lg_nobdr = calc_delta(funsdLargeNoBdr, funsdLargeBase)
-
-    g_funsd_bs_nohpe = calc_delta(funsdBaseNoHpe, funsdBaseBase)
-    g_funsd_bs_full = calc_delta(funsdBaseFull, funsdBaseBase)
-    g_funsd_bs_nobdr = calc_delta(funsdBaseNoBdr, funsdBaseBase)
-
-    g_cord_bs_nohpe = calc_delta(cordBaseNoHpe, cordBaseBase)
-    g_cord_bs_full = calc_delta(cordBaseFull, cordBaseBase)
-    g_cord_bs_nobdr = calc_delta(cordBaseNoBdr, cordBaseBase)
-
-    g_cord_lg_nohpe = calc_delta(cordLargeNoHpe, cordLargeBase)
-    g_cord_lg_full = calc_delta(cordLargeFull, cordLargeBase)
-    g_cord_lg_nobdr = calc_delta(cordLargeNoBdr, cordLargeBase)
-
-    blank_row = [''] * 23
-
-    # Section 1: LARGE - FUNSD
-    sec1 = make_quad_block(
-        'Baseline LayoutLMv3 (large - FUNSD)', funsdLargeBase,
-        'w/o HPE (large - FUNSD)', funsdLargeNoHpe,
-        'OURS: Full Model (large - FUNSD)', funsdLargeFull,
-        'w/o Boundary Loss (large - FUNSD)', funsdLargeNoBdr,
-        g_funsd_lg_nohpe, g_funsd_lg_full, g_funsd_lg_nobdr
-    )
-
-    # Section 2: BASE - FUNSD
-    sec2 = make_quad_block(
-        'Baseline LayoutLMv3 (base - FUNSD)', funsdBaseBase,
-        'w/o HPE (base - FUNSD)', funsdBaseNoHpe,
-        'OURS: Full Model (base - FUNSD)', funsdBaseFull,
-        'w/o Boundary Loss (base - FUNSD)', funsdBaseNoBdr,
-        g_funsd_bs_nohpe, g_funsd_bs_full, g_funsd_bs_nobdr
-    )
-
-    # Section 3: BASE - CORD
-    sec3 = make_quad_block(
-        'Baseline LayoutLMv3 (base - CORD)', cordBaseBase,
-        'w/o HPE (base - CORD)', cordBaseNoHpe,
-        'OURS: Full Model (base - CORD)', cordBaseFull,
-        'w/o Boundary Loss (base - CORD)', cordBaseNoBdr,
-        g_cord_bs_nohpe, g_cord_bs_full, g_cord_bs_nobdr
-    )
-
-    # Section 4: LARGE - CORD
-    sec4 = make_quad_block(
-        'Baseline LayoutLMv3 (large - CORD)', cordLargeBase,
-        'w/o HPE (large - CORD)', cordLargeNoHpe,
-        'OURS: Full Model (large - CORD)', cordLargeFull,
-        'w/o Boundary Loss (large - CORD)', cordLargeNoBdr,
-        g_cord_lg_nohpe, g_cord_lg_full, g_cord_lg_nobdr
-    )
-
-    # Section 5: Token-Segment Ablation (base)
-    g_funsd_noseg = calc_delta(funsdBaseNoSeg, funsdBaseBase)
-    g_cord_noseg = calc_delta(cordBaseNoSeg, cordBaseBase)
-    sec5 = make_quad_block(
-        'w/o Token-Segment SCM (base - FUNSD)', funsdBaseNoSeg,
-        'Reference Baseline (base - FUNSD)', funsdBaseBase,
-        'w/o Token-Segment SCM (base - CORD)', cordBaseNoSeg,
-        'Reference Baseline (base - CORD)', cordBaseBase,
-        g_funsd_noseg, '--', g_cord_noseg
-    )
-
-    # Section 6: Token-Segment Ablation (large)
-    g_funsd_lg_noseg = calc_delta(funsdLargeNoSeg, funsdLargeBase)
-    g_cord_lg_noseg = calc_delta(cordLargeNoSeg, cordLargeBase)
-    sec6 = make_quad_block(
-        'w/o Token-Segment SCM (large - FUNSD)', funsdLargeNoSeg,
-        'Reference Baseline (large - FUNSD)', funsdLargeBase,
-        'w/o Token-Segment SCM (large - CORD)', cordLargeNoSeg,
-        'Reference Baseline (large - CORD)', cordLargeBase,
-        g_funsd_lg_noseg, '--', g_cord_lg_noseg
-    )
-
-    # Section 7: Cross-Modal Contrastive Loss Ablation (base)
-    g_funsd_bs_cont = calc_delta(funsdBaseCont, funsdBaseBase)
-    g_cord_bs_cont = calc_delta(cordBaseCont, cordBaseBase)
-    sec7 = make_quad_block(
-        'OURS + Contrastive Loss (base - FUNSD)', funsdBaseCont,
-        'w/o Contrastive Loss (base - FUNSD)', funsdBaseFull,
-        'OURS + Contrastive Loss (base - CORD)', cordBaseCont,
-        'w/o Contrastive Loss (base - CORD)', cordBaseFull,
-        g_funsd_bs_cont, g_cord_bs_cont, g_cord_bs_full
-    )
-
-    # Section 8: Cross-Modal Contrastive Loss Ablation (large)
-    g_funsd_lg_cont = calc_delta(funsdLargeCont, funsdLargeBase)
-    g_cord_lg_cont = calc_delta(cordLargeCont, cordLargeBase)
-    sec8 = make_quad_block(
-        'OURS + Contrastive Loss (large - FUNSD)', funsdLargeCont,
-        'w/o Contrastive Loss (large - FUNSD)', funsdLargeFull,
-        'OURS + Contrastive Loss (large - CORD)', cordLargeCont,
-        'w/o Contrastive Loss (large - CORD)', cordLargeFull,
-        g_funsd_lg_cont, g_cord_lg_cont, g_cord_lg_full
-    )
-
+    blank_row = [''] * 45
     matrix = []
-    matrix.extend(sec1)
-    matrix.append(blank_row)
-    matrix.extend(sec2)
-    matrix.append(blank_row)
-    matrix.extend(sec3)
-    matrix.append(blank_row)
-    matrix.extend(sec4)
-    matrix.append(blank_row)
-    matrix.extend(sec5)
-    matrix.append(blank_row)
-    matrix.extend(sec6)
-    matrix.append(blank_row)
-    matrix.extend(sec7)
-    matrix.append(blank_row)
-    matrix.extend(sec8)
+    sections = [sec1, sec2, sec3, sec4]
+    for idx, sec in enumerate(sections):
+        matrix.extend(sec)
+        if idx < len(sections) - 1:
+            matrix.append(list(blank_row))
+            matrix.append(list(blank_row))
 
-    # Write local CSV
     repo_root = summaries_dir.parent.parent if summaries_dir.name == "logs" else Path(".")
     csv_path = repo_root / "thesis" / "tracker.csv"
     csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -285,7 +190,6 @@ def sync_quad_sheet(summaries_dir: Path, webhook_url: str = WEBHOOK_URL):
             line = ",".join(f'"{c}"' if (',' in c or '"' in c or '\n' in c) else c for c in r)
             f.write(line + "\n")
 
-    # Push to Google Sheet Webhook
     if webhook_url:
         payload = {
             "action": "sync",
@@ -305,4 +209,3 @@ if __name__ == "__main__":
     if not summaries_dir.exists():
         summaries_dir = Path("scratch/colab_summaries")
     sync_quad_sheet(summaries_dir)
-
