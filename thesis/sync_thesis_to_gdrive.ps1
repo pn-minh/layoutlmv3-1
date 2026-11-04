@@ -34,9 +34,10 @@ $RenderPng = Join-Path $ScriptDir "render_pdf_to_png.ps1"
 
 $ViPdf      = Join-Path $ScriptDir "vi\main.pdf"
 $EnPdf      = Join-Path $ScriptDir "en\main.pdf"
+$DiagramDrawio = Join-Path $ScriptDir "figures\heads_model_architecture_migrated.drawio"
+$DiagramPdf = Join-Path $ScriptDir "figures\heads_model_architecture_migrated.pdf"
+$DiagramPng = Join-Path $ScriptDir "figures\heads_model_architecture_migrated.png"
 $DiagramTex = Join-Path $ScriptDir "figures\model_architecture_heads_style.tex"
-$DiagramPdf = Join-Path $ScriptDir "figures\model_architecture_heads_style.pdf"
-$DiagramPng = Join-Path $ScriptDir "figures\model_architecture_heads_style.png"
 $SlidesTex  = Join-Path $ScriptDir "presentation\weekly_update_slides.tex"
 $SlidesPdf  = Join-Path $ScriptDir "presentation\weekly_update_slides.pdf"
 $SlidesPptx = Join-Path $ScriptDir "presentation\weekly_update_slides.pptx"
@@ -139,7 +140,6 @@ function Build-FullWorkspaceZip {
 function Update-AllPackages {
     Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Packaging Overleaf & Full LaTeX ZIP archives..." -ForegroundColor Cyan
     Build-OverleafZip -LangDir (Join-Path $ScriptDir "en") -FiguresDir (Join-Path $ScriptDir "figures") -DestZip $EnZip
-    Build-OverleafZip -LangDir (Join-Path $ScriptDir "vi") -FiguresDir (Join-Path $ScriptDir "figures") -DestZip $ViZip
     Build-FullWorkspaceZip -DestZip $FullZip
 }
 
@@ -246,29 +246,26 @@ function Sync-AllMaterials {
     # Rebuild clean Overleaf & Full LaTeX source ZIPs
     Update-AllPackages
 
-    # 1. Thesis PDFs
-    $viResp = Upload-SingleFile -FilePath $ViPdf -RemoteName "Vietnamese_Thesis_LayoutLMv3.pdf" -Language "vi"
+    # 1. Thesis PDFs (English thesis only; Vietnamese dropped per user instruction)
     $enResp = Upload-SingleFile -FilePath $EnPdf -RemoteName "English_Thesis_LayoutLMv3.pdf" -Language "en"
 
-    # 2. Model Architecture Diagram (PDF, 300 DPI PNG, and standalone LaTeX .tex source)
-    $diagPdfResp = Upload-SingleFile -FilePath $DiagramPdf -RemoteName "Model_Architecture_Diagram.pdf"
-    $diagPngResp = Upload-SingleFile -FilePath $DiagramPng -RemoteName "Model_Architecture_Diagram.png"
-    $diagTexResp = Upload-SingleFile -FilePath $DiagramTex -RemoteName "Model_Architecture_Diagram.tex"
+    # 2. Model Architecture Diagram (PDF, 300 DPI PNG, Draw.io source, and legacy LaTeX .tex source)
+    $diagPdfResp    = Upload-SingleFile -FilePath $DiagramPdf    -RemoteName "Model_Architecture_Diagram.pdf"
+    $diagPngResp    = Upload-SingleFile -FilePath $DiagramPng    -RemoteName "Model_Architecture_Diagram.png"
+    $diagDrawioResp = Upload-SingleFile -FilePath $DiagramDrawio -RemoteName "Model_Architecture_Diagram.drawio"
+    $diagTexResp    = Upload-SingleFile -FilePath $DiagramTex    -RemoteName "Model_Architecture_Diagram.tex"
 
     # 3. Weekly Progress Presentation Slides (PDF, PPTX / Google Slides, LaTeX .tex, and Speaker Script .md)
     $slidesPdfResp  = Upload-SingleFile -FilePath $SlidesPdf  -RemoteName "Weekly_Progress_Presentation_Slides.pdf"
     $slidesPptxResp = Upload-SingleFile -FilePath $SlidesPptx -RemoteName "Weekly_Progress_Presentation_Slides.pptx" -MimeType "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     $slidesTexResp  = Upload-SingleFile -FilePath $SlidesTex  -RemoteName "Weekly_Progress_Presentation_Slides.tex"
     $scriptMdResp   = Upload-SingleFile -FilePath $ScriptMd   -RemoteName "Weekly_Progress_Presentation_Script.md"
-    $scriptViMdResp = Upload-SingleFile -FilePath $ScriptViMd -RemoteName "Weekly_Progress_Presentation_Script_VI.md"
 
     # 4. Overleaf & Full LaTeX Source Bundles (.zip)
     $enZipResp   = Upload-SingleFile -FilePath $EnZip   -RemoteName "LaTeX_Source_English_Thesis_Overleaf.zip"
-    $viZipResp   = Upload-SingleFile -FilePath $ViZip   -RemoteName "LaTeX_Source_Vietnamese_Thesis_Overleaf.zip"
     $fullZipResp = Upload-SingleFile -FilePath $FullZip -RemoteName "LaTeX_Source_Full_Thesis_Workspace.zip"
 
     Write-Host "`n=== Google Drive Shared Materials Summary ===" -ForegroundColor Yellow
-    if ($viResp)         { Write-Host "Vietnamese Thesis PDF : $($viResp.fileUrl)" -ForegroundColor Cyan }
     if ($enResp)         { Write-Host "English Thesis PDF    : $($enResp.fileUrl)" -ForegroundColor Cyan }
     if ($diagPdfResp)    { Write-Host "Architecture (PDF)    : $($diagPdfResp.fileUrl)" -ForegroundColor Cyan }
     if ($diagPngResp)    { Write-Host "Architecture (PNG)    : $($diagPngResp.fileUrl)" -ForegroundColor Cyan }
@@ -281,9 +278,7 @@ function Sync-AllMaterials {
     }
     if ($slidesTexResp)  { Write-Host "Presentation (TeX)    : $($slidesTexResp.fileUrl)" -ForegroundColor Cyan }
     if ($scriptMdResp)   { Write-Host "Speaker Script (EN)   : $($scriptMdResp.fileUrl)" -ForegroundColor Cyan }
-    if ($scriptViMdResp) { Write-Host "Speaker Script (VI)   : $($scriptViMdResp.fileUrl)" -ForegroundColor Cyan }
     if ($enZipResp)      { Write-Host "English LaTeX (ZIP)   : $($enZipResp.fileUrl)" -ForegroundColor Cyan }
-    if ($viZipResp)      { Write-Host "Vietnamese LaTeX (ZIP): $($viZipResp.fileUrl)" -ForegroundColor Cyan }
     if ($fullZipResp)    { Write-Host "Full Workspace (ZIP)  : $($fullZipResp.fileUrl)" -ForegroundColor Cyan }
     if ($enResp.folderUrl) { Write-Host "`nShared Drive Folder   : $($enResp.folderUrl)" -ForegroundColor Green }
 }

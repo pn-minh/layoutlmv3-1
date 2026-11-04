@@ -234,13 +234,19 @@ function doPost(e) {
     dataRange.setValues(rows);
     dataRange.setFontSize(11).setVerticalAlignment("middle");
     
-    // 4. Intelligent Styling
+    // 4. Intelligent Styling (Enhanced Quad-Block layout matching reference sheet)
+    // Block column start indices: Block 1 (col 1), Block 2 (col 8), Block 3 (col 16), Block 4 (col 24)
+    // Separator columns: cols 6-7, 14-15, 22-23 (2 blank columns spacing)
+    var blockStarts = [1, 8, 16, 24];
+    var blockWidths = [5, 6, 6, 6];
+    var deltaCols = [0, 13, 21, 29];
+
     for (var i = 0; i < numRows; i++) {
       var rowIdx = startRow + i;
       var c1 = (rows[i][0] || "").toString().trim();
-      var c7 = (numCols >= 7) ? (rows[i][6] || "").toString().trim() : "";
-      var c13 = (numCols >= 13) ? (rows[i][12] || "").toString().trim() : "";
-      var c19 = (numCols >= 19) ? (rows[i][18] || "").toString().trim() : "";
+      var c8 = (numCols >= 8) ? (rows[i][7] || "").toString().trim() : "";
+      var c16 = (numCols >= 16) ? (rows[i][15] || "").toString().trim() : "";
+      var c24 = (numCols >= 24) ? (rows[i][23] || "").toString().trim() : "";
       
       // Case A: Section Title Row (TABLE 1, SECTION, etc.)
       if (c1.indexOf("TABLE") === 0 || c1.indexOf("SECTION") === 0) {
@@ -249,119 +255,156 @@ function doPost(e) {
                 .setBackground("#e8f0fe")
                 .setFontColor("#1967d2")
                 .setFontWeight("bold")
-                .setFontSize(12)
+                .setFontSize(14)
                 .setHorizontalAlignment("left")
                 .setVerticalAlignment("middle");
-        sheet.setRowHeight(rowIdx, 36);
+        sheet.setRowHeight(rowIdx, 38);
         continue;
       }
       
-      // Case B: Model Quad Titles Row (e.g. Layoutlmv3 goc, OURS, etc.)
-      if (c1.indexOf("Layoutlmv3") !== -1 || c1.indexOf("OURS") !== -1 || c7.indexOf("Segment") !== -1 || c13.indexOf("OURS") !== -1) {
-        sheet.setRowHeight(rowIdx, 32);
+      // Case B: Model Configuration Titles Row (Much bigger font 16pt, bold)
+      if (c1.indexOf("Baseline") !== -1 || c1.indexOf("OURS") !== -1 || c1.indexOf("w/o") !== -1 || c8.indexOf("w/o") !== -1 || c16.indexOf("OURS") !== -1) {
+        sheet.setRowHeight(rowIdx, 36);
         
         // Block 1 Title (Cols 1-5)
         if (c1) {
           var b1Range = sheet.getRange(rowIdx, 1, 1, 5);
-          b1Range.merge().setBackground("#f1f3f4").setFontColor("#202124").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
+          b1Range.merge().setBackground("#f1f3f4").setFontColor("#1a365d").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
+          b1Range.setBorder(true, true, true, true, false, false, "#1a365d", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         }
-        // Block 2 Title (Cols 7-11)
-        if (numCols >= 11 && c7) {
-          var b2Range = sheet.getRange(rowIdx, 7, 1, 5);
-          b2Range.merge().setBackground("#f3e8fd").setFontColor("#5b21b6").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
+        // Block 2 Title (Cols 8-13)
+        if (numCols >= 13 && c8) {
+          var b2Range = sheet.getRange(rowIdx, 8, 1, 6);
+          b2Range.merge().setBackground("#f3e8fd").setFontColor("#5b21b6").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
+          b2Range.setBorder(true, true, true, true, false, false, "#5b21b6", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         }
-        // Block 3 Title (Cols 13-17: OURS)
-        if (numCols >= 17 && c13) {
-          var b3Range = sheet.getRange(rowIdx, 13, 1, 5);
-          b3Range.merge().setBackground("#e6f4ea").setFontColor("#137333").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
+        // Block 3 Title (Cols 16-21: OURS)
+        if (numCols >= 21 && c16) {
+          var b3Range = sheet.getRange(rowIdx, 16, 1, 6);
+          b3Range.merge().setBackground("#e6f4ea").setFontColor("#137333").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
+          b3Range.setBorder(true, true, true, true, false, false, "#137333", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         }
-        // Block 4 Title (Cols 19-23)
-        if (numCols >= 23 && c19) {
-          var b4Range = sheet.getRange(rowIdx, 19, 1, 5);
-          b4Range.merge().setBackground("#fef7e0").setFontColor("#b45f06").setFontWeight("bold").setFontSize(11).setHorizontalAlignment("center");
+        // Block 4 Title (Cols 24-29)
+        if (numCols >= 29 && c24) {
+          var b4Range = sheet.getRange(rowIdx, 24, 1, 6);
+          b4Range.merge().setBackground("#fef7e0").setFontColor("#b45f06").setFontWeight("bold").setFontSize(16).setHorizontalAlignment("center").setVerticalAlignment("middle");
+          b4Range.setBorder(true, true, true, true, false, false, "#b45f06", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
         }
         continue;
       }
       
-      // Case C: Metric Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD)
+      // Case C: Column Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD | Delta F1)
+      // Color 1: Deep steel blue #425D90 with white text, bold, medium bottom border
       if (c1 === "Metric") {
-        sheet.setRowHeight(rowIdx, 30);
+        sheet.setRowHeight(rowIdx, 32);
         for (var b = 0; b < 4; b++) {
-          var startC = 1 + b * 6;
-          if (startC + 4 <= numCols) {
-            sheet.getRange(rowIdx, startC, 1, 5)
-                 .setBackground("#1a365d")
-                 .setFontColor("#ffffff")
-                 .setFontWeight("bold")
-                 .setFontSize(10)
-                 .setHorizontalAlignment("center");
+          var sCol = blockStarts[b];
+          var wCol = blockWidths[b];
+          if (sCol + wCol - 1 <= numCols) {
+            var colHdr = sheet.getRange(rowIdx, sCol, 1, wCol);
+            colHdr.setBackground("#425D90")
+                  .setFontColor("#ffffff")
+                  .setFontWeight("bold")
+                  .setFontSize(11)
+                  .setHorizontalAlignment("center")
+                  .setVerticalAlignment("middle");
+            // Thick/Medium border between header and data cells below
+            colHdr.setBorder(true, true, true, true, true, true, "#1a365d", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
           }
         }
-        // Delta headers (Cols 12, 18)
-        if (numCols >= 12) {
-          sheet.getRange(rowIdx, 12).setBackground("#1a365d").setFontColor("#ffffff").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
-        }
-        if (numCols >= 18) {
-          sheet.getRange(rowIdx, 18).setBackground("#1a365d").setFontColor("#ffffff").setFontWeight("bold").setFontSize(10).setHorizontalAlignment("center");
-        }
         continue;
       }
       
-      // Case D: Blank separator row
-      if (c1 === "" && c7 === "" && c13 === "") {
+      // Case D: Blank separator row (at least 2 blank rows between sections)
+      if (c1 === "" && c8 === "" && c16 === "") {
         sheet.setRowHeight(rowIdx, 16);
+        // Clear borders in separator rows
+        sheet.getRange(rowIdx, 1, 1, numCols).setBorder(false, false, false, false, false, false);
         continue;
       }
       
       // Case E: Data Row (eval_accuracy, eval_f1, eval_precision, eval_recall, eval_loss)
-      sheet.setRowHeight(rowIdx, 27);
+      sheet.setRowHeight(rowIdx, 28);
       
       // Format each of the 4 model blocks
       for (var b = 0; b < 4; b++) {
-        var startC = 1 + b * 6;
-        if (startC + 4 <= numCols) {
-          // Metric name
-          sheet.getRange(rowIdx, startC).setHorizontalAlignment("left").setFontWeight("bold");
-          // Seeds 42, 123, 1993
-          sheet.getRange(rowIdx, startC + 1, 1, 3).setHorizontalAlignment("center");
-          // Mean +/- STD
-          sheet.getRange(rowIdx, startC + 4).setHorizontalAlignment("center").setFontWeight("bold");
+        var sCol = blockStarts[b];
+        var wCol = blockWidths[b];
+        if (sCol + wCol - 1 <= numCols) {
+          // Row Header (Color 2: #e8edf5 with bold #1a365d text, medium right border)
+          var metricCell = sheet.getRange(rowIdx, sCol);
+          metricCell.setBackground("#e8edf5")
+                    .setFontColor("#1a365d")
+                    .setFontWeight("bold")
+                    .setFontSize(10)
+                    .setHorizontalAlignment("left")
+                    .setVerticalAlignment("middle");
+          metricCell.setBorder(true, true, true, true, false, false, "#1a365d", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
           
-          // OURS block subtle background
+          // Seed values (Cols sCol+1 .. sCol+3)
+          var seedsRange = sheet.getRange(rowIdx, sCol + 1, 1, 3);
+          seedsRange.setHorizontalAlignment("center").setFontSize(10.5).setFontColor("#202124");
+          seedsRange.setBorder(true, true, true, true, true, true, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
+          
+          // Mean +/- STD (Col sCol+4)
+          var msCell = sheet.getRange(rowIdx, sCol + 4);
+          msCell.setHorizontalAlignment("center").setFontWeight("bold").setFontSize(10.5);
+          msCell.setBorder(true, true, true, true, false, false, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
+          
+          // OURS block subtle background tint
           if (b === 2) {
-            sheet.getRange(rowIdx, startC, 1, 5).setBackground("#f6fbf7");
+            sheet.getRange(rowIdx, sCol + 1, 1, 4).setBackground("#f6fbf7");
           }
+          
+          // Outer border for data row in this block
+          sheet.getRange(rowIdx, sCol, 1, wCol).setBorder(true, true, true, true, false, false, "#1a365d", SpreadsheetApp.BorderStyle.SOLID);
         }
       }
       
-      // Delta F1 cells (Col 12 and Col 18)
-      if (numCols >= 12) {
-        var d12 = (rows[i][11] || "").toString().trim();
-        if (d12) {
-          sheet.getRange(rowIdx, 12)
-               .setFontColor("#137333").setFontWeight("bold").setBackground("#edf7ed").setHorizontalAlignment("center");
-        }
-      }
-      if (numCols >= 18) {
-        var d18 = (rows[i][17] || "").toString().trim();
-        if (d18) {
-          sheet.getRange(rowIdx, 18)
-               .setFontColor("#137333").setFontWeight("bold").setBackground("#edf7ed").setHorizontalAlignment("center");
+      // Delta F1 cells (Cols 13, 21, 29)
+      for (var d = 1; d < 4; d++) {
+        var dCol = deltaCols[d];
+        if (numCols >= dCol) {
+          var val = (rows[i][dCol - 1] || "").toString().trim();
+          var dCell = sheet.getRange(rowIdx, dCol);
+          if (val && val !== "--") {
+            dCell.setFontColor("#137333")
+                 .setFontWeight("bold")
+                 .setBackground("#edf7ed")
+                 .setHorizontalAlignment("center")
+                 .setVerticalAlignment("middle")
+                 .setFontSize(11);
+            dCell.setBorder(true, true, true, true, false, false, "#137333", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+          } else {
+            dCell.setHorizontalAlignment("center").setFontColor("#5f6368");
+            dCell.setBorder(true, true, true, true, false, false, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
+          }
         }
       }
     }
     
-    // 5. Borders & Column Widths
-    sheet.getRange(startRow, 1, numRows, numCols).setBorder(true, true, true, true, true, true, "#d0d7de", SpreadsheetApp.BorderStyle.SOLID);
+    // 5. Clean up Separator Columns & Adjust Widths
+    // Separator columns: 6, 7, 14, 15, 22, 23
+    var sepCols = [6, 7, 14, 15, 22, 23];
+    for (var s = 0; s < sepCols.length; s++) {
+      var sc = sepCols[s];
+      if (sc <= numCols) {
+        sheet.setColumnWidth(sc, 24); // Narrow spacing columns
+        sheet.getRange(startRow, sc, numRows, 1).setBorder(false, false, false, false, false, false);
+      }
+    }
     
     for (var c = 1; c <= numCols; c++) {
+      if (sepCols.indexOf(c) !== -1) continue;
       sheet.autoResizeColumn(c);
       var curW = sheet.getColumnWidth(c);
-      if (c === 6 || c === 12 || c === 18) {
-        sheet.setColumnWidth(c, Math.max(curW, 80));
-      } else if (c % 6 === 1) { // Metric column
-        sheet.setColumnWidth(c, Math.max(curW, 110));
-      } else {
+      if (c === 1 || c === 8 || c === 16 || c === 24) { // Metric row header column
+        sheet.setColumnWidth(c, Math.max(curW, 115));
+      } else if (c === 13 || c === 21 || c === 29) { // Delta F1 column
+        sheet.setColumnWidth(c, Math.max(curW, 95));
+      } else if (c === 5 || c === 12 || c === 20 || c === 28) { // Mean +/- STD column
+        sheet.setColumnWidth(c, Math.max(curW, 135));
+      } else { // Seed columns
         sheet.setColumnWidth(c, Math.max(curW, 85));
       }
     }

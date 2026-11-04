@@ -137,7 +137,13 @@ function Make-QuadBlock(
 }
 
 function Sync-QuadSheet {
-    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Building Quad-Block Per-Seed Data Structure..." -ForegroundColor Cyan
+    # Delegate directly to node sync script for complete 29-column Quad-Block sync
+    $NodeScript = Join-Path (Split-Path -Parent $ScriptDir) "scratch\sync_sheet_updated.js"
+    if (Test-Path $NodeScript) {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Executing 29-column Quad-Block sync via node..." -ForegroundColor Cyan
+        & node $NodeScript
+        return
+    }
 
     # Load All Summaries
     $funsdLargeBase = Load-Json "funsd-large-baseline_3seed_summary.json"
