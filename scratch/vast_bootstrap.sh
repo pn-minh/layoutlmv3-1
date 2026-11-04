@@ -28,14 +28,19 @@ fi
 
 cd /workspace/layoutlmv3-1
 
-# Install Miniconda3 in /dev/shm (78GB RAM disk) and symlink to /workspace/miniconda3 to save overlay disk space
-if [ ! -d "/workspace/miniconda3" ]; then
-    mkdir -p /dev/shm/hf_home
-    ln -sfn /dev/shm/hf_home /workspace/.hf_home
+# Install Miniconda3 in /workspace/miniconda3 (exec-enabled overlay) while keeping caches in /dev/shm (noexec 78GB RAM disk)
+if [ -L "/workspace/miniconda3" ] || [ ! -x "/workspace/miniconda3/bin/conda" ]; then
+    rm -rf /workspace/miniconda3 /dev/shm/miniconda3
+fi
+mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache
+ln -sfn /dev/shm/hf_home /workspace/.hf_home
+export CONDA_PKGS_DIRS="/dev/shm/conda_pkgs"
+export PIP_CACHE_DIR="/dev/shm/pip_cache"
+
+if [ ! -x "/workspace/miniconda3/bin/conda" ]; then
     wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /dev/shm/miniconda.sh
-    bash /dev/shm/miniconda.sh -b -p /dev/shm/miniconda3
+    bash /dev/shm/miniconda.sh -b -p /workspace/miniconda3
     rm -f /dev/shm/miniconda.sh
-    ln -sfn /dev/shm/miniconda3 /workspace/miniconda3
 fi
 
 export HF_HOME="/workspace/.hf_home"
