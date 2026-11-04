@@ -378,19 +378,26 @@ def self_destruct_instance():
 
     api_keys = [k for k in [CONTAINER_VAST_API_KEY, ACCOUNT_VAST_API_KEY] if k]
 
-    # Method 1: vastai CLI (preinstalled on Vast.ai image)
+    # Method 1: vastai CLI (preinstalled on Vast.ai image at /opt/instance-tools/bin/vastai)
     for key in api_keys:
-        for vast_bin in ["vastai", "/usr/local/bin/vastai", "/workspace/miniconda3/envs/layoutlmv3/bin/vastai"]:
-            try:
-                res = subprocess.run(
-                    [vast_bin, "destroy", "instance", str(inst_id), "--api-key", key],
-                    capture_output=True,
-                    text=True,
-                    timeout=25,
-                )
-                log(f"[SELF-DESTRUCT CLI] ({vast_bin}) exit={res.returncode} stdout={res.stdout.strip()} stderr={res.stderr.strip()}")
-            except Exception:
-                pass
+        for vast_bin in [
+            "/opt/instance-tools/bin/vastai",
+            "/venv/layoutlmv3/bin/vastai",
+            "vastai",
+            "/usr/local/bin/vastai",
+            "/workspace/miniconda3/envs/layoutlmv3/bin/vastai",
+        ]:
+            for action in ["destroy", "stop"]:
+                try:
+                    res = subprocess.run(
+                        [vast_bin, action, "instance", str(inst_id), "--api-key", key],
+                        capture_output=True,
+                        text=True,
+                        timeout=25,
+                    )
+                    log(f"[SELF-DESTRUCT CLI] ({vast_bin} {action}) exit={res.returncode} stdout={res.stdout.strip()} stderr={res.stderr.strip()}")
+                except Exception:
+                    pass
 
     # Method 2: Vast.ai REST API DELETE
     import requests
