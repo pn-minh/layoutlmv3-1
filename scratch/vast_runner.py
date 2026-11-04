@@ -55,8 +55,8 @@ CELL_QUEUE = [
     (24, "funsd", "base",  "contrastive", "FUNSD base contrastive (+Contrastive Loss)",   "funsd-base-contrastive_3seed_summary.json"),
 ]
 
-LOG_LOCK = threading.Lock()
-SYNC_LOCK = threading.Lock()
+LOG_LOCK = threading.RLock()
+SYNC_LOCK = threading.RLock()
 
 STATE = {
     "pipeline_status": "INITIALIZING",
