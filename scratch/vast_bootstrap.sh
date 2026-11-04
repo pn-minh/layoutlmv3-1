@@ -134,10 +134,12 @@ from layoutlmft.models.layoutlmv3.modeling_layoutlmv3_segment import LayoutLMv3F
 device = "cuda" if torch.cuda.is_available() else "cpu"
 cfg = LayoutLMv3Config(
     vocab_size=100,
-    hidden_size=128,
+    hidden_size=192,
     num_hidden_layers=2,
     num_attention_heads=4,
     intermediate_size=256,
+    coordinate_size=32,
+    shape_size=32,
     num_labels=7,
     visual_embed=True,
     input_size=224,
