@@ -234,12 +234,14 @@ function doPost(e) {
     dataRange.setValues(rows);
     dataRange.setFontSize(11).setVerticalAlignment("middle");
     
-    // 4. Intelligent Styling (6-Table Horizontal Layout, 45 columns)
-    // Block column start indices: Block 1 (col 1), Block 2 (col 8), Block 3 (col 16), Block 4 (col 24), Block 5 (col 32), Block 6 (col 40)
-    // Separator columns: cols 6-7, 14-15, 22-23, 30-31, 38-39 (2 blank columns spacing)
-    var blockStarts = [1, 8, 16, 24, 32, 40];
-    var blockWidths = [5, 6, 6, 6, 6, 6];
-    var deltaCols = [0, 13, 21, 29, 37, 45];
+    // 4. Intelligent Styling (6-Table Horizontal Layout, 49 columns)
+    // Block column start indices: Block 1 (col 1), Block 2 (col 8), Block 3 (col 16), Block 4 (col 25), Block 5 (col 34), Block 6 (col 43)
+    // Separator columns: cols 6-7, 14-15, 23-24, 32-33, 41-42 (2 blank columns spacing)
+    var blockStarts = [1, 8, 16, 25, 34, 43];
+    var blockWidths = [5, 6, 7, 7, 7, 7];
+    var deltaCols = [13, 21, 22, 30, 31, 39, 40, 48, 49];
+    var sepCols = [6, 7, 14, 15, 23, 24, 32, 33, 41, 42];
+    var msCols = [5, 12, 20, 29, 38, 47];
 
     for (var i = 0; i < numRows; i++) {
       var rowIdx = startRow + i;
@@ -284,10 +286,10 @@ function doPost(e) {
         continue;
       }
       
-      // Case C: Column Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD | Delta)
+      // Case C: Column Header Row (Metric | Seed 42 | Seed 123 | Seed 1993 | Mean +/- STD | Delta cols)
       // Color 1: Deep steel blue #425D90 with white text, bold, medium bottom border
       if (c1 === "Metric") {
-        sheet.setRowHeight(rowIdx, 32);
+        sheet.setRowHeight(rowIdx, 38);
         for (var b = 0; b < blockStarts.length; b++) {
           var sCol = blockStarts[b];
           var wCol = blockWidths[b];
@@ -296,7 +298,8 @@ function doPost(e) {
             colHdr.setBackground("#425D90")
                   .setFontColor("#ffffff")
                   .setFontWeight("bold")
-                  .setFontSize(11)
+                  .setFontSize(10.5)
+                  .setWrap(true)
                   .setHorizontalAlignment("center")
                   .setVerticalAlignment("middle");
             // Thick/Medium border between header and data cells below
@@ -351,8 +354,8 @@ function doPost(e) {
         }
       }
       
-      // Delta cells (Cols 13, 21, 29, 37, 45)
-      for (var d = 1; d < deltaCols.length; d++) {
+      // Delta cells (Cols 13, 21, 22, 30, 31, 39, 40, 48, 49)
+      for (var d = 0; d < deltaCols.length; d++) {
         var dCol = deltaCols[d];
         if (numCols >= dCol) {
           var val = (rows[i][dCol - 1] || "").toString().trim();
@@ -363,7 +366,7 @@ function doPost(e) {
                  .setBackground("#edf7ed")
                  .setHorizontalAlignment("center")
                  .setVerticalAlignment("middle")
-                 .setFontSize(11);
+                 .setFontSize(10.5);
             dCell.setBorder(true, true, true, true, false, false, "#137333", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
           } else {
             dCell.setHorizontalAlignment("center").setFontColor("#5f6368");
@@ -374,8 +377,7 @@ function doPost(e) {
     }
     
     // 5. Clean up Separator Columns & Adjust Widths
-    // Separator columns: 6, 7, 14, 15, 22, 23, 30, 31, 38, 39
-    var sepCols = [6, 7, 14, 15, 22, 23, 30, 31, 38, 39];
+    // Separator columns: 6, 7, 14, 15, 23, 24, 32, 33, 41, 42
     for (var s = 0; s < sepCols.length; s++) {
       var sc = sepCols[s];
       if (sc <= numCols) {
@@ -392,7 +394,7 @@ function doPost(e) {
         sheet.setColumnWidth(c, Math.max(curW, 115));
       } else if (deltaCols.indexOf(c) !== -1) { // Delta column
         sheet.setColumnWidth(c, Math.max(curW, 95));
-      } else if (blockStarts.indexOf(c - 4) !== -1) { // Mean +/- STD column
+      } else if (msCols.indexOf(c) !== -1) { // Mean +/- STD column
         sheet.setColumnWidth(c, Math.max(curW, 135));
       } else { // Seed columns
         sheet.setColumnWidth(c, Math.max(curW, 85));

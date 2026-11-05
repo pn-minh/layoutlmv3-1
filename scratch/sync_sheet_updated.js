@@ -69,15 +69,9 @@ function getDisplayedMean(obj, metric) {
     raw = parseFloat(obj.metrics[metric].mean);
   }
   if (raw === null || isNaN(raw)) return null;
-  // Use 4-decimal rounded value matching the displayed Mean ± STD column
   return parseFloat(raw.toFixed(4));
 }
 
-/**
- * Calculates Delta for a given metric between targetObj and refObj.
- * - For eval_accuracy, eval_f1, eval_precision, eval_recall: (target - ref) * 100 formatted as +X.XX%
- * - For eval_loss: raw difference (target - ref) formatted as +X.XXXX
- */
 function calcMetricDelta(targetObj, refObj, metric) {
   const t = getDisplayedMean(targetObj, metric);
   const r = getDisplayedMean(refObj, metric);
@@ -96,46 +90,51 @@ function calcMetricDelta(targetObj, refObj, metric) {
 }
 
 /**
- * Builds a 6-Table Horizontal Section Row Block (7 rows x 45 columns)
- * matching the user's manually updated layout:
- * - Table 1 (cols 0..4, 5 cols): Baseline LayoutLMv3
- * - Spacer 1 (cols 5..6, 2 blank cols)
- * - Table 2 (cols 7..12, 6 cols): HPE + SCM + Contrastive Loss + Boundary Loss (Delta vs Baseline)
- * - Spacer 2 (cols 13..14, 2 blank cols)
- * - Table 3 (cols 15..20, 6 cols): w/o HPE (Delta vs Full 4-Module)
- * - Spacer 3 (cols 21..22, 2 blank cols)
- * - Table 4 (cols 23..28, 6 cols): w/o Token-Segment SCM (Delta vs Full 4-Module)
- * - Spacer 4 (cols 29..30, 2 blank cols)
- * - Table 5 (cols 31..36, 6 cols): w/o Boundary Loss (Delta vs Full 4-Module)
- * - Spacer 5 (cols 37..38, 2 blank cols)
- * - Table 6 (cols 39..44, 6 cols): w/o Contrastive Loss (Delta vs Full 4-Module)
+ * Builds a 6-Table Horizontal Section (7 rows x 49 columns):
+ * - Table 1: Baseline (5 cols: 0..4)
+ * - Spacer 1: 2 blank cols (5..6)
+ * - Table 2: Full 4-Module Model (6 cols: 7..12) -> Δ vs. baseline
+ * - Spacer 2: 2 blank cols (13..14)
+ * - Table 3: w/o HPE (7 cols: 15..21) -> Δ vs. full model, Δ vs. baseline
+ * - Spacer 3: 2 blank cols (22..23)
+ * - Table 4: w/o Token-Segment SCM (7 cols: 24..30) -> Δ vs. full model, Δ vs. baseline
+ * - Spacer 4: 2 blank cols (31..32)
+ * - Table 5: w/o Boundary Loss (7 cols: 33..39) -> Δ vs. full model, Δ vs. baseline
+ * - Spacer 5: 2 blank cols (40..41)
+ * - Table 6: w/o Contrastive Loss (7 cols: 42..48) -> Δ vs. full model, Δ vs. baseline
  */
 function makeSixTableSection(suffix, baseObj, fullObj, noHpeObj, noSegObj, noBdrObj, noContObj) {
   const rows = [];
 
-  // Row 0: Configuration Titles
-  const r0 = new Array(45).fill('');
+  // Row 0: Configuration Titles (49 columns)
+  const r0 = new Array(49).fill('');
   r0[0]  = `Baseline LayoutLMv3 (${suffix})`;
   r0[7]  = `HPE + SCM + Contrastive Loss + Boundary Loss (${suffix})`;
   r0[15] = `w/o HPE (${suffix})`;
-  r0[23] = `w/o Token-Segment SCM (${suffix})`;
-  r0[31] = `w/o Boundary Loss (${suffix})`;
-  r0[39] = `w/o Contrastive Loss (${suffix})`;
+  r0[24] = `w/o Token-Segment SCM (${suffix})`;
+  r0[33] = `w/o Boundary Loss (${suffix})`;
+  r0[42] = `w/o Contrastive Loss (${suffix})`;
   rows.push(r0);
 
-  // Row 1: Column Headers
-  const r1 = new Array(45).fill('');
-  // Table 1 (5 cols: 0..4)
+  // Row 1: Column Headers (2-line Delta headers with newline)
+  const r1 = new Array(49).fill('');
+  // Table 1: Baseline (cols 0..4)
   r1[0] = 'Metric'; r1[1] = 'Seed 42'; r1[2] = 'Seed 123'; r1[3] = 'Seed 1993'; r1[4] = 'Mean ± STD';
-  // Tables 2..6 (6 cols each, starting at 7, 15, 23, 31, 39)
-  const starts = [7, 15, 23, 31, 39];
-  for (const s of starts) {
+  
+  // Table 2: Full Model (cols 7..12) -> 1 delta col: Δ vs. baseline
+  r1[7] = 'Metric'; r1[8] = 'Seed 42'; r1[9] = 'Seed 123'; r1[10] = 'Seed 1993'; r1[11] = 'Mean ± STD';
+  r1[12] = "Δ\nvs. baseline";
+
+  // Tables 3..6: Ablations -> 2 delta cols: Δ vs. full model, Δ vs. baseline
+  const ablStarts = [15, 24, 33, 42];
+  for (const s of ablStarts) {
     r1[s]     = 'Metric';
     r1[s + 1] = 'Seed 42';
     r1[s + 2] = 'Seed 123';
     r1[s + 3] = 'Seed 1993';
     r1[s + 4] = 'Mean ± STD';
-    r1[s + 5] = 'Delta';
+    r1[s + 5] = "Δ\nvs. full model";
+    r1[s + 6] = "Δ\nvs. baseline";
   }
   rows.push(r1);
 
@@ -144,21 +143,20 @@ function makeSixTableSection(suffix, baseObj, fullObj, noHpeObj, noSegObj, noBdr
   const ablatedObjs = [noHpeObj, noSegObj, noBdrObj, noContObj];
 
   for (const m of metrics) {
-    const row = new Array(45).fill('');
+    const row = new Array(49).fill('');
 
     // Table 1: Baseline (cols 0..4)
     row[0] = m;
     const b1Vals = extractSeedAndMS(baseObj, m);
     row[1] = b1Vals[0]; row[2] = b1Vals[1]; row[3] = b1Vals[2]; row[4] = b1Vals[3];
 
-    // Table 2: Full 4-Module Model (cols 7..12) -> Compared against Baseline
+    // Table 2: Full 4-Module Model (cols 7..12) -> Delta vs Baseline
     row[7] = m;
     const b2Vals = extractSeedAndMS(fullObj, m);
     row[8] = b2Vals[0]; row[9] = b2Vals[1]; row[10] = b2Vals[2]; row[11] = b2Vals[3];
     row[12] = calcMetricDelta(fullObj, baseObj, m);
 
-    // Tables 3..6: 4 Ablation Models -> Each compared against Full 4-Module Model (fullObj)
-    const ablStarts = [15, 23, 31, 39];
+    // Tables 3..6: 4 Ablation Models (7 cols each)
     for (let i = 0; i < 4; i++) {
       const s = ablStarts[i];
       const ablObj = ablatedObjs[i];
@@ -168,7 +166,10 @@ function makeSixTableSection(suffix, baseObj, fullObj, noHpeObj, noSegObj, noBdr
       row[s + 2] = vals[1];
       row[s + 3] = vals[2];
       row[s + 4] = vals[3];
+      // Delta 1: vs. full model
       row[s + 5] = calcMetricDelta(ablObj, fullObj, m);
+      // Delta 2: vs. baseline
+      row[s + 6] = calcMetricDelta(ablObj, baseObj, m);
     }
 
     rows.push(row);
@@ -180,9 +181,6 @@ function makeSixTableSection(suffix, baseObj, fullObj, noHpeObj, noSegObj, noBdr
 function buildFullMatrix() {
   console.log('Loading all 24 3-seed ablation summaries...');
 
-  // Note on filenames:
-  // *-contrastive_3seed_summary.json = Full 4-Module Model (HPE + SCM + Contrastive Loss + Boundary Loss)
-  // *-full_3seed_summary.json        = 3-Module Model (w/o Contrastive Loss)
   const funsdLargeBase = loadJson("funsd-large-baseline_3seed_summary.json");
   const funsdLargeFull4 = loadJson("funsd-large-contrastive_3seed_summary.json");
   const funsdLargeNoHpe = loadJson("funsd-large-no_hpe_3seed_summary.json");
@@ -235,7 +233,7 @@ function buildFullMatrix() {
     cordLargeNoHpe, cordLargeNoSeg, cordLargeNoBdr, cordLargeNoCont
   );
 
-  const blankRow = new Array(45).fill('');
+  const blankRow = new Array(49).fill('');
   const matrix = [];
   const sections = [sec1, sec2, sec3, sec4];
   sections.forEach((sec, idx) => {
@@ -253,25 +251,13 @@ async function main() {
   const matrix = buildFullMatrix();
   console.log(`Matrix built: ${matrix.length} rows, ${matrix[0].length} columns.`);
 
-  // Print summary of calculated deltas for verification
-  const sectionRows = [0, 9, 18, 27];
-  for (const sr of sectionRows) {
-    console.log(`\n--- ${matrix[sr][0]} ---`);
-    for (let r = sr + 2; r <= sr + 6; r++) {
-      const m = matrix[r][0];
-      console.log(
-        `${m.padEnd(15)} | Full(vs Base): ${matrix[r][12].padStart(8)} | w/o HPE: ${matrix[r][20].padStart(8)} | w/o SCM: ${matrix[r][28].padStart(8)} | w/o Bdr: ${matrix[r][36].padStart(8)} | w/o Cont: ${matrix[r][44].padStart(8)}`
-      );
-    }
-  }
-
   // Write local CSV
   const csvPath = path.resolve('thesis/tracker.csv');
   const csvContent = matrix
     .map(r => r.map(c => (c.includes(',') || c.includes('"') || c.includes('\n')) ? `"${c.replace(/"/g, '""')}"` : c).join(','))
     .join('\n');
   fs.writeFileSync(csvPath, csvContent, 'utf8');
-  console.log('\nSaved CSV to:', csvPath);
+  console.log('Saved CSV to:', csvPath);
 
   // Send to Webhook
   const payload = JSON.stringify({

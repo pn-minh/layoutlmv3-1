@@ -102,27 +102,34 @@ def calc_metric_delta(target_obj, ref_obj, metric):
 
 def make_six_table_section(suffix, base_obj, full_obj, no_hpe_obj, no_seg_obj, no_bdr_obj, no_cont_obj):
     rows = []
-    r0 = [''] * 45
+    r0 = [''] * 49
     r0[0]  = f"Baseline LayoutLMv3 ({suffix})"
     r0[7]  = f"HPE + SCM + Contrastive Loss + Boundary Loss ({suffix})"
     r0[15] = f"w/o HPE ({suffix})"
-    r0[23] = f"w/o Token-Segment SCM ({suffix})"
-    r0[31] = f"w/o Boundary Loss ({suffix})"
-    r0[39] = f"w/o Contrastive Loss ({suffix})"
+    r0[24] = f"w/o Token-Segment SCM ({suffix})"
+    r0[33] = f"w/o Boundary Loss ({suffix})"
+    r0[42] = f"w/o Contrastive Loss ({suffix})"
     rows.append(r0)
 
-    r1 = [''] * 45
+    r1 = [''] * 49
+    # Table 1: Baseline (cols 0..4)
     r1[0:5] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD']
-    for s in [7, 15, 23, 31, 39]:
-        r1[s:s+6] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD', 'Delta']
+    # Table 2: Full Model (cols 7..12) -> 1 delta col: Δ vs. baseline
+    r1[7:12] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD']
+    r1[12] = "Δ\nvs. baseline"
+    # Tables 3..6: Ablations -> 2 delta cols: Δ vs. full model, Δ vs. baseline
+    abl_starts = [15, 24, 33, 42]
+    for s in abl_starts:
+        r1[s:s+5] = ['Metric', 'Seed 42', 'Seed 123', 'Seed 1993', 'Mean ± STD']
+        r1[s+5] = "Δ\nvs. full model"
+        r1[s+6] = "Δ\nvs. baseline"
     rows.append(r1)
 
     metrics = ['eval_accuracy', 'eval_f1', 'eval_precision', 'eval_recall', 'eval_loss']
     ablated_objs = [no_hpe_obj, no_seg_obj, no_bdr_obj, no_cont_obj]
-    abl_starts = [15, 23, 31, 39]
 
     for m in metrics:
-        row = [''] * 45
+        row = [''] * 49
         # Table 1: Baseline
         row[0] = m
         row[1:5] = extract_seed_and_ms(base_obj, m)
@@ -130,11 +137,12 @@ def make_six_table_section(suffix, base_obj, full_obj, no_hpe_obj, no_seg_obj, n
         row[7] = m
         row[8:12] = extract_seed_and_ms(full_obj, m)
         row[12] = calc_metric_delta(full_obj, base_obj, m)
-        # Tables 3..6: Ablations vs Full 4-Module
+        # Tables 3..6: Ablations vs Full 4-Module & vs Baseline
         for s, abl_obj in zip(abl_starts, ablated_objs):
             row[s] = m
             row[s+1:s+5] = extract_seed_and_ms(abl_obj, m)
             row[s+5] = calc_metric_delta(abl_obj, full_obj, m)
+            row[s+6] = calc_metric_delta(abl_obj, base_obj, m)
         rows.append(row)
 
     return rows
@@ -173,7 +181,7 @@ def sync_quad_sheet(summaries_dir: Path, webhook_url: str = WEBHOOK_URL):
     sec3 = make_six_table_section("base - CORD",   cordBaseBase,   cordBaseFull4,   cordBaseNoHpe,   cordBaseNoSeg,   cordBaseNoBdr,   cordBaseNoCont)
     sec4 = make_six_table_section("large - CORD",  cordLargeBase,  cordLargeFull4,  cordLargeNoHpe,  cordLargeNoSeg,  cordLargeNoBdr,  cordLargeNoCont)
 
-    blank_row = [''] * 45
+    blank_row = [''] * 49
     matrix = []
     sections = [sec1, sec2, sec3, sec4]
     for idx, sec in enumerate(sections):

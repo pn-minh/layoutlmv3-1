@@ -137,10 +137,10 @@ function Make-QuadBlock(
 }
 
 function Sync-QuadSheet {
-    # Delegate directly to node sync script for complete 29-column Quad-Block sync
+    # Delegate directly to node sync script for complete 49-column 6-table sync
     $NodeScript = Join-Path (Split-Path -Parent $ScriptDir) "scratch\sync_sheet_updated.js"
     if (Test-Path $NodeScript) {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Executing 29-column Quad-Block sync via node..." -ForegroundColor Cyan
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Executing 49-column 6-table sync via node..." -ForegroundColor Cyan
         & node $NodeScript
         return
     }
