@@ -158,9 +158,9 @@ cfg = LayoutLMv3Config(
     use_column_encoding=True,
     use_intra_line_boundary=True,
     use_contrastive_loss=True,
-    lambda_contrastive_init=0.1,
+    lambda_contrastive_init=0.03,
     contrastive_proj_dim=128,
-    contrastive_temperature=0.07,
+    contrastive_temperature=0.10,
 )
 model = LayoutLMv3ForSegmentTokenClassification(cfg).to(device)
 B, L = 2, 16

@@ -55,6 +55,12 @@ CELL_QUEUE = [
     (24, "funsd", "base",  "contrastive", "FUNSD base contrastive (+Contrastive Loss)",   "funsd-base-contrastive_3seed_summary.json"),
 ]
 
+# Allow filtering cells via CELLS env var (e.g. CELLS="24,25,26,27" for Contrastive Fine-Tuning)
+if os.environ.get("CELLS"):
+    _target_ids = {int(x.strip()) for x in os.environ["CELLS"].split(",") if x.strip().isdigit()}
+    if _target_ids:
+        CELL_QUEUE = [item for item in CELL_QUEUE if item[0] in _target_ids]
+
 LOG_LOCK = threading.RLock()
 SYNC_LOCK = threading.RLock()
 
@@ -190,7 +196,8 @@ def run_suite_step_on_gpu(gpu_id: int, cell_num: int, dataset: str, variant: str
     sum_path = LOG_DIR / summary_file
     log_path = Path(f"/tmp/cell_{cell_num}.log")
 
-    if sum_path.exists():
+    force_rerun = os.environ.get("FORCE_RERUN", "0") in ("1", "true", "True") or "--force" in sys.argv
+    if sum_path.exists() and not force_rerun:
         log(f"[{worker_key}] [SKIP] Summary already exists for Cell {cell_num}: {sum_path}")
         with SYNC_LOCK:
             upload_to_gdrive(sum_path)

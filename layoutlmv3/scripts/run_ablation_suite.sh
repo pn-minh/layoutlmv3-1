@@ -49,7 +49,7 @@ if [ "$DATASET" = "funsd" ]; then
     MAX_COL=8
     MAX_STEPS=1000
 elif [ "$DATASET" = "cord" ]; then
-    LR="5e-5"
+    LR="3e-5"
     if [ "$VARIANT" = "large" ]; then
         PER_DEV_BS=8
         GRAD_ACC=8
@@ -60,8 +60,8 @@ elif [ "$DATASET" = "cord" ]; then
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
-    # Accelerate CORD training by setting max_steps to 500 (40 full epochs at effective batch size 64), reaching full convergence without accuracy loss
-    MAX_STEPS=500
+    # 800 steps for CORD allows 4-module multi-task auxiliary heads to reach full convergence
+    MAX_STEPS=800
 else
     echo "ERROR: Invalid dataset '$DATASET'. Choose 'funsd' or 'cord'."
     exit 1
@@ -100,6 +100,10 @@ case "$MODE" in
         ;;
     contrastive|with_contrastive)
         # Full 4-module model: Token-Segment + HPE (Line/Block/Column) + Intra-Line Boundary Loss + Cross-Modal Contrastive Loss
+        CONT_LAMBDA="0.03"
+        if [ "$DATASET" = "cord" ]; then
+            CONT_LAMBDA="0.01"
+        fi
         EXTRA_ARGS=(
             --use_segment_head
             --use_token_segment True
@@ -111,9 +115,9 @@ case "$MODE" in
             --use_intra_line_boundary True
             --lambda_bound_init 0.1
             --use_contrastive_loss True
-            --lambda_contrastive_init 0.1
+            --lambda_contrastive_init "$CONT_LAMBDA"
             --contrastive_proj_dim 128
-            --contrastive_temperature 0.07
+            --contrastive_temperature 0.10
         )
         ;;
     no_boundary)
@@ -204,7 +208,12 @@ do
         --visual_embed 1 \
         --input_size 224 \
         --max_steps "$MAX_STEPS" \
-        --save_steps -1 \
+        --save_steps 100 \
+        --save_strategy steps \
+        --save_total_limit 1 \
+        --load_best_model_at_end True \
+        --metric_for_best_model eval_f1 \
+        --greater_is_better True \
         --evaluation_strategy steps \
         --eval_steps 100 \
         --learning_rate "$LR" \

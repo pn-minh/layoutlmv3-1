@@ -116,14 +116,14 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
             self.contrastive_text_proj = nn.Linear(config.hidden_size, proj_dim)
             # Linear projection g_img: R^H -> R^proj_dim for visual image patches
             self.contrastive_img_proj = nn.Linear(config.hidden_size, proj_dim)
-            # Fixed scalar weight lambda_cont (default 0.1) and temperature tau (default 0.07)
-            self.lambda_contrastive = float(getattr(config, "lambda_contrastive_init", 0.1))
-            self.contrastive_temperature = float(getattr(config, "contrastive_temperature", 0.07))
+            # Balanced scalar weight lambda_cont (default 0.03 for regularizing alignment) and temperature tau (default 0.10)
+            self.lambda_contrastive = float(getattr(config, "lambda_contrastive_init", 0.03))
+            self.contrastive_temperature = float(getattr(config, "contrastive_temperature", 0.10))
         else:
             self.contrastive_text_proj = None
             self.contrastive_img_proj = None
             self.lambda_contrastive = 0.0
-            self.contrastive_temperature = 0.07
+            self.contrastive_temperature = 0.10
                 # ReZero-style gate: starts at 0 so at step 0 the context module is a
         # NO-OP (output == plain mean-pooled vector, i.e. identical to a
         # "segment pooling only, no inter-segment context" ablation). Training
@@ -337,8 +337,10 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
         if bbox is None or image_hidden is None or image_hidden.shape[1] <= 1:
             return torch.tensor(0.0, device=device)
 
-        # Extract spatial patch representations v_p, excluding the visual CLS token at index 0
-        patch_hidden = image_hidden[:, 1:, :]  # (B, N_patches, H)
+        # Extract spatial patch representations v_p, excluding the visual CLS token at index 0.
+        # Detach visual representations so they serve as a stable spatial anchor without
+        # distorting the pre-trained visual encoder weights.
+        patch_hidden = image_hidden[:, 1:, :].detach()  # (B, N_patches, H)
         num_patches = patch_hidden.shape[1]
         grid_size = int(round(num_patches ** 0.5))
         if grid_size * grid_size != num_patches or grid_size <= 0:
@@ -549,11 +551,12 @@ class LayoutLMv3ForSegmentTokenClassification(LayoutLMv3PreTrainedModel):
                 aux_loss = aux_loss + self.lambda_geo * geo_loss + self.lambda_orth * orth_loss
 
             # ====== CROSS-MODAL CONTRASTIVE LOSS ======
-            # Aligns segment-enriched text token representations (text_hidden) with
-            # their corresponding spatial visual patch representations (image_hidden)
+            # Aligns pre-segment backbone text representations (sequence_output[:, :text_len, :])
+            # with spatial visual patch representations (image_hidden) to ground token features
+            # without interfering with downstream segment-level contextualization (SCM).
             if self.contrastive_text_proj is not None and image_hidden.shape[1] > 1:
                 contrastive_loss = self._compute_contrastive_loss(
-                    text_hidden=text_hidden,
+                    text_hidden=sequence_output[:, :text_len, :],
                     image_hidden=image_hidden,
                     bbox=bbox,
                     attention_mask=attention_mask,
