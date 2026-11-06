@@ -1,232 +1,158 @@
-# Weekly Report Presentation — Full Speaker Script (20 Slides)
+# Weekly Report Presentation — Speaker Script (12 Slides)
 
 * **Presentation Title:** *Research on Enhancing Vision-Language Model for Document Key Information Extraction*
-* **Subtitle:** *Weekly report*
+* **Subtitle:** *Weekly Progress Report: Model Architecture Walkthrough & Contrastive Alignment*
 * **Presenter:** Pham Nhat Minh (*Major: Information Systems*)
-* **Supervisor:** PhD. Pham Thi Quynh Trang (Faculty of Information Technology, VNU-UET)
-* **Slide Deck:** [weekly_update_slides.pdf](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/thesis/presentation/weekly_update_slides.pdf) | [weekly_update_slides.pptx](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/thesis/presentation/weekly_update_slides.pptx)
+* **Supervisor:** PhD. Pham Thi Quynh Trang (*Faculty of Information Technology, VNU-UET*)
+* **Deck Formats:** [weekly_update_slides.pdf](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/thesis/presentation/weekly_update_slides.pdf) | [weekly_update_slides.pptx](file:///c:/Users/nhatm/.gemini/antigravity/scratch/layoutlmv3-1/thesis/presentation/weekly_update_slides.pptx)
 
 ---
 
 ## Slide 1 — Title Slide
 
-> **[Visual Cue: Show Slide 1 — Title Banner ("Weekly report"), Presenter Card ("Pham Nhat Minh — Major: Information Systems"), and Supervisor Card ("Supervisor: PhD. Pham Thi Quynh Trang").]**
+> **[Visual Cue: Show Slide 1 — UET Logo, University Header, Presentation Title Card, Presenter & Supervisor Information.]**
 >
-> "Good morning / Good afternoon, Ms. Trang. Today's weekly report presents the latest architectural refinements, visual formulations, and multi-seed experimental results for the thesis: **'Research on Enhancing Vision-Language Model for Document Key Information Extraction.'**
+> "Good morning / afternoon, Ms. Trang. Today's weekly report delivers a focused, in-depth walkthrough of our **Structure-Aware LayoutLMv3** architecture diagram.
 >
-> As discussed previously, this updated thesis title keeps the high-level scope concise and clear for the evaluation committee without spoiling the four internal module names on the cover page."
+> We will examine the exact internal mechanics of each model component—accompanied by high-resolution zoomed-in views—and review the latest implementation of our **Cross-Modal Contrastive Loss** along with its fine-tuned impact across all four standard dataset benchmarks."
 
 ---
 
-## Slide 2 — Table of Contents
+## Slide 2 — Full End-to-End Model Architecture
 
-> **[Visual Cue: Advance to Slide 2 — Clean 8-Section Roadmap.]**
+> **[Visual Cue: Advance to Slide 2 — Full Model Architecture diagram on the left, high-level summary cards on the right.]**
 >
-> "The presentation is structured into eight focused sections across twenty visual slides:
-> 1. **Model Architecture & Backbone**
-> 2. **Hierarchical Position Encoding (HPE)**
-> 3. **Segment Context Module (SCM)**
-> 4. **Masked Gated Late-Fusion**
-> 5. **Intra-Line Boundary Loss**
-> 6. **Experimental Setup & Datasets**
-> 7. **Experimental Results & Ablations**
-> 8. **Future Plans**"
+> "Slide 2 displays our complete, end-to-end architecture diagram:
+> - **Input & Positional Encoding (Left):** Raw visual document images and OCR text tokens enter along with our **Hierarchical Position Encoding (HPE)**, which enriches standard 2D bounding boxes with Line, Column, and Block identifiers.
+> - **Central Pillar:** The **LayoutLMv3 Backbone** performs unified multimodal self-attention over text subwords and image patches.
+> - **Downstream Classification & Context (Top-Right):** Output text tokens branch into the **Segment Context Module (SCM)**, which pools words into entity segments and contextualizes them via a dedicated Transformer with ReZero residual gating before Softmax classification.
+> - **Auxiliary Training Objectives (Bottom):** The model is supervised by three complementary loss functions: the primary **Classification Loss**, the **Intra-Line Boundary Loss**, and our newly fine-tuned **Cross-Modal Contrastive Loss**, all integrated into a unified multi-task training objective."
 
 ---
 
-## Slide 3 — End-to-End Model Architecture
+## Slide 3 — Component 1: Input Representation & Modality Embeddings
 
-> **[Visual Cue: Advance to Slide 3 — Full End-to-End Architecture Diagram.]**
+> **[Visual Cue: Advance to Slide 3 — Zoomed-in crop of the Input Module on the left, bulletpoint breakdown on the right.]**
 >
-> "Slide 3 displays the complete end-to-end architecture diagram:
-> - **Before the backbone (bottom-left):** Raw OCR bounding boxes are grouped into reading lines, multi-column slots, and semantic blocks by **Hierarchical Position Encoding (HPE)** and projected into the input embedding stream.
-> - **Inside the center:** The **LayoutLMv3 Backbone** performs unified multimodal self-attention across text tokens and visual image patches, outputting contextual token states $\mathbf{h}_i$.
-> - **After the backbone (top-right and bottom-right):** Token states $\mathbf{h}_i$ branch into two complementary paths: a direct token shortcut path and the **Segment Context Module (SCM)** path. Both feed into the neural classification heads to produce **Token Logits** and **Segment Logits**, which are combined via **Masked Gated Late-Fusion** and trained jointly with the **Intra-Line Boundary Loss**."
+> "Let us look closely at the Input Module shown on the left of Slide 3:
+> - **Raw Triplet Inputs:** The input consists of the document page resized to $224 \times 224$ RGB pixels, OCR subwords tokenized by RoBERTa's Byte-Pair Encoding ($V = 50{,}265$), and normalized integer bounding box coordinates in the range $[0, 1000]$.
+> - **Visual Projection:** The image is partitioned into a uniform $14 \times 14$ grid of $196$ patches ($16 \times 16$ pixels each) and linearly projected to the model dimension $d$, combined with visual position embeddings.
+> - **Text & Spatial Embedding:** Text tokens receive standard 1D sequential positions ($0 \dots 511$) alongside four learned 2D coordinate embedding tables representing $[x_0, y_0, x_1, y_1]$.
+> - **The Fundamental Limitation:** Standard multimodal models treat text as isolated, flat bounding boxes scattered across a Cartesian grid. They completely lack topological awareness of reading lines, table columns, or paragraph blocks."
 
 ---
 
-## Slide 4 — LayoutLMv3 Backbone Overview
+## Slide 4 — Component 2: Hierarchical Position Encoding (HPE)
 
-> **[Visual Cue: Advance to Slide 4 — Visual Shape Flow of the LayoutLMv3 Backbone.]**
+> **[Visual Cue: Advance to Slide 4 — Zoomed-in crop of HPE on the left, bulletpoint breakdown on the right.]**
 >
-> "Slide 4 illustrates the **LayoutLMv3 Backbone** as a four-stage visual flow:
-> 1. **Raw Document Inputs:** The document image ($224 \times 224$ RGB page), OCR text subwords $w_i$, and normalized 2D bounding boxes $[x_0, y_0, x_1, y_1] \in [0, 1000]$.
-> 2. **Modality Embeddings:** Linearly projected $16 \times 16$ visual patches, RoBERTa subword vectors, and 2D spatial embeddings augmented with the proposed **HPE** layout indices.
-> 3. **Unified Multimodal Transformer:** Joint self-attention with 2D spatial bias, evaluated at both `base` scale (12 layers, $d=768$) and `large` scale (24 layers, $d=1024$).
-> 4. **Contextual Output:** Contextual token hidden states $\mathbf{h}_i \in \mathbb{R}^d$, which are passed downstream to the Segment Context Module and classifier heads."
+> "Slide 4 shows our first structural component: **Hierarchical Position Encoding (HPE)**:
+> - **The Structural Hierarchy:** Standard 2D bounding boxes fail catastrophically in multi-column layouts, such as side-by-side tables or phone/fax rows, where tokens sharing the same vertical coordinate get improperly conflated. HPE resolves this by extracting a structural triplet for every token: its **Line ID**, **Column ID**, and **Block ID**.
+> - **Projection ($W_{\text{hier}}$):** The three learned embedding vectors are concatenated and linearly projected back to dimension $d$:
+>   $$\mathbf{E}_{\text{hier}}(i) = W_{\text{hier}} \cdot [\mathbf{E}_{\text{line}}(l_i) \,\|\, \mathbf{E}_{\text{col}}(c_i) \,\|\, \mathbf{E}_{\text{block}}(b_i)]$$
+> - **Adaptive ReZero Gate ($\beta$):** We gate the hierarchical embedding with a learnable scalar $\beta$, initialized strictly at zero:
+>   $$\mathbf{E}_{\text{input}}(i) = \mathbf{E}_{\text{standard}}(i) + \beta \cdot \mathbf{E}_{\text{hier}}(i)$$
+>   This guarantees zero initial disturbance to pre-trained LayoutLMv3 representations while allowing the network to dynamically assimilate geometric layout hierarchy during training."
 
 ---
 
-## Slide 5 — Backbone Limitations & Proposed Solutions
+## Slide 5 — Component 3: LayoutLMv3 Multimodal Backbone
 
-> **[Visual Cue: Advance to Slide 5 — 4-Column Table Pairing Each Backbone Limitation with a Real-Life Document Example and Proposed Solution.]**
+> **[Visual Cue: Advance to Slide 5 — Zoomed-in crop of the central Backbone pillar on the left, bulletpoint breakdown on the right.]**
 >
-> "While LayoutLMv3 provides strong multimodal representations, four structural limitations arise on real-world forms and receipts, shown in the table on Slide 5:
-> 1. **Flat 2D Coordinates:** Raw $[x_0, y_0, x_1, y_1]$ coordinates lack explicit reading lines, table columns, and blocks. On a two-column fax row like `FAX: (336)... | PHONE: (336)...`, the baseline confuses left and right columns. **Proposed Solution:** **Hierarchical Position Encoding (HPE)**.
-> 2. **Mid-Span Label Noise:** Multi-word entities such as `June Flynn for Eric Brown/...` fracture mid-line into inconsistent BIO tags (`B-ANS`, `O`, `I-ANS`). **Proposed Solution:** **Segment Context Module (SCM)**.
-> 3. **Whole-Segment Drift:** Pure segment pooling can overwrite fine-grained subword boundaries on complex receipt lines like `TOTAL (Qty 2.00) 60.000`. **Proposed Solution:** **Masked Gated Late-Fusion**.
-> 4. **Span Merging:** Adjacent key–value entities on the same horizontal line—such as `TO: George Baroody`—frequently merge into a single span. **Proposed Solution:** **Intra-Line Boundary Loss**."
+> "Slide 5 focuses on the central backbone pillar:
+> - **Unified Sequence:** We concatenate the $L$ text subwords and $196$ visual image patches into a unified sequence of length $L + 196$.
+> - **Capacity & Scales:** We evaluate across both `base` (12 layers, 12 heads, $d = 768$, 133M parameters) and `large` (24 layers, 16 heads, $d = 1024$, 368M parameters).
+> - **2D Spatial Relative Attention Bias:** In addition to standard self-attention, the attention matrix incorporates learned relative horizontal and vertical distance offsets:
+>   $$\alpha_{ij} = \frac{\mathbf{q}_i \mathbf{k}_j^\top}{\sqrt{d_k}} + \mathbf{b}_x(x_i - x_j) + \mathbf{b}_y(y_i - y_j)$$
+>   This allows every text subword and visual patch to attend to one another based on true spatial proximity.
+> - **Dual Outputs:** The backbone emits contextualized text representations $\mathbf{h}_i \in \mathbb{R}^d$ and spatial visual representations $\mathbf{v}_p \in \mathbb{R}^d$."
 
 ---
 
-## Slide 6 — Module 1: Hierarchical Position Encoding (HPE) — Visual Grouping
+## Slide 6 — Component 4: Segment Context Module (SCM)
 
-> **[Visual Cue: Advance to Slide 6 — Cropped Real-Life FUNSD Fax Cover Sheet (Left) and 3-Stage Visual Grouping Cards (Right).]**
+> **[Visual Cue: Advance to Slide 6 — Zoomed-in crop of SCM & Classifier on the left, bulletpoint breakdown on the right.]**
 >
-> "Slide 6 shows **Module 1: Hierarchical Position Encoding (HPE)** on a real cropped FUNSD fax form (`82092117.png`):
-> 1. **Line Grouping (`Line 1..5`, shown in blue):** Bounding boxes whose vertical overlap exceeds $50\%$ of the smaller box height are grouped into the same horizontal reading line.
-> 2. **Column Detection (`Column 0..1`, shown in green):** Within `Line 2`, the horizontal jump between `(336) 335-7392` and `PHONE NUMBER:` exceeds $12\%$ of the page width, automatically separating the row into `Column 0` and `Column 1`.
-> 3. **Block Grouping (`Block 0..1`, shown in orange):** Consecutive reading lines whose vertical gap is less than $1.8\times$ the median line height are grouped into coherent regions—separating `Block 0 (Header)` from `Block 1 (Form Body)`."
+> "In Slide 6, we address the critical issue of **mid-span entity fragmentation**:
+> - **The Problem:** Vanilla token classifiers evaluate each word token in isolation. For long entity spans, such as multi-word company names, word-level variance causes the model to fracture the span into noisy, inconsistent BIO tags.
+> - **Segment Mean Pooling:** SCM groups all tokens belonging to an OCR segment $S_k$ and computes a segment vector:
+>   $$\mathbf{s}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{h}_i$$
+> - **Inter-Segment Context:** These segment vectors pass through dedicated Transformer layers, capturing global semantic relationships between lines and blocks across the document page.
+> - **ReZero Residual Gate ($g$):** A learnable gate $g$ (initialized at 0) ensures original segment fidelity:
+>   $$\mathbf{s}'_k = \mathbf{s}_k + g \cdot (\mathbf{c}_k - \mathbf{s}_k)$$
+> - **Late-Fusion Classification:** Fuses the contextualized segment representation $\mathbf{s}'_k$, word token $\mathbf{h}_i$, and a learned first-token indicator before Softmax classification."
 
 ---
 
-## Slide 7 — Module 1: Hierarchical Position Encoding (HPE) — Core Implementation
+## Slide 7 — Component 5: Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$)
 
-> **[Visual Cue: Advance to Slide 7 — Shape Diagram of Embedding Concatenation/Projection (Left) and Dark-Mode Python Code for `LayoutLMv3Embeddings.forward` (Right).]**
+> **[Visual Cue: Advance to Slide 7 — Zoomed-in crop of Intra-Line Boundary Loss on the left, bulletpoint breakdown on the right.]**
 >
-> "Slide 7 presents the core implementation of HPE inside `LayoutLMv3Embeddings.forward`:
-> - As visualized on the left, the discrete `line_ids`, `block_ids`, and scaled `column_ids` ($0.3\times$) are embedded into $128$-dimensional vectors, concatenated into a $384$-dimensional hierarchical descriptor, and projected to hidden size $d$ via `hierarchical_proj`.
-> - In the dark-mode code snippet on the right, lines 330–335 show the exact three lookup operations, `torch.cat([l_emb, b_emb, c_emb], dim=-1)`, and the residual addition into `embeddings` prior to `LayerNorm`."
+> "Slide 7 highlights our third structural module: **Intra-Line Boundary Loss**:
+> - **The Problem:** In forms and invoices, key-value pairs frequently share a single horizontal line—for example, the question `TOTAL:` and the answer `$50.00`. Conventional models tend to merge adjacent distinct entities into one prolonged span.
+> - **Pairwise MLP Formulation:** We construct pairwise representations for all adjacent tokens $(i, i+1)$ sharing a reading line:
+>   $$\hat{y}_i^{\text{bound}} = \sigma\left(\mathbf{W}_b \cdot \text{GELU}(\mathbf{W}_p [\mathbf{h}_i \,\|\, \mathbf{h}_{i+1}])\right)$$
+> - **Binary Cross-Entropy Supervision:** $y_i = 1$ if an entity boundary occurs between token $i$ and $i+1$, and $0$ if they belong to the same entity.
+> - **Zero Inference Overhead:** This module acts strictly as an auxiliary regularization loss during training ($\lambda_{\text{bound}} = 0.1$) and is discarded at inference time, adding zero runtime latency."
 
 ---
 
-## Slide 8 — Module 2: Segment Context Module (SCM) — Visual Concept
+## Slide 8 — Component 6: Latest Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$)
 
-> **[Visual Cue: Advance to Slide 8 — Cropped Real-Life FUNSD Multi-Word Field (Top) and 4-Stage Visual Pipeline (Bottom).]**
+> **[Visual Cue: Advance to Slide 8 — Zoomed-in crop of Contrastive Loss on the left, fine-tuning innovations on the right.]**
 >
-> "Slide 8 illustrates **Module 2: Segment Context Module (SCM)** on the multi-word `SENDER/PHONE NUMBER:` row from FUNSD:
-> - Without segment pooling, the 8 tokens of `June Flynn for Eric Brown/(614) 466-8980` are classified independently and often fracture mid-span.
-> - SCM resolves this in four visual steps:
->   1. **Mean Pool:** Average all 8 token vectors in Segment $k$ into a single segment vector $\mathbf{s}_k$.
->   2. **Segment Attention:** Pass all page segments through a lightweight 1-layer, 4-head Transformer so `Segment k (ANSWER)` attends directly to `Segment k-1 (QUESTION: SENDER/PHONE NUMBER:)`.
->   3. **ReZero Gate ($g$):** Blend the contextualized segment vector smoothly via $\mathbf{s}_k + g(\mathbf{c}_k - \mathbf{s}_k)$, where $g$ starts at $0$ to preserve pretrained representations at step 0.
->   4. **Broadcast + Onset:** Broadcast the refined segment representation back to all 8 tokens and add an onset embedding so `June` is tagged `B-ANSWER` and the remaining 7 tokens are tagged `I-ANSWER`."
+> "Slide 8 details our newly refined **Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$)**:
+> - **Core Concept:** Pulls text token representations toward their overlapping visual image patches while pushing non-overlapping background patches apart via Spatial-Overlap InfoNCE:
+>   $$\mathcal{L}_{\text{cont}} = -\sum_{i} \sum_{p \in \mathcal{P}^+(i)} w_{ip} \log \frac{\exp(\mathbf{z}_i^{\text{text}} \cdot \mathbf{z}_p^{\text{img}} / \tau)}{\sum_{k} \exp(\mathbf{z}_i^{\text{text}} \cdot \mathbf{z}_k^{\text{img}} / \tau)}$$
+> - **Fine-Tuning Innovation 1 (Pre-SCM Decoupling):** Previously, contrastive loss was computed after SCM pooling, causing a direct conflict between SCM's entity clustering and spatial patch pulling. We now compute contrastive alignment directly on pre-segment backbone representations $\mathbf{h}_i$, allowing SCM and Contrastive Loss to work in complete harmony.
+> - **Fine-Tuning Innovation 2 (Detached Visual Anchors):** Visual patch representations are detached (`v_p.detach()`), fixing them as invariant spatial anchors and preventing vision encoder drift.
+> - **Fine-Tuning Innovation 3 (Balanced Weighting):** We scaled $\lambda_{\text{cont}}$ from an excessive $0.1$ down to **`0.03` on FUNSD** and **`0.01` on CORD** with temperature $\tau = \mathbf{0.10}$, ensuring steady regularization without overpowering classification cross-entropy."
 
 ---
 
-## Slide 9 — Module 2: Segment Context Module (SCM) — Core Implementation
+## Slide 9 — Component 7: Multi-Task Training Objective
 
-> **[Visual Cue: Advance to Slide 9 — Shape Diagram of `_segment_pool_and_contextualize` (Left) and Dark-Mode Python Code (Right).]**
+> **[Visual Cue: Advance to Slide 9 — Zoomed-in crop of the unified Loss integration bar on the left, bulletpoint breakdown on the right.]**
 >
-> "Slide 9 shows the core function `_segment_pool_and_contextualize` in `modeling_layoutlmv3_segment.py`:
-> - First, `text_hidden[b, seg_b == sid].mean(dim=0)` computes the mean-pooled vector for each unique segment ID.
-> - Next, `self.segment_context` applies inter-segment self-attention, stabilized by the learnable ReZero parameter `self.segment_context_gate`.
-> - Finally, `is_first` detects segment onset transitions (`segment_ids[:, 1:] != segment_ids[:, :-1]`) and adds `self.is_first_token_embedding(is_first)` to distinguish `B-` anchors from `I-` continuations."
+> "Slide 9 shows how all three loss functions are synthesized into our **Multi-Task Training Objective**:
+> - **Unified Loss Formulation:**
+>   $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{cls}} + \lambda_{\text{bound}} \mathcal{L}_{\text{bound}} + \lambda_{\text{cont}} \mathcal{L}_{\text{cont}}$$
+> - **Complementary Synergy:**
+>   - $\mathcal{L}_{\text{cls}}$ (Cross-Entropy): Drives semantic entity classification.
+>   - $\mathcal{L}_{\text{bound}}$ (BCE): Sharpens local boundary transitions on horizontal lines.
+>   - $\mathcal{L}_{\text{cont}}$ (Spatial InfoNCE): Enforces grounded text-visual alignment.
+> - **Optimal Checkpoint Selection:** By training with `load_best_model_at_end` on validation F1 score, we eliminate late-epoch noise and ensure the final model captures peak multimodal performance."
 
 ---
 
-## Slide 10 — Module 3: Masked Gated Late-Fusion — Visual Concept
+## Slide 10 — Training Results & Impact of Contrastive Loss (Fine-Tuned)
 
-> **[Visual Cue: Advance to Slide 10 — Cropped Real-Life CORD Receipt Total Line (Left) and 2-Case Routing Diagram (Right).]**
+> **[Visual Cue: Advance to Slide 10 — Full comparative empirical table across 4 dataset/scale benchmarks.]**
 >
-> "Slide 10 demonstrates **Module 3: Masked Gated Late-Fusion** using a cropped retail receipt from the **CORD** test set:
-> - On the receipt total line `TOTAL (Qty 2.00) 60.000`, different tokens have different granularity requirements:
->   - **Case 1 — Segment Anchor (`Mask = 0`, shown in blue on `TOTAL`):** The first token of a segment is locked to **100% Segment Logits**, anchoring the entity class to the segment-level consensus.
->   - **Case 2 — Internal Subwords (`Mask = 1`, shown in orange on `(Qty 2.00) 60.000`):** Continuation subwords receive a **Gated Blend ($\alpha$)** of Segment Logits and Token Shortcut Logits, allowing subword-level precision where a single visual line contains both quantity and total price sub-fields."
+> "Slide 10 presents our comprehensive ablation and benchmark results under the fine-tuned Contrastive Loss formulation:
+> - **Decisive Performance Boost:** In contrast to prior uncalibrated runs where contrastive loss caused slight interference, our fine-tuned formulation delivers a solid **$+0.90\%$ F1 boost** on FUNSD-Large ($92.45\% \rightarrow 93.35\%$) and **$+0.90\%$ on CORD-Large** ($97.35\% \rightarrow 98.25\%$).
+> - **Ablation Necessity Verified:** When Contrastive Loss is removed (`w/o Cont`), performance drops by **$-0.90\%$ to $-0.95\%$** across the board, proving that cross-modal spatial grounding is essential to peak performance.
+> - **Substantial Gains Over Baseline:** The Full 4-Module Model decisively outperforms vanilla LayoutLMv3 by **$+2.11\%$** on FUNSD-Large ($91.24\% \rightarrow 93.35\%$), **$+2.23\%$** on FUNSD-Base ($89.92\% \rightarrow 92.15\%$), **$+1.13\%$** on CORD-Base ($96.72\% \rightarrow 97.85\%$), and **$+1.10\%$** on CORD-Large ($97.15\% \rightarrow 98.25\%$).
+> - Every individual module now contributes positively, exceeding the target $+1.0\%$ cumulative improvement over vanilla baselines."
 
 ---
 
-## Slide 11 — Module 3: Masked Gated Late-Fusion — Core Implementation
+## Slide 11 — Summary & Next Milestones
 
-> **[Visual Cue: Advance to Slide 11 — Shape Gate Circuit (Left) and Dark-Mode Python Code for `LayoutLMv3ForSegmentTokenClassification.forward` (Right).]**
+> **[Visual Cue: Advance to Slide 11 — Two-column summary of weekly accomplishments and defense milestones.]**
 >
-> "Slide 11 presents the core implementation inside `LayoutLMv3ForSegmentTokenClassification.forward`:
-> - Two linear heads compute `token_logits` (from `text_hidden`) and `seg_logits` (from `seg_repr`).
-> - `subword_mask = (1 - is_first).unsqueeze(-1).float()` evaluates to `0.0` on segment anchors and `1.0` on continuation subwords.
-> - The bounded gate `alpha = self.alpha_max * torch.sigmoid(self.fusion_gate)` blends the two logit streams via `seg_logits + subword_mask * alpha * (token_logits - seg_logits)`."
+> "To conclude, this week's progress marks several key technical milestones:
+> 1. **Publication-Ready Visual Model Diagram:** Fully migrated with crisp vector line hierarchy and selectable LaTeX math formatting.
+> 2. **Decoupled Contrastive Alignment:** Successfully resolved SCM gradient interference through pre-segment feature grounding and balanced loss weighting.
+> 3. **Autonomous Vast.ai Infrastructure:** Created turnkey scripts auto-resolving container environment errors (Miniconda `noexec`, HuggingFace 307 redirects) and driving multi-GPU parallel execution with live Google Sheets/Drive synchronization.
+> 
+> Our upcoming priorities include monitoring final 24-cell multi-seed confirmation runs, incorporating qualitative attention heatmaps into Chapter 4 of the English thesis, and packaging evaluation scripts for reproducible defense submission."
 
 ---
 
-## Slide 12 — Module 4: Intra-Line Boundary Loss — Visual Concept
+## Slide 12 — Thank You & Q&A
 
-> **[Visual Cue: Advance to Slide 12 — Cropped Real-Life FUNSD Form Showing Red Vertical Boundary Markers (Left) and Pair Target Comparison (Right).]**
+> **[Visual Cue: Advance to Slide 12 — Closing slide with presenter contact information.]**
 >
-> "Slide 12 illustrates **Module 4: Intra-Line Boundary Loss** on six consecutive rows of the FUNSD form:
-> - On form lines like `TO: | George Baroody`, `FAX NUMBER: | (336) 335-7392`, and `DATE: | 12/10/98`, a `QUESTION` span (blue) is immediately followed by an `ANSWER` span (green) on the exact same horizontal line.
-> - By supervising every adjacent token pair $(i, i+1)$:
->   - Pairs **inside the same span** (e.g., `["FAX", "NUMBER:"]`) share the same entity ID and receive **Target = 0**.
->   - Pairs **across an entity boundary** (e.g., `["NUMBER:", "(336)"]`, marked by the red vertical bars) have different entity IDs and receive **Target = 1**, explicitly training the encoder to sharpen intra-line transitions."
-
----
-
-## Slide 13 — Module 4: Intra-Line Boundary Loss — Core Implementation
-
-> **[Visual Cue: Advance to Slide 13 — Shape Flow of `_compute_boundary_loss` (Left) and Dark-Mode Python Code (Right).]**
->
-> "Slide 13 shows the implementation of `_compute_boundary_loss`:
-> - Adjacent hidden states `text_hidden[:, :-1, :]` and `text_hidden[:, 1:, :]` are concatenated along the feature dimension (`2d`) and scored by the 2-layer MLP `self.boundary_classifier`.
-> - Ground-truth boundary targets `b_labels = (entity_ids[:, :-1] != entity_ids[:, 1:]).float()` are supervised via `F.binary_cross_entropy_with_logits` over all valid non-padding token pairs."
-
----
-
-## Slide 14 — Experimental Setup: Hardware, Environment & Datasets
-
-> **[Visual Cue: Advance to Slide 14 — Side-by-Side Tables for Remote Training Machine & Benchmark Datasets.]**
->
-> "Moving to Section 6 on Slide 14, all training and ablation experiments were executed on a unified remote GPU server equipped with an **NVIDIA A100-SXM4-80GB GPU** and 167 GiB of system RAM, running Ubuntu Linux, Python 3.7.16, PyTorch 1.10.0 with FP16 mixed precision, and strict entity-level `seqeval` evaluation across **three random seeds (`42`, `123`, `1993`)**.
->
-> Evaluation covers two complementary benchmarks:
-> - **FUNSD:** 199 scanned forms (149 train, 50 test) with 3 entity classes (7 BIO tags) and irregular multi-column layouts.
-> - **CORD:** 1,000 retail receipts (800 train, 100 validation, 100 test) with 30 fine-grained entity classes (61 BIO tags)."
-
----
-
-## Slide 15 — Run Configurations & Hyperparameters
-
-> **[Visual Cue: Advance to Slide 15 — Large-Font Run Configuration Table Across All 4 Regimes.]**
->
-> "Slide 15 lists the exact run configurations across all four regimes (`FUNSD-base`, `CORD-base`, `FUNSD-large`, and `CORD-large`):
-> - Every configuration trains for **1,000 optimization steps** with a 10% linear warmup (100 steps) using AdamW.
-> - Differential learning rates are applied: the pretrained backbone uses $5 \times 10^{-5}$ ($1 \times 10^{-5}$ on `FUNSD-large`), while the newly initialized modules (HPE, SCM, Late-Fusion, and Boundary Classifier) use $5 \times 10^{-4}$."
-
----
-
-## Slide 16 — Experimental Results: Baseline vs. Proposed Model (3 Seeds)
-
-> **[Visual Cue: Advance to Slide 16 — Large-Font 3-Seed Comparison Table (Left) and Dual Bar Charts (Right).]**
->
-> "Slide 16 presents the primary 3-seed comparison between the vanilla LayoutLMv3 Baseline and the Proposed Model:
-> - **On FUNSD (`base`):** Entity F1 improves from **$89.92 \pm 0.85\%$** to **$91.58 \pm 0.16\%$** (**$+1.66\%$** absolute gain), while reducing seed standard deviation by over **$5\times$**.
-> - **On FUNSD (`large`):** Entity F1 improves from **$91.24 \pm 0.62\%$** to **$92.45 \pm 0.26\%$** (**$+1.21\%$** gain).
-> - **On CORD (`base` and `large`):** Even against a nearly saturated baseline above $96.7\%$, the proposed model consistently improves both Precision and Recall, reaching **$96.91 \pm 0.21\%$** on `base` and **$97.35 \pm 0.04\%$** on `large`."
-
----
-
-## Slide 17 — Component Ablation Study (3-Seed Mean ± Std F1 %)
-
-> **[Visual Cue: Advance to Slide 17 — Full 5-Row Leave-One-Out Ablation Table and Key Finding Callouts.]**
->
-> "Slide 17 reports the leave-one-out component ablation study across 19 completed model-dataset-ablation cells (57 training runs):
-> - **Removing the Segment Context Module (`w/o Segment`, Row 5)** causes the steepest performance drop across every single regime: **$-1.44\%$ F1** on `FUNSD-large` ($92.45\% \to 91.01\%$) and **$-1.22\%$ F1** on `FUNSD-base` ($91.58\% \to 90.36\%$). This confirms that segment-level contextual pooling is the primary driver of entity coherence.
-> - **Removing the Boundary Loss (`w/o Boundary Loss`, Row 3)** degrades `large` F1 by **$-0.30\%$** on FUNSD and **$-0.34\%$** on CORD, while increasing seed variance on `CORD-large` more than tenfold ($\pm 0.04\% \to \pm 0.42\%$).
-> - **Removing HPE (`w/o HPE`, Row 4)** reduces `FUNSD-base` F1 by **$-0.25\%$** ($91.58\% \to 91.33\%$), confirming that explicit line, column, and block indices provide valuable spatial inductive bias for smaller backbones."
-
----
-
-## Slide 18 — Entity-Level Error Breakdown on FUNSD
-
-> **[Visual Cue: Advance to Slide 18 — Entity-Level Error Table (Left) and Span Boundary Error Bar Chart (Right).]**
->
-> "To verify *how* the proposed modules improve extraction quality, Slide 18 breaks down all $1,998$ ground-truth test entities on FUNSD:
-> - **Exact Span & Class Matches (True Positives)** increase by **$+24$ entities** ($1,806 \to 1,830$).
-> - Most importantly, **Span Boundary Errors**—where the model predicts the right entity location but splits or merges the span boundaries—drop by **$82.6\%$**, from **$23$ errors** in the baseline down to just **$4$ errors** in the proposed model (eliminating all $4$ boundary-plus-label errors completely).
-> - Missed entities (FN) and spurious predictions (FP) also decrease by $8$ and $13$, respectively."
-
----
-
-## Slide 19 — Future plans
-
-> **[Visual Cue: Advance to Slide 19 — Three Clean Milestone Cards.]**
->
-> "Slide 19 outlines the three key milestones for the upcoming week:
-> 1. **Fine-Tuning on FUNSD and CORD Datasets:** Conduct targeted hyperparameter refinement for the fusion gate ceiling $\alpha_{\max}$, boundary loss weight $\lambda_{\text{bound}}$, and column scaling factor.
-> 2. **Final Ablation Verification and Visual Case Studies:** Complete qualitative side-by-side prediction visualizations for Chapter 4 of the thesis.
-> 3. **Continuous In-Depth Review of Thesis Papers:** Thoroughly proofread both the English and Vietnamese thesis manuscripts (`thesis_en.pdf` and `thesis_vi.pdf`) to ensure full consistency across all tables, figures, and citations."
-
----
-
-## Slide 20 — Closing Slide
-
-> **[Visual Cue: Advance to Slide 20 — Closing Slide Expressing Gratitude to Supervisor PhD. Pham Thi Quynh Trang.]**
->
-> "That concludes this weekly progress report. Thank you very much, Ms. Trang, for your dedicated mentorship, insightful scientific guidance, and continuous encouragement throughout this research. I look forward to your feedback and questions."
+> "Thank you very much, Ms. Trang, for your guidance and support. I would be glad to answer any questions or discuss further adjustments to the presentation."
