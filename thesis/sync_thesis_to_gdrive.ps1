@@ -156,7 +156,23 @@ function Upload-SingleFile {
         return $null
     }
 
-    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+    # If PPTX has an updated copy due to file lock, upload the newer updated version
+    if ($FilePath.EndsWith("weekly_update_slides.pptx")) {
+        $updatedCopy = $FilePath -replace '\.pptx$', '_updated.pptx'
+        if ((Test-Path $updatedCopy) -and ((Get-Item $updatedCopy).LastWriteTime -ge (Get-Item $FilePath).LastWriteTime)) {
+            $FilePath = $updatedCopy
+        }
+    }
+
+    try {
+        $fs = New-Object System.IO.FileStream($FilePath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $bytes = New-Object byte[] $fs.Length
+        $fs.Read($bytes, 0, $fs.Length) | Out-Null
+        $fs.Dispose()
+    } catch {
+        Write-Warning "Failed to read $($FilePath): $($_.Exception.Message)"
+        return $null
+    }
     $base64 = [Convert]::ToBase64String($bytes)
     $sizeKb = [math]::Round($bytes.Length / 1KB, 1)
 

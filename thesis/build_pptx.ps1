@@ -314,8 +314,22 @@ for ($s = 1; $s -le $pageCount; $s++) {
 }
 
 # 8. Package into .pptx ZIP with forward-slash entry paths (required by OpenXML & Google Slides)
-if (Test-Path $PptxPath) { Remove-Item $PptxPath -Force }
-$zipFile = [System.IO.File]::Open($PptxPath, [System.IO.FileMode]::Create)
+$targetPath = $PptxPath
+$isLocked = $false
+try {
+    if (Test-Path $targetPath) {
+        $testStream = [System.IO.File]::Open($targetPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
+        $testStream.Dispose()
+        Remove-Item $targetPath -Force
+    }
+} catch {
+    $isLocked = $true
+    Write-Warning "File '$targetPath' is locked by an external process (e.g. PowerPoint). Generating '$($targetPath -replace '\.pptx$', '_updated.pptx')'..."
+    $targetPath = $targetPath -replace '\.pptx$', '_updated.pptx'
+    if (Test-Path $targetPath) { Remove-Item $targetPath -Force }
+}
+
+$zipFile = [System.IO.File]::Open($targetPath, [System.IO.FileMode]::Create)
 $zip = New-Object System.IO.Compression.ZipArchive($zipFile, [System.IO.Compression.ZipArchiveMode]::Create)
 
 $allFiles = Get-ChildItem -Path $tempDir -Recurse -File
@@ -328,6 +342,12 @@ $zip.Dispose()
 $zipFile.Dispose()
 Remove-Item -Path $tempDir -Recurse -Force
 
-$sizeMb = [Math]::Round((Get-Item $PptxPath).Length / 1MB, 2)
-Write-Host "Successfully built PowerPoint presentation: $PptxPath ($pageCount slides, $sizeMb MB)" -ForegroundColor Green
+if (-not $isLocked) {
+    # Also create a copy to _updated.pptx so both are synced
+    $updatedPath = $PptxPath -replace '\.pptx$', '_updated.pptx'
+    Copy-Item $targetPath $updatedPath -Force
+}
+
+$sizeMb = [Math]::Round((Get-Item $targetPath).Length / 1MB, 2)
+Write-Host "Successfully built PowerPoint presentation: $targetPath ($pageCount slides, $sizeMb MB)" -ForegroundColor Green
 
