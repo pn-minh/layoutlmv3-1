@@ -14,9 +14,7 @@
 \usepackage{array}
 \usepackage{ragged2e}
 \usepackage{tikz}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+\usetikzlibrary{calc}
 
 % Theme & Color Palette
 \usetheme{Madrid}
@@ -64,7 +62,7 @@
     \hspace*{2ex}\usebeamerfont{author in head/foot}\textbf{Pham Nhat Minh} (VNU-UET)
   \end{beamercolorbox}%
   \begin{beamercolorbox}[wd=.54\paperwidth,ht=2.4ex,dp=1ex,center]{title in head/foot}%
-    \usebeamerfont{title in head/foot}Weekly Report -- Structure-Aware LayoutLMv3 Architecture
+    \usebeamerfont{title in head/foot}Weekly Report
   \end{beamercolorbox}%
   \begin{beamercolorbox}[wd=.18\paperwidth,ht=2.4ex,dp=1ex,right]{date in head/foot}%
     \usebeamerfont{date in head/foot}Slide \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
@@ -82,28 +80,27 @@
 % SLIDE 1: TITLE SLIDE
 % ============================================================================
 \begin{frame}[plain]
-  \vspace*{0.10cm}
+  \vspace*{0.25cm}
   \begin{center}
-    \includegraphics[height=1.25cm]{../en/frontMatter/Logo_UET.png}\\[0.10cm]
-    {\footnotesize\bfseries\color{MutedGray} UNIVERSITY OF ENGINEERING AND TECHNOLOGY\\[0.04cm] VIETNAM NATIONAL UNIVERSITY HANOI}\\[0.18cm]
+    \includegraphics[height=1.40cm]{../en/frontMatter/Logo_UET.png}\\[0.14cm]
+    {\footnotesize\bfseries\color{MutedGray} UNIVERSITY OF ENGINEERING AND TECHNOLOGY\\[0.05cm] VIETNAM NATIONAL UNIVERSITY HANOI}\\[0.35cm]
     
     \begin{tikzpicture}
-      \node[draw=PrimaryBlue, fill=PrimaryBlue, rounded corners=7pt, inner sep=8pt, text width=12.8cm, minimum height=1.9cm, align=flush center] {
-        {\Large\bfseries\color{white} Research on Enhancing Vision-Language Model\\[0.08cm] for Document Key Information Extraction}\\[0.12cm]
-        {\normalsize\bfseries\color{LightBlue} Weekly Progress Report: Model Architecture Walkthrough \& Contrastive Alignment}
+      \node[draw=PrimaryBlue, fill=PrimaryBlue, rounded corners=8pt, inner sep=12pt, text width=12.0cm, minimum height=1.6cm, align=flush center] {
+        {\Huge\bfseries\color{white} Weekly report}
       };
     \end{tikzpicture}
     
-    \vspace{0.20cm}
+    \vspace{0.45cm}
     \begin{tikzpicture}
-      \node[draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.9pt, inner sep=6pt, text width=5.9cm, minimum height=1.75cm, align=flush center] (pres) at (-3.32, 0) {
-        {\footnotesize\bfseries\color{MutedGray} Presenter}\\[0.05cm]
-        {\normalsize\bfseries\color{PrimaryBlue} Pham Nhat Minh}\\[0.05cm]
+      \node[draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.9pt, inner sep=8pt, text width=5.8cm, minimum height=1.85cm, align=flush center] (pres) at (-3.30, 0) {
+        {\footnotesize\bfseries\color{MutedGray} Presenter}\\[0.06cm]
+        {\normalsize\bfseries\color{PrimaryBlue} Pham Nhat Minh}\\[0.06cm]
         {\scriptsize\color{DarkSlate} Major: Information Systems}
       };
-      \node[draw=PrimaryOrange!70, fill=LightOrange, rounded corners=6pt, line width=0.9pt, inner sep=6pt, text width=5.9cm, minimum height=1.75cm, align=flush center] (sup) at (3.32, 0) {
-        {\footnotesize\bfseries\color{PrimaryOrange!85} Supervisor}\\[0.05cm]
-        {\normalsize\bfseries\color{PrimaryOrange} PhD. Pham Thi Quynh Trang}\\[0.05cm]
+      \node[draw=PrimaryOrange!70, fill=LightOrange, rounded corners=6pt, line width=0.9pt, inner sep=8pt, text width=5.8cm, minimum height=1.85cm, align=flush center] (sup) at (3.30, 0) {
+        {\footnotesize\bfseries\color{PrimaryOrange!85} Supervisor}\\[0.06cm]
+        {\normalsize\bfseries\color{PrimaryOrange} PhD. Pham Thi Quynh Trang}\\[0.06cm]
         {\scriptsize\color{DarkSlate} Faculty of Information Technology, \mbox{VNU-UET}}
       };
     \end{tikzpicture}
@@ -111,338 +108,231 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 2: FULL END-TO-END MODEL ARCHITECTURE
+% SLIDE 2: FULL END-TO-END MODEL ARCHITECTURE (ONLY DIAGRAM, SCALED UP)
 % ============================================================================
-\begin{frame}{Full End-to-End Model Architecture}
+\begin{frame}{Structure-Aware LayoutLMv3 Architecture}
   \vspace{-0.15cm}
-  \begin{columns}[c]
-    \begin{column}{0.64\textwidth}
-      \centering
-      \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/model_architecture_full.png}
-        };
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.36\textwidth}
-      \scriptsize
-      \begin{block}{\textbf{\color{PrimaryBlue}Structure-Aware LayoutLMv3}}
-        Resolves the 4 primary structural bottlenecks of vanilla multimodal models:
-      \end{block}
-      \vspace{0.08cm}
-      \begin{itemize}\setlength{\itemsep}{2.0pt}
-        \item \textbf{1. Hierarchical Encoding (HPE):} Encodes Line, Column, and Block structure via adaptive $\beta$-gated residual projection.
-        \item \textbf{2. Segment Context (SCM):} Eliminates entity fragmentation via segment pooling \& ReZero Transformer gating ($g$).
-        \item \textbf{3. Boundary Loss ($\mathcal{L}_{\text{bound}}$):} Prevents adjacent key--value merging via pairwise line boundary BCE.
-        \item \textbf{4. Contrastive Loss ($\mathcal{L}_{\text{cont}}$):} Grounds text tokens with visual image patches via spatial InfoNCE alignment.
-        \item \textbf{Multi-Task Training ($\mathcal{L}_{\text{total}}$):} Unified loss with zero inference runtime penalty.
-      \end{itemize}
-    \end{column}
-  \end{columns}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
+        \includegraphics[width=0.95\textwidth,height=0.78\textheight,keepaspectratio]{images/model_architecture_full.png}
+      };
+    \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 % ============================================================================
-% SLIDE 3: COMPONENT 1 - INPUT REPRESENTATION & MODALITY EMBEDDINGS
+% SLIDE 3: HIERARCHICAL POSITION ENCODING (HPE)
 % ============================================================================
-\begin{frame}{Component 1: Input Representation \& Embeddings}
-  \vspace{-0.10cm}
+\begin{frame}{Hierarchical Position Encoding (HPE)}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_input.png}
-        };
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Multimodal Triplet Inputs:}
-          \begin{itemize}\scriptsize\setlength{\itemsep}{1.5pt}
-            \item \textbf{Document Image:} Normalized $224 \times 224 \times 3$ RGB page.
-            \item \textbf{OCR Text Words:} Subwords $w_i$ via RoBERTa BPE tokenizer ($V = 50{,}265$).
-            \item \textbf{2D Bounding Boxes:} Integer coordinates $[x_0, y_0, x_1, y_1] \in [0, 1000]^4$.
-          \end{itemize}
-        \item \textbf{Visual Patch Embeddings:} Split into $14 \times 14 = 196$ patches ($16 \times 16$ px), linearly projected to $d$ plus learned 1D/2D visual positions.
-        \item \textbf{Text \& Spatial Embeddings:}
-          \begin{itemize}\scriptsize\setlength{\itemsep}{1.5pt}
-            \item \textbf{1D Position:} Standard sequential token order ($0 \le i < 512$).
-            \item \textbf{2D Spatial Position:} Four learned coordinate embedding tables for $(x_0, y_0, x_1, y_1)$ concatenated to represent box layout.
-          \end{itemize}
-        \item \textbf{Limitation of Standard Inputs:}
-          Vanilla bounding boxes treat words as isolated geometric boxes, missing \textbf{reading lines, columns, or layout hierarchy}.
-      \end{itemize}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% ============================================================================
-% SLIDE 4: COMPONENT 2 - HIERARCHICAL POSITION ENCODING (HPE)
-% ============================================================================
-\begin{frame}{Component 2: Hierarchical Position Encoding (HPE)}
-  \vspace{-0.10cm}
-  \begin{columns}[c]
-    \begin{column}{0.48\textwidth}
-      \centering
-      \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
           \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_hpe.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Motivation \& Vanilla Failure Case:}
-          In multi-column tables, words with identical vertical $y$-coordinates in adjacent columns get improperly merged into one horizontal reading sequence.
-        \item \textbf{Three-Tier Structural Triplet:}
-          Extracts structural layout IDs for every subword token $i$:
-          $$\mathbf{p}_{\text{hier}}(i) = (\text{Line ID } l_i, \text{ Column ID } c_i, \text{ Block ID } b_i)$$
-        \item \textbf{Concatenation \& Projection ($W_{\text{hier}}$):}
-          $$\mathbf{E}_{\text{hier}}(i) = W_{\text{hier}} \cdot [\mathbf{E}_{\text{line}}(l_i) \,\|\, \mathbf{E}_{\text{col}}(c_i) \,\|\, \mathbf{E}_{\text{block}}(b_i)]$$
-          Projected linearly from $3 \times d_{\text{coord}}$ back to model dimension $d$.
-        \item \textbf{Adaptive ReZero Gate ($\beta$):}
-          $$\mathbf{E}_{\text{input}}(i) = \mathbf{E}_{\text{standard}}(i) + \beta \cdot \mathbf{E}_{\text{hier}}(i)$$
-          Initialized at $\beta = 0.0$: ensures zero disruption to pretrained weights at step 0, gradually learning geometric hierarchy.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item \textbf{Structural Hierarchy:} Encodes Line, Column, and Block indices for every word token.
+        \item \textbf{Multi-Column Disambiguation:} Prevents text across adjacent columns from merging horizontally.
+        \item \textbf{Residual Linear Projection:} Combines the 3-tier coordinates and projects to hidden dimension.
+        \item \textbf{Adaptive ReZero Gating:} Initialized at zero weight to preserve pre-trained backbone representations.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 5: COMPONENT 3 - MULTIMODAL TRANSFORMER BACKBONE
+% SLIDE 4: LAYOUTLMV3 MULTIMODAL BACKBONE
 % ============================================================================
-\begin{frame}{Component 3: LayoutLMv3 Multimodal Backbone}
-  \vspace{-0.10cm}
+\begin{frame}{LayoutLMv3 Multimodal Backbone}
   \begin{columns}[c]
-    \begin{column}{0.45\textwidth}
+    \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
           \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_backbone.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.53\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Unified Multimodal Sequence:}
-          Combines $L$ text subwords ($L \le 512$) and $196$ image patches into a single sequence of length $L + 196$:
-          $$\mathbf{Z}^{(0)} = [\mathbf{t}_1, \dots, \mathbf{t}_L, \mathbf{v}_1, \dots, \mathbf{v}_{196}]$$
-        \item \textbf{Transformer Architecture:}
-          \begin{itemize}\scriptsize\setlength{\itemsep}{1.5pt}
-            \item \texttt{base}: 12 layers, 12 heads, hidden size $d = 768$ (133M params).
-            \item \texttt{large}: 24 layers, 16 heads, hidden size $d = 1024$ (368M params).
-          \end{itemize}
-        \item \textbf{2D Spatial Relative Attention Bias:}
-          Enriches self-attention scores with relative horizontal and vertical distance offsets between token positions:
-          $$\alpha_{ij} = \frac{\mathbf{q}_i \mathbf{k}_j^\top}{\sqrt{d_k}} + \mathbf{b}_x(x_i - x_j) + \mathbf{b}_y(y_i - y_j)$$
-        \item \textbf{Output Representations:}
-          Emits contextualized text vectors $\mathbf{h}_i \in \mathbb{R}^d$ and spatial visual patch vectors $\mathbf{v}_p \in \mathbb{R}^d$ for downstream reasoning.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item \textbf{Unified Sequence:} Processes text subwords and visual image patches jointly in one sequence.
+        \item \textbf{Model Capacities:} Evaluated on Base (12 layers, 133M) and Large (24 layers, 368M) architectures.
+        \item \textbf{2D Spatial Relative Bias:} Enriches attention scores with horizontal and vertical distance offsets.
+        \item \textbf{Dual Output States:} Emits contextualized word vectors and visual patch vectors for downstream heads.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 6: COMPONENT 4 - SEGMENT CONTEXT MODULE (SCM)
+% SLIDE 5: SEGMENT CONTEXT MODULE (SCM)
 % ============================================================================
-\begin{frame}{Component 4: Segment Context Module (SCM)}
-  \vspace{-0.10cm}
+\begin{frame}{Segment Context Module (SCM)}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_scm.png}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
+          \includegraphics[width=0.94\linewidth,height=0.65\textheight,keepaspectratio]{images/crop_scm.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{The Entity Fragmentation Bottleneck:}
-          Standard token classifiers evaluate each word in isolation, causing multi-word entities (e.g., long company names) to split into erratic BIO sequences.
-        \item \textbf{Segment Mean Pooling:}
-          Aggregates all subword tokens in segment $S_k = \{i_1, \dots, i_m\}$ into a single segment representation:
-          $$\mathbf{s}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{h}_i$$
-        \item \textbf{Inter-Segment Transformer Context ($\mathbf{c}_k$):}
-          Encodes the sequence of segments $[\mathbf{s}_1, \dots, \mathbf{s}_K]$ via multi-head self-attention to capture cross-line document relationships.
-        \item \textbf{ReZero Residual Segment Gate ($g$):}
-          $$\mathbf{s}'_k = \mathbf{s}_k + g \cdot (\mathbf{c}_k - \mathbf{s}_k), \quad g \leftarrow 0.0$$
-        \item \textbf{Late-Fusion \& Classifier:}
-          Injects segment consensus $\mathbf{s}'_k$ and a learned first-token indicator ($B\text{-} / I\text{-}$) back into word representations before Softmax prediction.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{2.5pt}
+        \item \textbf{Entity Fragmentation Fix:} Prevents multi-word entities from fracturing into inconsistent labels.
+        \item \textbf{Segment Mean Pooling:} Aggregates individual word tokens into line-level segment representations.
+        \item \textbf{Inter-Segment Transformer:} Captures semantic dependencies across lines throughout the entire page.
+        \item \textbf{ReZero Residual Gate:} Dynamically blends segment-level consensus without losing word details.
+        \item \textbf{Late-Fusion Head:} Injects segment context and first-token tags prior to final classification.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 7: COMPONENT 5 - INTRA-LINE BOUNDARY LOSS
+% SLIDE 6: INTRA-LINE BOUNDARY LOSS
 % ============================================================================
-\begin{frame}{Component 5: Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$)}
-  \vspace{-0.10cm}
+\begin{frame}{Intra-Line Boundary Loss}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
           \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_boundary.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{The Adjacent Span Merging Problem:}
-          When a key (Question) and value (Answer) appear horizontally on the same line (e.g., \texttt{"INVOICE NO: 10482"}), models often falsely predict a single continuous entity span.
-        \item \textbf{Pairwise Boundary Formulation:}
-          Evaluates consecutive tokens $(i, i+1)$ that share the same horizontal reading line:
-          $$\hat{y}_i^{\text{bound}} = \sigma\left(\mathbf{W}_b \cdot \text{GELU}(\mathbf{W}_p [\mathbf{h}_i \,\|\, \mathbf{h}_{i+1}])\right)$$
-        \item \textbf{Binary Supervised Objective:}
-          $y_i = 1$ if an entity boundary occurs between token $i$ and $i+1$, and $y_i = 0$ if they belong to the same entity:
-          $$\mathcal{L}_{\text{bound}} = -\frac{1}{|\mathcal{B}|} \sum_{i \in \mathcal{B}} [y_i \log \hat{y}_i + (1 - y_i) \log (1 - \hat{y}_i)]$$
-        \item \textbf{Zero Inference Runtime Overhead:}
-          Operates strictly as an auxiliary regularization loss during training ($\lambda_{\text{bound}} = 0.1$); stripped away at inference time.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item \textbf{Span Merging Prevention:} Separates adjacent key-value pairs that share the same horizontal line.
+        \item \textbf{Pairwise Representation:} Evaluates adjacent token pairs along the reading line with an MLP.
+        \item \textbf{Binary Objective:} Directly penalizes false merges between distinct semantic entities.
+        \item \textbf{Zero Inference Latency:} Auxiliary training-only objective that adds no runtime overhead at test time.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 8: COMPONENT 6 - LATEST CONTRASTIVE LOSS IMPLEMENTATION
+% SLIDE 7: CROSS-MODAL CONTRASTIVE LOSS
 % ============================================================================
-\begin{frame}{Component 6: Latest Contrastive Loss ($\mathcal{L}_{\text{cont}}$)}
-  \vspace{-0.10cm}
+\begin{frame}{Cross-Modal Contrastive Loss}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
           \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_contrastive.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.2pt}
-        \item \textbf{Spatial-Overlap InfoNCE Objective:}
-          Pulls text token representations toward their overlapping visual image patches while pushing non-overlapping background patches away:
-          $$\mathcal{L}_{\text{cont}} = -\sum_{i} \sum_{p \in \mathcal{P}^+(i)} w_{ip} \log \frac{\exp(\mathbf{z}_i^{\text{text}} \cdot \mathbf{z}_p^{\text{img}} / \tau)}{\sum_{k} \exp(\mathbf{z}_i^{\text{text}} \cdot \mathbf{z}_k^{\text{img}} / \tau)}$$
-        \item \textbf{Fine-Tuning Innovation 1: Pre-SCM Decoupling:}
-          Computed on pre-segment backbone tokens $\mathbf{h}_i$ rather than post-SCM vectors. \textbf{Completely eliminates the objective conflict} between SCM entity pooling and spatial patch pulling!
-        \item \textbf{Fine-Tuning Innovation 2: Detached Visual Anchors:}
-          Visual patch features are detached ($\mathbf{v}_p.\text{detach}()$), fixing them as invariant geometric anchors and preventing vision encoder drift.
-        \item \textbf{Fine-Tuning Innovation 3: Balanced Weighting:}
-          Tuned from excessive $0.1$ down to $\lambda_{\text{cont}} = \mathbf{0.03}$ (FUNSD) and $\mathbf{0.01}$ (CORD) with $\tau = \mathbf{0.10}$ to prevent dominating classification loss.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{5pt}
+        \item \textbf{Spatial InfoNCE Alignment:} Pulls text tokens toward their overlapping visual patches in shared space.
+        \item \textbf{Pre-SCM Decoupling:} Grounded on backbone tokens before segment pooling to prevent objective conflicts.
+        \item \textbf{Detached Visual Anchors:} Freezes patch representations to prevent visual encoder drift during fine-tuning.
+        \item \textbf{Calibrated Loss Weighting:} Scaled to low weights (0.03 for FUNSD, 0.01 for CORD) to regularize cleanly.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 9: COMPONENT 7 - MULTI-TASK TRAINING OBJECTIVE
+% SLIDE 8: MULTI-TASK TRAINING OBJECTIVE
 % ============================================================================
-\begin{frame}{Component 7: Multi-Task Training Objective}
-  \vspace{-0.10cm}
+\begin{frame}{Multi-Task Training Objective}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}
-        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=3pt] {
           \includegraphics[width=0.94\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_loss_objective.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Unified Multi-Task Loss Formulation:}
-          $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{cls}} + \lambda_{\text{bound}} \mathcal{L}_{\text{bound}} + \lambda_{\text{cont}} \mathcal{L}_{\text{cont}}$$
-        \item \textbf{Complementary Roles of Loss Terms:}
-          \begin{itemize}\scriptsize\setlength{\itemsep}{1.5pt}
-            \item \textbf{$\mathcal{L}_{\text{cls}}$ (Cross-Entropy):} Primary objective; establishes global semantic classification decision boundaries.
-            \item \textbf{$\mathcal{L}_{\text{bound}}$ (BCE):} Enforces sharp local transition boundaries between adjacent question/answer entities.
-            \item \textbf{$\mathcal{L}_{\text{cont}}$ (Spatial InfoNCE):} Regularizes cross-modal alignment between subwords and visual layout patches.
-          \end{itemize}
-        \item \textbf{Synergistic Gradient Flow:}
-          Backpropagating all three objectives jointly guarantees that visual grounding and boundary awareness directly benefit final token classification.
-        \item \textbf{Optimal Checkpoint Loading:}
-          Trained with \texttt{load\_best\_model\_at\_end} on validation F1 score, eliminating late-epoch training drift.
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{5pt}
+        \item \textbf{Unified Loss Formulation:} Combines classification, boundary, and contrastive objectives together.
+        \item \textbf{Complementary Roles:} Classification sets labels, boundary sharpens spans, contrastive grounds layout.
+        \item \textbf{Joint Optimization:} End-to-end backpropagation allows all modules to mutually reinforce each other.
+        \item \textbf{Best Checkpoint Loading:} Saves the peak validation F1 model to eliminate late-epoch noise.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 10: TRAINING RESULTS & IMPACT OF CONTRASTIVE LOSS (FINE-TUNED)
+% SLIDE 9: F1 SCORE & ABLATION IMPACT
 % ============================================================================
-\begin{frame}{Impact of Fine-Tuned Contrastive Loss on F1 Score}
+\begin{frame}{Ablation Impact on F1 Score}
   \vspace{-0.15cm}
   \begin{center}
-    \resizebox{0.98\textwidth}{!}{%
-    \renewcommand{\arraystretch}{1.22}
-    \setlength{\tabcolsep}{4.0pt}
-    \begin{tabular}{|l|c|c|c|c|c|c|}
+    \resizebox{0.96\textwidth}{!}{%
+    \renewcommand{\arraystretch}{1.25}
+    \setlength{\tabcolsep}{6.0pt}
+    \begin{tabular}{|l|c|c|c|c|c|}
       \hline
       \rowcolor{PrimaryBlue!15}
-      \textbf{Dataset / Scale} & \textbf{Baseline} & \textbf{w/o HPE} & \textbf{w/o SCM} & \textbf{w/o Bound} & \textbf{w/o Cont (3-Mod)} & \textbf{Full Model (4-Mod)} \\ \hline
-      \textbf{FUNSD - Large} & $91.24\%$ & $92.35\%$ ($+1.11\%$) & $91.01\%$ ($-0.23\%$) & $92.15\%$ ($+0.91\%$) & $92.45\%$ ($+1.21\%$) & \textbf{93.35\%} (\textbf{+2.11\%}) \\ \hline
+      \textbf{Dataset / Scale} & \textbf{Full Model (4-Mod)} & \textbf{w/o HPE ($\Delta$)} & \textbf{w/o SCM ($\Delta$)} & \textbf{w/o Boundary ($\Delta$)} & \textbf{w/o Contrastive ($\Delta$)} \\ \hline
+      \textbf{FUNSD - Large} & \textbf{93.35\%} & $92.35\%$ ($-1.00\%$) & $91.01\%$ ($-2.34\%$) & $92.15\%$ ($-1.20\%$) & $92.45\%$ ($-0.90\%$) \\ \hline
       \rowcolor{SoftGray}
-      \textbf{FUNSD - Base}  & $89.92\%$ & $91.15\%$ ($+1.23\%$) & $90.36\%$ ($+0.44\%$) & $91.20\%$ ($+1.28\%$) & $91.25\%$ ($+1.33\%$) & \textbf{92.15\%} (\textbf{+2.23\%}) \\ \hline
-      \textbf{CORD - Base}   & $96.72\%$ & $97.10\%$ ($+0.38\%$) & $96.85\%$ ($+0.13\%$) & $97.06\%$ ($+0.34\%$) & $97.00\%$ ($+0.28\%$) & \textbf{97.85\%} (\textbf{+1.13\%}) \\ \hline
+      \textbf{FUNSD - Base}  & \textbf{92.15\%} & $91.15\%$ ($-1.00\%$) & $90.36\%$ ($-1.79\%$) & $91.20\%$ ($-0.95\%$) & $91.25\%$ ($-0.90\%$) \\ \hline
+      \textbf{CORD - Base}   & \textbf{97.85\%} & $97.10\%$ ($-0.75\%$) & $96.85\%$ ($-1.00\%$) & $97.06\%$ ($-0.79\%$) & $97.00\%$ ($-0.85\%$) \\ \hline
       \rowcolor{SoftGray}
-      \textbf{CORD - Large}  & $97.15\%$ & $97.35\%$ ($+0.20\%$) & $97.20\%$ ($+0.05\%$) & $97.30\%$ ($+0.15\%$) & $97.35\%$ ($+0.20\%$) & \textbf{98.25\%} (\textbf{+1.10\%}) \\ \hline
+      \textbf{CORD - Large}  & \textbf{98.25\%} & $97.35\%$ ($-0.90\%$) & $97.20\%$ ($-1.05\%$) & $97.30\%$ ($-0.95\%$) & $97.35\%$ ($-0.90\%$) \\ \hline
     \end{tabular}%
     }
   \end{center}
   
-  \vspace{0.08cm}
-  \footnotesize
-  \begin{block}{\textbf{\color{PrimaryBlue}Key Empirical Takeaways}}
-    \scriptsize
-    \begin{itemize}\setlength{\itemsep}{2.0pt}
-      \item \textbf{Contrastive Loss Solidly Boosts Performance:} Adding fine-tuned Contrastive Loss provides a decisive \textbf{$+0.90\%$ F1 boost} on FUNSD-Large ($92.45\% \rightarrow 93.35\%$) and \textbf{$+0.90\%$ on CORD-Large} ($97.35\% \rightarrow 98.25\%$).
-      \item \textbf{Ablation Degradation Confirmed:} Removing Contrastive Loss from the full model causes performance to drop by \textbf{$-0.90\%$ to $-0.95\%$}, confirming it is an indispensable component of the 4-module suite.
-      \item \textbf{Universal Superiority Over Baseline:} The Full 4-Module Model surpasses vanilla LayoutLMv3 by \textbf{$+2.11\%$} on FUNSD-Large, \textbf{$+2.23\%$} on FUNSD-Base, \textbf{$+1.13\%$} on CORD-Base, and \textbf{$+1.10\%$} on CORD-Large.
-    \end{itemize}
-  \end{block}
+  \vspace{0.15cm}
+  \small
+  \begin{itemize}\setlength{\itemsep}{4pt}
+    \item \textbf{Peak Overall Performance:} The Full 4-Module Model reaches the highest F1 score across all benchmarks.
+    \item \textbf{Contrastive Alignment Impact:} Contrastive Loss provides a decisive $+0.85\% \dots +0.90\%$ F1 boost over the 3-module model.
+    \item \textbf{Universal Ablation Drop:} Removing any module causes performance degradation, confirming all four are indispensable.
+  \end{itemize}
 \end{frame}
 
 % ============================================================================
-% SLIDE 11: SUMMARY & NEXT MILESTONES
+% SLIDE 10: SUMMARY & NEXT MILESTONES (SHORT NOTES, NO SUB-TITLES)
 % ============================================================================
 \begin{frame}{Summary \& Next Milestones}
-  \vspace{-0.10cm}
-  \begin{columns}[c]
-    \begin{column}{0.50\textwidth}
-      \begin{block}{\textbf{\color{PrimaryBlue}Weekly Achievements Completed}}
-        \scriptsize
-        \begin{itemize}\setlength{\itemsep}{2.5pt}
-          \item \textbf{Model Architecture Migration:} Finalized publication-ready vector diagram with crisp visual hierarchy and selectable LaTeX notation.
-          \item \textbf{Decoupled Contrastive Alignment:} Solved the SCM gradient conflict by grounding pre-segment backbone representations with detached visual anchors.
-          \item \textbf{Autonomous Vast.ai Infrastructure:} Built turnkey runner auto-resolving Miniconda \texttt{noexec}, HuggingFace 307 redirects, and multi-GPU LPT scheduling.
-          \item \textbf{Dual-$\Delta$ Live Tracker:} Google Sheets tracking matrix updated to 49 columns with automated webhook sync.
-        \end{itemize}
-      \end{block}
+  \vspace{0.10cm}
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item Vector model architecture diagram finalized with clear layout hierarchy.
+        \item Pre-SCM contrastive alignment resolves previous gradient conflicts.
+        \item Turnkey Vast.ai automated runner created with self-error resolution.
+        \item Google Sheets live tracker updated to 49 columns with dual deltas.
+      \end{itemize}
     \end{column}
-    \begin{column}{0.50\textwidth}
-      \begin{block}{\textbf{\color{PrimaryOrange}Next Milestones for Thesis Defense}}
-        \scriptsize
-        \begin{itemize}\setlength{\itemsep}{2.5pt}
-          \item \textbf{Final 24-Cell Validation:} Monitor autonomous Vast.ai execution across seeds 42, 123, 1993 for final confirmation.
-          \item \textbf{Thesis Chapter 4 \& 5 Polish:} Finalize comprehensive qualitative error breakdown and attention heatmaps in the English thesis.
-          \item \textbf{Presentation Slide Package:} Finalize 16:9 Beamer PDF and 300-DPI PowerPoint exports for supervisor progress review.
-          \item \textbf{Codebase Release:} Clean and package documentation, weights, and reproducible evaluation scripts for publication.
-        \end{itemize}
-      \end{block}
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item Finalizing qualitative attention heatmaps for the English thesis.
+        \item Polishing Chapters 4 \& 5 discussion on structural boundary cases.
+        \item Completing final multi-seed validation runs across all configurations.
+        \item Packaging reproducible evaluation scripts and slides for thesis defense.
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 12: THANK YOU SLIDE
+% SLIDE 11: CLOSING / THANK YOU SLIDE (NEW EMAIL)
 % ============================================================================
 \begin{frame}[plain]
   \begin{center}
@@ -454,7 +344,7 @@
       \node[draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.9pt, inner sep=10pt, text width=7.2cm, align=center] {
         {\normalsize\bfseries\color{PrimaryBlue} Pham Nhat Minh}\\[0.08cm]
         {\footnotesize\color{MutedGray} Faculty of Information Technology, VNU-UET}\\[0.08cm]
-        {\scriptsize\color{DarkSlate} Email: \texttt{nhatminhpro289@gmail.com}}
+        {\scriptsize\color{DarkSlate} Email: \texttt{pnminh289@gmail.com}}
       };
     \end{tikzpicture}
   \end{center}
