@@ -133,7 +133,7 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 3: HIERARCHICAL POSITION ENCODING (HPE)
+% SLIDE 3: HIERARCHICAL POSITION ENCODING (HPE) - EXAMPLE 1
 % ============================================================================
 \begin{frame}{Hierarchical Position Encoding (HPE)}
   \begin{columns}[c]
@@ -149,7 +149,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Assigns line, column, and block structural IDs to each token, projecting them into embeddings via a learnable scalar gate.
-        \item \textbf{Real Document Impact:} Prevents cross-column attention confusion on multi-column tables and anchors wrapped lines to the same parent entity.
+        \item \textbf{Real Document Impact (FUNSD Multi-Column):} Prevents cross-column attention confusion on multi-column tables, keeping keys paired with correct column values.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -163,7 +163,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 4: LAYOUTLMV3 MULTIMODAL BACKBONE
+% SLIDE 4: HIERARCHICAL POSITION ENCODING (HPE) - EXAMPLE 2
+% ============================================================================
+\begin{frame}{Hierarchical Position Encoding (HPE)}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_hpe.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Encodes line sequence indices into token embeddings, preserving reading order and local grouping across stacked horizontal items.
+        \item \textbf{Real Document Impact (CORD Multi-Row):} Without line indices, prices get bound to items on neighboring rows; HPE line coordinates tie each price strictly to its item.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/hpe_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 5: LAYOUTLMV3 MULTIMODAL BACKBONE - EXAMPLE 1
 % ============================================================================
 \begin{frame}{LayoutLMv3 Multimodal Backbone}
   \begin{columns}[c]
@@ -179,7 +209,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Jointly contextualizes subword text tokens and visual patches in shared self-attention with 2D relative spatial position bias.
-        \item \textbf{Real Document Impact:} Visual patches recover critical entity semantics (headers, totals, logos) even when text OCR is noisy or missing.
+        \item \textbf{Real Document Impact (FUNSD Header):} Visual patches recover critical entity semantics (headers, seals, logos) even when text OCR is noisy or missing.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -193,7 +223,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 5: SEGMENT CONTEXT MODULE (SCM)
+% SLIDE 6: LAYOUTLMV3 MULTIMODAL BACKBONE - EXAMPLE 2
+% ============================================================================
+\begin{frame}{LayoutLMv3 Multimodal Backbone}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_backbone.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Integrates patch visual features (font size, weight, prominence) to distinguish visually distinct but lexically similar numeric strings.
+        \item \textbf{Real Document Impact (CORD Grand Total):} Pure text sees digits as standard menu prices; visual patches capture big bold print to identify the true grand total.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/backbone_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 7: SEGMENT CONTEXT MODULE (SCM) - EXAMPLE 1
 % ============================================================================
 \begin{frame}{Segment Context Module (SCM)}
   \begin{columns}[c]
@@ -209,7 +269,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Pools token states into line-level segment vectors, propagates page-wide context, and injects segment consensus via gated residual fusion.
-        \item \textbf{Real Document Impact:} Eliminates word-level label jitter within multi-token phrases and bridges long-distance key-value associations.
+        \item \textbf{Real Document Impact (FUNSD Word Jitter):} Eliminates word-level label jitter within multi-token phrases, ensuring all tokens in a line share a unified semantic class.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -223,7 +283,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 6: INTRA-LINE BOUNDARY LOSS
+% SLIDE 8: SEGMENT CONTEXT MODULE (SCM) - EXAMPLE 2
+% ============================================================================
+\begin{frame}{Segment Context Module (SCM)}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_scm.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Propagates segment representations across lines via bidirectional attention, passing semantic context from keys to values.
+        \item \textbf{Real Document Impact (CORD Value Binding):} Standalone numbers lack context on their own; SCM transfers the label from key segments (Total, Cash, Change) to classify values.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/scm_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 9: INTRA-LINE BOUNDARY LOSS - EXAMPLE 1
 % ============================================================================
 \begin{frame}{Intra-Line Boundary Loss}
   \begin{columns}[c]
@@ -239,7 +329,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Supervises adjacent token pairs with a lightweight MLP transition classifier during training, adding zero latency at inference.
-        \item \textbf{Real Document Impact:} Prevents label bleed on inline fields (e.g. phone numbers or tight receipt item-price pairs) by enforcing clean boundary splits.
+        \item \textbf{Real Document Impact (FUNSD Inline Field):} Prevents label bleed on inline fields (e.g. \texttt{TO: George Baroody}) by enforcing sharp transition cuts between keys and values.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -253,7 +343,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 7: CROSS-MODAL CONTRASTIVE LOSS
+% SLIDE 10: INTRA-LINE BOUNDARY LOSS - EXAMPLE 2
+% ============================================================================
+\begin{frame}{Intra-Line Boundary Loss}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_boundary.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Detects entity shifts between consecutive horizontal tokens sharing the same line, penalizing blurred span transitions.
+        \item \textbf{Real Document Impact (CORD Dense Item Row):} Dense receipt rows with count, name, and price merge without boundary supervision; boundary loss cleanly splits all three.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/boundary_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 11: CROSS-MODAL CONTRASTIVE LOSS - EXAMPLE 1
 % ============================================================================
 \begin{frame}{Cross-Modal Contrastive Loss}
   \begin{columns}[c]
@@ -269,7 +389,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Aligns pre-SCM text projections with detached visual patch anchors via InfoNCE loss, preventing gradient interference.
-        \item \textbf{Real Document Impact:} Repels background clutter (watermarks, stamps, punch holes) and grounds text tokens firmly in their visual layout regions.
+        \item \textbf{Real Document Impact (CORD Watermark Noise):} Repels background watermark patterns that distract token attention, pulling text tokens firmly to their actual visual patches.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -283,7 +403,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 8: MULTI-TASK TRAINING OBJECTIVE
+% SLIDE 12: CROSS-MODAL CONTRASTIVE LOSS - EXAMPLE 2
+% ============================================================================
+\begin{frame}{Cross-Modal Contrastive Loss}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_contrastive.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Soft-target spatial overlap pushes non-overlapping visual noise away from text embeddings, stabilizing multimodal representation learning.
+        \item \textbf{Real Document Impact (FUNSD Margin Artifacts):} Prevents header tokens from drifting toward dark hole-punch margins or scanning borders, anchoring text to true print areas.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/contrastive_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 13: MULTI-TASK TRAINING OBJECTIVE - EXAMPLE 1
 % ============================================================================
 \begin{frame}{Multi-Task Training Objective}
   \begin{columns}[c]
@@ -299,7 +449,7 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
         \item \textbf{Internal Model Mechanics:} Jointly optimizes entity classification, boundary detection, and cross-modal contrastive alignment in a single unified backpropagation pass.
-        \item \textbf{Real Document Impact:} Auxiliary structural tasks regularize the representation, eliminating entity misclassifications across complex document layouts.
+        \item \textbf{Real Document Impact (FUNSD Form):} Auxiliary structural tasks regularize the representation, eliminating entity misclassifications across complex document layouts.
       \end{itemize}
       \vspace{0.20cm}
       \centering
@@ -313,7 +463,37 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 9: TRAINING RESULTS: COLOR-CODED ABLATION CHARTS & IMPACT
+% SLIDE 14: MULTI-TASK TRAINING OBJECTIVE - EXAMPLE 2
+% ============================================================================
+\begin{frame}{Multi-Task Training Objective}
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_loss_objective.png}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{3.5pt}
+        \item \textbf{Internal Model Mechanics:} Combines multi-task gradients to ensure both fine-grained token boundaries and global visual-text alignment are jointly preserved.
+        \item \textbf{Real Document Impact (CORD Receipt):} Resolves mislabeled total, count, and change fields seen in the baseline, achieving 100\% field precision on complex receipts.
+      \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/objective_2.jpg}
+        };
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ============================================================================
+% SLIDE 15: TRAINING RESULTS: COLOR-CODED ABLATION CHARTS & IMPACT
 % ============================================================================
 \begin{frame}{Training Results: Module Impact on F1 Score}
   \begin{columns}[c]
@@ -367,31 +547,7 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 10: IN-DEPTH ABLATION INSIGHTS & ANALYSIS
-% ============================================================================
-\begin{frame}{In-Depth Ablation Insights \& Analysis}
-  \begin{columns}[t]
-    \begin{column}{0.48\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{4pt}
-        \item \textbf{Layout Complexity Sensitivity:} Complex forms (FUNSD) drop twice as much without HPE and SCM compared to receipts (CORD) due to nested tabular structures.
-        \item \textbf{Segment Consensus Overcomes Jitter:} Pooling tokens into line segments guarantees semantic consistency, eliminating conflicting predictions inside phrases.
-        \item \textbf{Zero-Overhead Boundary Splits:} Intra-line boundary supervision guides hidden transitions during training, adding zero latency at test time.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \footnotesize
-      \begin{itemize}\setlength{\itemsep}{4pt}
-        \item \textbf{Contrastive Gradient Resolution:} Detaching visual anchors and projecting text pre-SCM resolved gradient conflicts, converting a loss into $+0.90\%$ gain.
-        \item \textbf{Superlinear Synergy:} The full model F1 gain ($+2.11\%$) exceeds isolated component sums, proving strong architectural complementarity.
-        \item \textbf{Scale Invariance:} The ranking of module importance holds across both 12-layer Base and 24-layer Large backbones, confirming generalizability.
-      \end{itemize}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% ============================================================================
-% SLIDE 11: CLOSING SLIDE (NO Q&A)
+% SLIDE 16: CLOSING SLIDE (NO Q&A)
 % ============================================================================
 \begin{frame}[plain]
   \begin{center}
