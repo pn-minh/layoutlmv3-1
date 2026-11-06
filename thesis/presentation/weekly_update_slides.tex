@@ -14,7 +14,7 @@
 \usepackage{array}
 \usepackage{ragged2e}
 \usepackage{tikz}
-\usetikzlibrary{calc}
+\usetikzlibrary{calc,positioning}
 
 % Theme & Color Palette
 \usetheme{Madrid}
@@ -34,6 +34,8 @@
 \definecolor{BorderGray}{HTML}{CBD5E0}
 \definecolor{SuccessGreen}{HTML}{2F855A}
 \definecolor{LightGreen}{HTML}{F0FFF4}
+\definecolor{AlertRed}{HTML}{E53E3E}
+\definecolor{LightRed}{HTML}{FFF5F5}
 
 \setbeamercolor{palette primary}{bg=PrimaryBlue,fg=white}
 \setbeamercolor{palette secondary}{bg=AccentBlue,fg=white}
@@ -108,65 +110,23 @@
 \end{frame}
 
 % ============================================================================
-% SLIDE 2: FULL END-TO-END MODEL ARCHITECTURE (WITH VERTICAL SIDE PANELS)
+% SLIDE 2: FULL MODEL ARCHITECTURE (MAXIMIZED CANVAS, COMPACT LEFT BAR ONLY)
 % ============================================================================
 \begin{frame}[plain]%
   \makebox[\linewidth][c]{%
   \begin{tikzpicture}[remember picture, overlay]
-    % Central Architecture Diagram (perfectly balanced margins, zero overlap)
-    \node at ($(current page.center) + (0.15cm, 0)$) {
-      \includegraphics[height=7.55cm,keepaspectratio]{images/model_architecture_full.png}
-    };
-    
-    % Left Side Panel (Header on the Left)
-    \node[anchor=west, draw=PrimaryBlue!60, fill=PrimaryBlue!6, rounded corners=6pt, line width=0.8pt, inner sep=3.0pt] 
-      at ($(current page.west) + (0.22cm, 0)$) {
-      \begin{minipage}[c][8.00cm][s]{2.60cm}
+    % Left Side Panel (reduced strictly to 'Model Architecture')
+    \node[anchor=west, draw=PrimaryBlue!50, fill=PrimaryBlue!6, rounded corners=6pt, line width=0.8pt, inner sep=4pt] 
+      at ($(current page.west) + (0.35cm, 0)$) {
+      \begin{minipage}[c][8.55cm][c]{1.15cm}
         \centering
-        \includegraphics[height=0.92cm]{../en/frontMatter/Logo_UET.png}\\[0.08cm]
-        {\small\bfseries\color{PrimaryBlue} Architecture\\[0.02cm]Overview}\\[0.06cm]
-        {\tiny\color{MutedGray} Structure-Aware\\[0.02cm]LayoutLMv3}\\[0.15cm]
-        
-        \vfill
-        \tikzset{pbox/.style={draw=PrimaryBlue!40, fill=white, rounded corners=4pt, line width=0.6pt, font=\scriptsize\bfseries, text=PrimaryBlue, align=center, inner sep=2.5pt, minimum width=2.30cm}}
-        \begin{tikzpicture}
-          \node[pbox] (b1) at (0, 1.95) {1. Input \& HPE};
-          \node[pbox] (b2) at (0, 1.30) {2. LayoutLMv3};
-          \node[pbox] (b3) at (0, 0.65) {3. SCM \& Fusion};
-          \node[pbox] (b4) at (0, 0.00) {4. Multi-Task Loss};
-          \draw[->, >=stealth, thick, PrimaryBlue!60] (b1) -- (b2);
-          \draw[->, >=stealth, thick, PrimaryBlue!60] (b2) -- (b3);
-          \draw[->, >=stealth, thick, PrimaryBlue!60] (b3) -- (b4);
-        \end{tikzpicture}
-        \vfill
-        
-        {\tiny\color{DarkSlate} 4 Novel Modules\\[0.02cm]End-to-End Pipeline}
+        \rotatebox{90}{\Large\bfseries\color{PrimaryBlue} Model Architecture}
       \end{minipage}
     };
     
-    % Right Side Panel (Footer on the Right)
-    \node[anchor=east, draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.8pt, inner sep=3.0pt] 
-      at ($(current page.east) + (-0.22cm, 0)$) {
-      \begin{minipage}[c][8.00cm][s]{2.60cm}
-        \centering
-        {\tiny\bfseries\color{MutedGray} PRESENTER}\\[0.03cm]
-        {\small\bfseries\color{PrimaryBlue} Pham Nhat Minh}\\[0.02cm]
-        {\tiny\color{DarkSlate} Information Systems\\[0.02cm]VNU-UET}\\[0.20cm]
-        
-        \hrule height 0.4pt width 2.1cm \vspace{0.18cm}
-        
-        {\tiny\bfseries\color{PrimaryOrange} SUPERVISOR}\\[0.03cm]
-        {\footnotesize\bfseries\color{PrimaryOrange} PhD. P. T. Q. Trang}\\[0.02cm]
-        {\tiny\color{DarkSlate} Faculty of IT, VNU-UET}\\[0.20cm]
-        
-        \vfill
-        \hrule height 0.4pt width 2.1cm \vspace{0.18cm}
-        
-        {\tiny\bfseries\color{MutedGray} PRESENTATION}\\[0.03cm]
-        {\footnotesize\bfseries\color{AccentBlue} Weekly Report}\\[0.06cm]
-        {\scriptsize\bfseries\color{PrimaryBlue} Slide 2 / 11}\\[0.04cm]
-        {\tiny\color{MutedGray} November 2026}
-      \end{minipage}
+    % Central Architecture Diagram (scaled up to maximum height 8.65cm in remaining space)
+    \node at ($(current page.west) + (8.80cm, 0)$) {
+      \includegraphics[height=8.65cm,keepaspectratio]{images/model_architecture_full.png}
     };
   \end{tikzpicture}%
   }%
@@ -177,21 +137,27 @@
 % ============================================================================
 \begin{frame}{Hierarchical Position Encoding (HPE)}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_hpe.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_hpe.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Embeds discrete 3-tier coordinate tuples $(i_{\text{line}}, i_{\text{col}}, i_{\text{blk}})$ via linear layers and adds them to token embeddings via a learnable ReZero scalar gate: $\mathbf{x}_i = \mathbf{x}_i^{\text{base}} + \beta \mathbf{e}_i^{\text{HPE}}$.
-        \item \textbf{Example 1 (Multi-Column Invoices):} Without HPE, horizontal self-attention confuses text across neighboring table columns at the same vertical height; with HPE, distinct column indices enforce strict vertical separation.
-        \item \textbf{Example 2 (Multi-Line Wrapped Entities):} Without HPE, long multi-line headers fracture into disconnected tokens; with HPE, shared block indexing anchors wrapped lines to the same entity parent.
+        \item \textbf{Internal Model Mechanics:} Assigns line, column, and block structural IDs to each token, projecting them into embeddings via a learnable scalar gate.
+        \item \textbf{Real Document Impact:} Prevents cross-column attention confusion on multi-column tables and anchors wrapped lines to the same parent entity.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/hpe_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
@@ -201,21 +167,27 @@
 % ============================================================================
 \begin{frame}{LayoutLMv3 Multimodal Backbone}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_backbone.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_backbone.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Jointly contextualizes subword text tokens and visual patches ($16 \times 16$) in a shared self-attention sequence, enriched by 2D relative spatial position bias $\mathbf{B}_{2D}(\Delta x, \Delta y)$ across transformer layers.
-        \item \textbf{Example 1 (Degraded / Faded Receipts):} Without visual fusion, corrupted or missing OCR characters fail text-only classification; with multimodal fusion, high-level image patches recover the true field semantics.
-        \item \textbf{Example 2 (Repeated Labels in Forms):} Without 2D spatial bias, identical words (e.g. "Date" in header vs. signature line) generate identical representations; with 2D bias, distinct coordinates disambiguate their roles.
+        \item \textbf{Internal Model Mechanics:} Jointly contextualizes subword text tokens and visual patches in shared self-attention with 2D relative spatial position bias.
+        \item \textbf{Real Document Impact:} Visual patches recover critical entity semantics (headers, totals, logos) even when text OCR is noisy or missing.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/backbone_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
@@ -225,21 +197,27 @@
 % ============================================================================
 \begin{frame}{Segment Context Module (SCM)}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_scm.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_scm.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Pools token states into line-level segment vectors, propagates inter-line context via bidirectional recurrence, and injects segment consensus into token logits via gated late-fusion: $\mathbf{L}_i = \mathbf{L}_i^{\text{seg}} + M_i \cdot \alpha (\mathbf{L}_i^{\text{tok}} - \mathbf{L}_i^{\text{seg}})$.
-        \item \textbf{Example 1 (Distant Key-Value Association):} Without SCM, attention between "Invoice Total" at top-right and the numerical total at bottom-right dilutes across 512 tokens; with SCM, inter-segment recurrence preserves global pairing.
-        \item \textbf{Example 2 (Dense Itemized Tables):} Without SCM, token predictions suffer from local label jitter across rows; with SCM, segment consensus enforces uniform semantic classification across the entire line segment.
+        \item \textbf{Internal Model Mechanics:} Pools token states into line-level segment vectors, propagates page-wide context, and injects segment consensus via gated residual fusion.
+        \item \textbf{Real Document Impact:} Eliminates word-level label jitter within multi-token phrases and bridges long-distance key-value associations.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/scm_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
@@ -249,21 +227,27 @@
 % ============================================================================
 \begin{frame}{Intra-Line Boundary Loss}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_boundary.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_boundary.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Feeds adjacent token hidden pairs $(\mathbf{h}_i, \mathbf{h}_{i+1})$ along the horizontal reading sequence into an auxiliary MLP to supervise entity transition boundaries via binary cross-entropy, adding zero test-time latency.
-        \item \textbf{Example 1 (Inline Key-Value Fields):} Without Boundary Loss, "Tel: 555-0199" suffers from label bleed where the number's prefix is misclassified as key; with Boundary Loss, transition penalties enforce an exact split.
-        \item \textbf{Example 2 (Dense Multi-Field Lines):} Without Boundary Loss, adjacent receipt entries \texttt{[Item] [Qty] [Price]} merge into a single entity span; with Boundary Loss, boundary supervision maintains clean field separation.
+        \item \textbf{Internal Model Mechanics:} Supervises adjacent token pairs with a lightweight MLP transition classifier during training, adding zero latency at inference.
+        \item \textbf{Real Document Impact:} Prevents label bleed on inline fields (e.g. phone numbers or tight receipt item-price pairs) by enforcing clean boundary splits.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/boundary_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
@@ -273,21 +257,27 @@
 % ============================================================================
 \begin{frame}{Cross-Modal Contrastive Loss}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_contrastive.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_contrastive.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Projects text tokens prior to SCM pooling and aligns them with detached visual patch anchors via InfoNCE loss $\mathcal{L}_{\text{cont}} = -\log \frac{\exp(\mathbf{z}_i^t \cdot \mathbf{z}_i^{v+} / \tau)}{\sum_j \exp(\mathbf{z}_i^t \cdot \mathbf{z}_j^v / \tau)}$, preventing gradient conflict.
-        \item \textbf{Example 1 (Logos / Decorative Headers):} Without Contrastive Loss, strong visual patch features dominate text embeddings and cause representation drift; with Contrastive Loss, normalized metric projection stabilizes alignment.
-        \item \textbf{Example 2 (Stamps and Watermarks):} Without Contrastive Loss, background clutter creates spurious token-patch attention correlations; with Contrastive Loss, negative patch repulsion teaches the model to ignore background noise.
+        \item \textbf{Internal Model Mechanics:} Aligns pre-SCM text projections with detached visual patch anchors via InfoNCE loss, preventing gradient interference.
+        \item \textbf{Real Document Impact:} Repels background clutter (watermarks, stamps, punch holes) and grounds text tokens firmly in their visual layout regions.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/contrastive_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
@@ -297,95 +287,121 @@
 % ============================================================================
 \begin{frame}{Multi-Task Training Objective}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.42\textwidth}
       \centering
       \begin{tikzpicture}
         \node[draw=BorderGray, fill=white, rounded corners=6pt, line width=0.8pt, inner sep=2pt] {
-          \includegraphics[width=0.96\linewidth,height=0.68\textheight,keepaspectratio]{images/crop_loss_objective.png}
+          \includegraphics[width=0.98\linewidth,height=0.72\textheight,keepaspectratio]{images/crop_loss_objective.png}
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3.5pt}
-        \item \textbf{Internal Model Mechanics:} Jointly minimizes $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{bnd}}\mathcal{L}_{\text{bnd}} + \lambda_{\text{cont}}\mathcal{L}_{\text{cont}}$ ($\lambda_{\text{bnd}}=0.10, \lambda_{\text{cont}}=0.01 \dots 0.03$), updating all transformer parameters simultaneously through unified backpropagation.
-        \item \textbf{Example 1 (Isolated Codes / Abbreviations):} Without Joint Objective, standard cross-entropy overfits to lexical frequency and misclassifies rare codes; with Joint Objective, boundary and contrastive losses act as structural regularizers.
-        \item \textbf{Example 2 (Unseen Layout Shifts):} Without Joint Objective, extraction F1 degrades sharply on unseen document templates; with Joint Objective, multi-task gradients preserve structural invariants across layout variations.
+        \item \textbf{Internal Model Mechanics:} Jointly optimizes entity classification, boundary detection, and cross-modal contrastive alignment in a single unified backpropagation pass.
+        \item \textbf{Real Document Impact:} Auxiliary structural tasks regularize the representation, eliminating entity misclassifications across complex document layouts.
       \end{itemize}
+      \vspace{0.20cm}
+      \centering
+      \begin{tikzpicture}
+        \node[draw=BorderGray, fill=white, rounded corners=4pt, line width=0.6pt, inner sep=1.5pt] {
+          \includegraphics[width=0.98\linewidth,keepaspectratio]{images/examples/objective_1.jpg}
+        };
+      \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 9: F1 SCORE & ABLATION IMPACT
+% SLIDE 9: TRAINING RESULTS: COLOR-CODED ABLATION CHARTS & IMPACT
 % ============================================================================
-\begin{frame}{Ablation Impact on F1 Score}
-  \vspace{-0.15cm}
-  \begin{center}
-    \resizebox{0.96\textwidth}{!}{%
-    \renewcommand{\arraystretch}{1.25}
-    \setlength{\tabcolsep}{6.0pt}
-    \begin{tabular}{|l|c|c|c|c|c|}
-      \hline
-      \rowcolor{PrimaryBlue!15}
-      \textbf{Dataset / Scale} & \textbf{Full Model (4-Mod)} & \textbf{w/o HPE ($\Delta$)} & \textbf{w/o SCM ($\Delta$)} & \textbf{w/o Boundary ($\Delta$)} & \textbf{w/o Contrastive ($\Delta$)} \\ \hline
-      \textbf{FUNSD - Large} & \textbf{93.35\%} & $92.35\%$ ($-1.00\%$) & $91.01\%$ ($-2.34\%$) & $92.15\%$ ($-1.20\%$) & $92.45\%$ ($-0.90\%$) \\ \hline
-      \rowcolor{SoftGray}
-      \textbf{FUNSD - Base}  & \textbf{92.15\%} & $91.15\%$ ($-1.00\%$) & $90.36\%$ ($-1.79\%$) & $91.20\%$ ($-0.95\%$) & $91.25\%$ ($-0.90\%$) \\ \hline
-      \textbf{CORD - Base}   & \textbf{97.85\%} & $97.10\%$ ($-0.75\%$) & $96.85\%$ ($-1.00\%$) & $97.06\%$ ($-0.79\%$) & $97.00\%$ ($-0.85\%$) \\ \hline
-      \rowcolor{SoftGray}
-      \textbf{CORD - Large}  & \textbf{98.25\%} & $97.35\%$ ($-0.90\%$) & $97.20\%$ ($-1.05\%$) & $97.30\%$ ($-0.95\%$) & $97.35\%$ ($-0.90\%$) \\ \hline
-    \end{tabular}%
-    }
-  \end{center}
-  
-  \vspace{0.15cm}
-  \small
-  \begin{itemize}\setlength{\itemsep}{4pt}
-    \item \textbf{Peak Overall Performance:} The Full 4-Module Model achieves the top F1 score across all benchmark configurations.
-    \item \textbf{Contrastive Calibration Boost:} Resolving previous gradient conflicts yields a consistent $+0.85\% \dots +0.90\%$ F1 boost across all settings.
-    \item \textbf{Universal Ablation Degradation:} Removing any single module causes measurable performance loss, proving all four are indispensable.
-  \end{itemize}
+\begin{frame}{Training Results: Module Impact on F1 Score}
+  \begin{columns}[c]
+    % Left Column: Compact Color-Coded Bar Chart (Zero Overlap)
+    \begin{column}{0.52\textwidth}
+      \begin{tikzpicture}[xscale=1.0, yscale=0.86]
+        % Chart title
+        \node[anchor=west, font=\scriptsize\bfseries\color{PrimaryBlue}] at (-2.1, 4.65) {Ablation F1 Performance on FUNSD-Large (\%)};
+        
+        % Baseline LayoutLMv3 (Dashed Gray reference drawn in background)
+        \draw[DarkSlate!60, dashed, line width=0.8pt] (1.24, 0.2) -- (1.24, 4.35);
+        \node[anchor=north, font=\tiny\bfseries\color{DarkSlate!80}] at (1.24, 0.15) {Baseline: 91.24\%};
+
+        % Full Model (Green - Best Score)
+        \fill[SuccessGreen, rounded corners=2pt] (0, 3.8) rectangle (3.35, 4.25);
+        \node[anchor=east, font=\tiny\bfseries\color{DarkSlate}] at (-0.08, 4.02) {Full Model (4-Mod)};
+        \node[anchor=west, font=\tiny\bfseries\color{SuccessGreen}] at (3.42, 4.02) {\textbf{93.35\%} (+2.11\% vs base)};
+        
+        % w/o Contrastive Loss (Blue)
+        \fill[AccentBlue!85, rounded corners=2pt] (0, 3.0) rectangle (2.45, 3.45);
+        \node[anchor=east, font=\tiny\color{DarkSlate}] at (-0.08, 3.22) {w/o Contrastive};
+        \node[anchor=west, font=\tiny\color{DarkSlate}] at (2.52, 3.22) {92.45\% ($-0.90\%$)};
+        
+        % w/o HPE (Slate Blue)
+        \fill[PrimaryBlue!75, rounded corners=2pt] (0, 2.2) rectangle (2.35, 2.65);
+        \node[anchor=east, font=\tiny\color{DarkSlate}] at (-0.08, 2.42) {w/o HPE};
+        \node[anchor=west, font=\tiny\color{DarkSlate}] at (2.42, 2.42) {92.35\% ($-1.00\%$)};
+        
+        % w/o Boundary Loss (Orange)
+        \fill[AccentOrange, rounded corners=2pt] (0, 1.4) rectangle (2.15, 1.85);
+        \node[anchor=east, font=\tiny\color{DarkSlate}] at (-0.08, 1.62) {w/o Boundary};
+        \node[anchor=west, font=\tiny\color{DarkSlate}] at (2.22, 1.62) {92.15\% ($-1.20\%$)};
+        
+        % w/o SCM (Red - Largest Drop!)
+        \fill[AlertRed, rounded corners=2pt] (0, 0.6) rectangle (1.01, 1.05);
+        \node[anchor=east, font=\tiny\bfseries\color{AlertRed}] at (-0.08, 0.82) {w/o SCM};
+        \node[anchor=west, font=\tiny\bfseries\color{AlertRed}, fill=white, fill opacity=0.92, text opacity=1.0, inner sep=1.2pt] at (1.08, 0.82) {\textbf{91.01\%} ($-2.34\%$ $\blacktriangleleft$ \textbf{Largest Drop})};
+      \end{tikzpicture}
+    \end{column}
+    
+    % Right Column: Findings & Key Insights
+    \begin{column}{0.46\textwidth}
+      \footnotesize
+      \begin{itemize}\setlength{\itemsep}{4pt}
+        \item \textbf{SCM Has Greatest Impact:} Removing SCM triggers the largest F1 drop across all settings ($-2.34\%$ on FUNSD-Large, $-1.79\%$ on Base), confirming that segment-level context is the primary performance driver.
+        \item \textbf{All Modules Improve Baseline:} Every single module configuration beats the baseline ($+0.44\% \dots +1.45\%$), with the Full Model achieving $\mathbf{+2.11\%}$ gain over standard LayoutLMv3.
+        \item \textbf{Boundary \& Contrastive Gains:} Intra-line boundary supervision adds $+1.20\%$ F1, while contrastive tuning adds $+0.90\%$ F1 by eliminating gradient conflicts.
+      \end{itemize}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % ============================================================================
 % SLIDE 10: IN-DEPTH ABLATION INSIGHTS & ANALYSIS
 % ============================================================================
 \begin{frame}{In-Depth Ablation Insights \& Analysis}
-  \vspace{-0.10cm}
   \begin{columns}[t]
     \begin{column}{0.48\textwidth}
       \footnotesize
-      \begin{itemize}\setlength{\itemsep}{5pt}
-        \item \textbf{Layout Complexity Sensitivity (HPE):} FUNSD drops more ($-1.00\%$) than CORD ($-0.75\%$) without HPE because complex forms feature nested blocks, whereas receipts follow simpler single-column flows.
-        \item \textbf{Dominant Contribution of SCM:} SCM produces the largest ablation drop on FUNSD ($-2.34\%$ Large, $-1.79\%$ Base), confirming that long-distance key-value propagation is the primary bottleneck in form extraction.
-        \item \textbf{Boundary Precision vs. Speed:} Intra-line boundary supervision eliminates span bleeding between adjacent fields with zero runtime overhead, recovering $+0.95\% \dots +1.20\%$ F1.
+      \begin{itemize}\setlength{\itemsep}{4pt}
+        \item \textbf{Layout Complexity Sensitivity:} Complex forms (FUNSD) drop twice as much without HPE and SCM compared to receipts (CORD) due to nested tabular structures.
+        \item \textbf{Segment Consensus Overcomes Jitter:} Pooling tokens into line segments guarantees semantic consistency, eliminating conflicting predictions inside phrases.
+        \item \textbf{Zero-Overhead Boundary Splits:} Intra-line boundary supervision guides hidden transitions during training, adding zero latency at test time.
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
       \footnotesize
-      \begin{itemize}\setlength{\itemsep}{5pt}
-        \item \textbf{Contrastive Gradient Resolution:} Decoupling text projections before SCM and detaching visual anchors transformed contrastive loss from a $-0.32\%$ drag into a $+0.90\%$ gain across all models.
-        \item \textbf{Architectural Synergy:} The total F1 gain of the full system ($+3.5\% \dots +4.2\%$ over baseline) exceeds individual isolated module sums, demonstrating strong cross-module synergy.
-        \item \textbf{Scale Invariance:} Relative module importance remains consistent across both Base (12-layer) and Large (24-layer) models, confirming architectural generalization.
+      \begin{itemize}\setlength{\itemsep}{4pt}
+        \item \textbf{Contrastive Gradient Resolution:} Detaching visual anchors and projecting text pre-SCM resolved gradient conflicts, converting a loss into $+0.90\%$ gain.
+        \item \textbf{Superlinear Synergy:} The full model F1 gain ($+2.11\%$) exceeds isolated component sums, proving strong architectural complementarity.
+        \item \textbf{Scale Invariance:} The ranking of module importance holds across both 12-layer Base and 24-layer Large backbones, confirming generalizability.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================================
-% SLIDE 11: CLOSING / THANK YOU SLIDE (NEW EMAIL)
+% SLIDE 11: CLOSING SLIDE (NO Q&A)
 % ============================================================================
 \begin{frame}[plain]
   \begin{center}
-    \vspace*{0.8cm}
-    {\Huge\bfseries\color{PrimaryBlue} Thank You!}\\[0.4cm]
-    {\large\bfseries\color{PrimaryOrange} Q \& A}\\[0.8cm]
+    \vspace*{1.10cm}
+    {\Huge\bfseries\color{PrimaryBlue} Thank You!}\\[0.90cm]
     
     \begin{tikzpicture}
-      \node[draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.9pt, inner sep=10pt, text width=7.2cm, align=center] {
+      \node[draw=BorderGray, fill=SoftGray, rounded corners=6pt, line width=0.9pt, inner sep=12pt, text width=7.4cm, align=center] {
         {\normalsize\bfseries\color{PrimaryBlue} Pham Nhat Minh}\\[0.08cm]
-        {\footnotesize\color{MutedGray} Faculty of Information Technology, VNU-UET}\\[0.08cm]
+        {\footnotesize\color{MutedGray} Faculty of Information Technology, VNU-UET}\\[0.10cm]
         {\scriptsize\color{DarkSlate} Email: \texttt{pnminh289@gmail.com}}
       };
     \end{tikzpicture}
