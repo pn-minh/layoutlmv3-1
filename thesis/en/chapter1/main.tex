@@ -1,100 +1,114 @@
 \chapter{Introduction}
 \label{chap:introduction}
 
-\section{Background and Motivation}
+\section{Background and Core Problem}
 \label{sec:intro_overview}
 
-Every day, commercial businesses and public institutions handle large numbers of documents, such as retail receipts, invoices, tax forms, and medical records. In traditional workflows, clerks had to read these papers and manually enter important fields, like dates, vendor names, and monetary amounts, into software systems. This manual process takes considerable time and often results in human error. While early optical character recognition (OCR) systems could turn scanned images into text, they produced unorganized strings of words without identifying which numbers represented prices or which text blocks represented customer names.
+Key Information Extraction (KIE) from Visually Rich Documents (VRDs)—including administrative questionnaires, commercial invoices, tax declarations, and retail receipts—is a core problem in Document Artificial Intelligence \cite{cui2021documentai}. Unlike standard natural language streams where semantics are governed by one-dimensional word order, VRDs encode meaning at the intersection of lexical content, two-dimensional geometric layout, and visual typography \cite{xu2020layoutlm,huang2022layoutlmv3}. Whether a numeric token represents an item count, a unit price, a tax deduction, or a grand total is determined by its column alignment, its spatial proximity to key headers, and its visual emphasis (e.g., boldface or enlarged font).
 
-To address this challenge, Key Information Extraction (KIE) has become a primary focus in document intelligence \cite{cui2021documentai}. In visually rich documents, semantic meaning depends not only on the words themselves, but also on where they appear on the page and how they look visually \cite{xu2020layoutlm,huang2022layoutlmv3}. For instance, whether a word like "Total" refers to a general header or a final payment amount depends on its position relative to the table rows below it. Therefore, a successful model needs to process text, geometric coordinates, and image pixels at the same time.
-
-Recent vision-language models, particularly LayoutLMv3 \cite{huang2022layoutlmv3}, combine textual tokens, bounding box coordinates, and visual image patches inside a unified Transformer. This design achieves strong results on standard benchmarks. However, when adapting LayoutLMv3 to real-world form and receipt datasets, several practical issues arise:
+Pre-trained multimodal Transformers, most notably LayoutLMv3 \cite{huang2022layoutlmv3}, unify BPE text embeddings, 2D bounding box coordinates, and linear image patch projections within a single self-attention backbone. Despite strong pre-training representations, directly fine-tuning a token-level linear classifier on top of LayoutLMv3 fails to address four concrete structural bottlenecks encountered on real-world forms and receipts:
 \begin{enumerate}
-    \item \textbf{Textual and visual competition:} Because document images are split into many visual patches, visual tokens can take up a large part of the attention weight. This can sometimes dilute attention on fine-grained textual details \cite{xie2026roap}.
-    \item \textbf{Lack of explicit structural groupings:} LayoutLMv3 represents position using raw 2D bounding boxes $(x_0, y_0, x_1, y_1)$. It does not explicitly tell the model which words share the same line, column, or paragraph block, forcing the self-attention mechanism to infer these relationships from scratch.
-    \item \textbf{Inconsistent entity predictions within segments:} In documents like forms, an entity such as a long sentence or address often spans several words. Because tokens are classified independently, the model can predict conflicting labels in the middle of a single text line.
-    \item \textbf{Boundary ambiguity between neighboring fields:} When a label and its value appear side by side on the same horizontal line, such as "Date: 12/10/1998", the model frequently merges them into one continuous entity.
+    \item \textbf{Cross-Column Coordinate Ambiguity:}
+    Baseline LayoutLMv3 embeds normalized bounding coordinates $(x_0, y_0, x_1, y_1)$ independently along each axis. Tokens located in separate vertical columns that share similar $y$-coordinates receive nearly identical vertical embeddings, while tokens in multi-row paragraphs lack explicit block grouping. Consequently, self-attention must infer reading lines, column boundaries, and logical blocks entirely from raw coordinate numbers.
+
+    \item \textbf{Intra-Segment Label Jitter and Key-Value Disconnection:}
+    Classifying each subword token independently without an explicit line-segment representation frequently causes prediction drift across multi-token phrases (e.g., switching between \texttt{I-ANSWER} and \texttt{I-QUESTION} mid-sentence). Furthermore, standalone numeric values on receipts lack intrinsic lexical cues and require inter-segment context propagation from neighboring key segments (such as \texttt{Total}, \texttt{Cash}, or \texttt{Change}).
+
+    \item \textbf{Intra-Line Entity Span Bleeding:}
+    In compact forms and thermal receipts, distinct semantic entities frequently appear side by side on the same horizontal reading line—for example, an inline prompt followed immediately by its value (\texttt{TO: George Baroody}) or a dense receipt row containing quantity, item name, and price. Standard token-wise cross-entropy applies no pairwise transition penalty between adjacent intra-line tokens, causing neighboring spans to merge into a single erroneous entity.
+
+    \item \textbf{Cross-Modal Representation Drift and Background Clutter:}
+    Although LayoutLMv3 incorporates Word-Patch Alignment during pre-training, downstream fine-tuning relies solely on text-token classification loss. Without continued cross-modal supervision, visual patch representations drift or attract spurious attention from scanning borders, hole-punch margins, and background watermarks \cite{wang2023aetnet,xie2026roap}. Conversely, naive symmetric contrastive objectives backpropagate noisy visual gradients into the segment classifier, destabilizing token boundaries.
 \end{enumerate}
 
-These practical challenges motivate the research presented in this graduation thesis.
+The objective of my thesis is to solve these four structural failure modes within a unified, parameter-efficient architecture that requires no pre-training from scratch and adds zero latency or memory overhead at inference time.
 
-\section{Problem Formulation}
+\section{Problem Formulation: Input, Output, and Objective}
 \label{sec:problem_statement}
 
-In standard document key information extraction, a document page is given as an image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$. An OCR engine first parses the image to produce a sequence of $L$ subword tokens along with their geometric bounding boxes.
+I formulate Visually Rich Document Key Information Extraction as a multimodal structure-aware sequence labeling and span extraction task. The exact inputs, intermediate topological descriptors, and structured outputs of my model are defined below.
 
-We represent each document sample as a collection of tokens and the page image:
+\subsection{Model Input}
+Given a scanned or photographed document page paired with an upstream Optical Character Recognition (OCR) transcript, each input sample $\mathcal{D}$ supplied to the model consists of two synchronized modalities:
 \begin{equation}
-    \mathcal{D} = \left\{ (w_i, \mathbf{b}_i, s_i) \right\}_{i=1}^{L} \cup \{\mathbf{I}\},
+    \mathcal{D} = \left( \mathbf{I}, \; \left\{ \big(w_i, \, \mathbf{b}_i, \, s_i, \, (id_l^{(i)}, id_c^{(i)}, id_b^{(i)})\big) \right\}_{i=1}^{L} \right),
     \label{eq:doc_representation}
 \end{equation}
 where:
 \begin{itemize}
-    \item $w_i \in \mathcal{V}$ is the $i$-th subword token in the document vocabulary $\mathcal{V}$.
-    \item $\mathbf{b}_i = (x_0^{(i)}, y_0^{(i)}, x_1^{(i)}, y_1^{(i)}) \in [0, 1000]^4$ represents the normalized bounding box coordinates for token $w_i$, scaled to a standard $1000 \times 1000$ coordinate grid:
-    \begin{equation}
-        x_{0,1}^{(i)} = \left\lfloor \frac{\tilde{x}_{0,1}^{(i)}}{W} \times 1000 \right\rfloor, \quad
-        y_{0,1}^{(i)} = \left\lfloor \frac{\tilde{y}_{0,1}^{(i)}}{H} \times 1000 \right\rfloor.
-    \end{equation}
-    \item $s_i \in \{0, 1, \dots, S-1\}$ denotes the line segment index indicating which visual text line token $w_i$ belongs to.
+    \item \textbf{Visual Page Image ($\mathbf{I}$):} An RGB document image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$, which is resized to $224 \times 224$ pixels and partitioned into $M = 14 \times 14 = 196$ non-overlapping $16 \times 16$ visual patches $\mathbf{P} = (\mathbf{p}_1, \dots, \mathbf{p}_M)$.
+    \item \textbf{Subword Token Sequence ($w_i$):} A sequence of $L$ Byte-Pair Encoding (BPE) subword tokens $w_i \in \mathcal{V}$ ($L \le 512$) sorted in reading order.
+    \item \textbf{Normalized 2D Bounding Boxes ($\mathbf{b}_i$):} For each token $w_i$, a 4-tuple of integer coordinates $\mathbf{b}_i = (x_0^{(i)}, y_0^{(i)}, x_1^{(i)}, y_1^{(i)}) \in [0, 1000]^4$ normalized relative to the original page dimensions $(W, H)$, together with derived box width $w^{(i)} = x_1^{(i)} - x_0^{(i)}$ and height $h^{(i)} = y_1^{(i)} - y_0^{(i)}$.
+    \item \textbf{OCR Line Segment Index ($s_i$):} A discrete segment identifier $s_i \in \{0, 1, \dots, S-1\}$ grouping tokens that belong to the same horizontal OCR text line ($S \ll L$).
+    \item \textbf{Hierarchical Layout Indices $(id_l^{(i)}, id_c^{(i)}, id_b^{(i)})$:} Deterministic structural indices extracted during preprocessing that assign token $w_i$ to its reading line $id_l^{(i)}$, vertical column slot $id_c^{(i)}$, and local paragraph/field block $id_b^{(i)}$.
 \end{itemize}
 
-We formulate KIE as a token-level sequence labeling task using the standard IOB2 tagging format. Given $K$ target entity types $\mathcal{E} = \{e_1, e_2, \dots, e_K\}$, the label set $\mathcal{Y}$ has size $2K + 1$:
+\subsection{Model Output}
+Given $K$ target semantic entity classes $\mathcal{C} = \{c_1, c_2, \dots, c_K\}$ (e.g., $\texttt{HEADER}$, $\texttt{QUESTION}$, $\texttt{ANSWER}$ on FUNSD, or 30 fine-grained receipt fields such as $\texttt{menu.nm}$ and $\texttt{total.total\_price}$ on CORD), the token-level label space $\mathcal{Y}$ follows the IOB2 scheme of cardinality $|\mathcal{Y}| = 2K + 1$:
 \begin{equation}
-    \mathcal{Y} = \{\texttt{O}\} \cup \bigcup_{k=1}^{K} \left\{ \texttt{B-}e_k, \, \texttt{I-}e_k \right\},
+    \mathcal{Y} = \{\texttt{O}\} \cup \bigcup_{k=1}^{K} \left\{ \texttt{B-}c_k, \, \texttt{I-}c_k \right\}.
 \end{equation}
-where \texttt{B-}$e_k$ indicates the first token of an entity of class $e_k$, \texttt{I-}$e_k$ represents following tokens inside the same entity, and \texttt{O} designates background words.
 
-The goal is to train a model $f_{\Theta}(\mathcal{D})$ that predicts a label sequence $\hat{\mathbf{Y}} = (\hat{y}_1, \dots, \hat{y}_L) \in \mathcal{Y}^L$ to maximize the exact entity-level F1 score over the target test set.
-
-\section{Limitations in Existing Models}
-\label{sec:challenges}
-
-While pretrained multimodal Transformers have improved document parsing substantially, standard fine-tuning strategies still encounter specific architectural bottlenecks:
-
+At inference time, the model $f_{\Theta}(\mathcal{D})$ produces two hierarchical levels of output:
 \begin{enumerate}
-    \item \textbf{Equal Treatment of Spatial Axes:}
-    In baseline LayoutLMv3, all bounding box dimensions $(x_0, y_0, x_1, y_1, w, h)$ are mapped to identical embedding dimensions and concatenated directly. However, in printed documents, horizontal and vertical coordinates serve different purposes. Horizontal coordinates determine word order and column placement, whereas vertical coordinates dictate line progression and section hierarchy. Treating both axes identically limits the model's ability to distinguish line breaks from column gaps.
-
-    \item \textbf{Absence of Segment Context Exchange:}
-    Even when words in the same line share coordinates, self-attention processes every token individually. There is no explicit representation for the text segment as a whole. As a result, longer entities often suffer from prediction drift, where tokens inside the same sentence receive incompatible tags.
-
-    \item \textbf{Lack of Explicit Boundary Supervision:}
-    The standard training objective optimizes cross-entropy on each token independently. It does not penalize abrupt label switches between consecutive words that clearly belong to the same visual line, leading to false entity boundaries.
-
-    \item \textbf{Misalignment Between Image Patches and Text:}
-    While LayoutLMv3 uses pretraining objectives like Word-Patch Alignment, fine-tuning on downstream datasets typically relies only on classification loss. Without continuing alignment supervision, the correspondence between visual patches and text features can degrade during fine-tuning \cite{wang2023aetnet}.
+    \item \textbf{Token-Level Logits and Tag Sequence:} For each valid word-initial subword token $i \in \{1, \dots, L\}$, the classification head outputs a logit vector $\mathbf{z}_i \in \mathbb{R}^{|\mathcal{Y}|}$ and predicted tag $\hat{y}_i = \arg\max_{y \in \mathcal{Y}} z_{i,y}$, forming the predicted tag sequence $\hat{\mathbf{Y}} = (\hat{y}_1, \dots, \hat{y}_L) \in \mathcal{Y}^L$.
+    \item \textbf{Structured Semantic Entity Spans:} Contiguous sequences of $\texttt{B-}c_k$ followed by zero or more $\texttt{I-}c_k$ tokens are deterministically decoded into a set of structured entity tuples:
+    \begin{equation}
+        \hat{\mathcal{E}} = \left\{ \big( i_{\text{start}}, \, i_{\text{end}}, \, c_k, \, \text{text}(i_{\text{start}}:i_{\text{end}}), \, \mathbf{b}_{\text{union}}(i_{\text{start}}:i_{\text{end}}) \big) \right\},
+    \end{equation}
+    where each extracted tuple contains the token span boundaries, semantic category $c_k \in \mathcal{C}$, reconstructed surface string, and merged bounding box—directly serializable into JSON records for downstream database or ERP ingestion.
 \end{enumerate}
 
-\section{Proposed Contributions}
-\label{sec:contributions}
+\section{Real-World Applications}
+\label{sec:real_world_applications}
 
-To address these limitations while keeping the model lightweight, this thesis develops and tests several structural enhancements for LayoutLMv3:
+Because my proposed architecture enhances structural accuracy and boundary precision while preserving the exact inference footprint of a single forward pass, it can be deployed directly across five high-impact industrial domains:
 
 \begin{enumerate}
+    \item \textbf{Enterprise ERP, Accounting, and Accounts Payable Automation:}
+    Organizations process millions of multi-vendor invoices, purchase orders, and retail receipts whose layouts vary arbitrarily across suppliers. My model extracts line-item tables (\texttt{menu.nm}, \texttt{menu.cnt}, \texttt{menu.unitprice}, \texttt{menu.price}), tax breakdowns (\texttt{sub\_total.tax\_price}), and settlement totals (\texttt{total.total\_price}, \texttt{total.cashprice}) directly into Enterprise Resource Planning (ERP) systems such as SAP, Oracle NetSuite, or Odoo, eliminating manual data entry and enabling automated three-way matching between purchase orders, goods receipts, and invoices.
+
+    \item \textbf{Banking, FinTech KYC, and Automated Underwriting:}
+    Retail and commercial banks evaluate customer onboarding applications, tax returns, payroll stubs, and mortgage questionnaires characterized by dense two-column grids and inline key-value fields. By resolving cross-column coordinate ambiguity via HPE and preventing inline key-value merging via $\mathcal{L}_{\text{bound}}$, the model reliably separates field prompts (\texttt{QUESTION}) from applicant entries (\texttt{ANSWER}), accelerating Know Your Customer (KYC) verification and automated credit risk scoring.
+
+    \item \textbf{Healthcare Clinical Records and Insurance Claims Adjudication:}
+    Hospitals and health insurers handle scanned patient intake questionnaires, diagnostic laboratory reports, and medical reimbursement claims that frequently suffer from scan skew, stamp overlays, and hole-punch artifacts. The calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$) anchors text representations to true local typography while repelling margin and watermark noise, enabling high-precision extraction of patient identifiers, diagnostic codes, and itemized treatment charges.
+
+    \item \textbf{Global Supply Chain, Logistics, and Customs Clearance:}
+    International freight forwarders and customs brokerages parse bills of lading, commercial packing lists, and certificates of origin containing nested multi-line shipper/consignee blocks alongside dense cargo tables. The Segment Context Module (SCM) maintains semantic consistency across multi-line address blocks while accurately binding column headers to tabular cargo weights and Harmonized System (HS) tariff codes.
+
+    \item \textbf{E-Government and Legal Archival Digitization:}
+    Public sector agencies digitize historical civil registries, land deeds, and regulatory filings into searchable digital archives. Because the auxiliary boundary and contrastive heads are active only during training, the deployed checkpoint executes at full throughput on standard enterprise GPUs or quantized ONNX/TensorRT runtimes for large-scale batch digitization.
+\end{enumerate}
+
+\section{Summary of Contributions}
+\label{sec:contributions}
+
+The main contributions of my graduation thesis are summarized as follows:
+\begin{enumerate}
     \item \textbf{Hierarchical Position Encoding (HPE):}
-    We cluster word boxes into reading lines, columns, and logical blocks using spatial heuristics. These hierarchical indices are converted into learnable embeddings and projected into the token embedding layer, providing explicit layout structure before self-attention.
+    I design a deterministic spatial clustering pipeline that decomposes 2D word boxes into reading lines ($id_l$), vertical columns ($id_c$), and logical blocks ($id_b$), projecting their concatenated embeddings into the token stream prior to multimodal self-attention.
 
-    \item \textbf{Segment Context Module (SCM):}
-    We aggregate token representations in each text segment via mean pooling to form line-level vectors. A lightweight Transformer encoder models relationships between these segments, and a ReZero gate blends the contextualized segment representation back into the tokens alongside a segment-start indicator embedding.
+    \item \textbf{Segment Context Module (SCM) with ReZero Gating and Onset Embeddings:}
+    I introduce a lightweight segment-level Transformer encoder over mean-pooled OCR line representations, stabilized by a learnable ReZero residual gate $g$ and paired with a binary segment-onset indicator embedding $\mathbf{e}_{\text{first}}(f_i)$ to eliminate intra-segment label jitter and propagate key-value context across lines.
 
-    \item \textbf{Intra-Line Boundary Loss:}
-    We construct an auxiliary loss that examines consecutive token pairs on the same line. The model learns to distinguish between pairs within the same entity and pairs that mark an entity transition, sharpening entity boundaries.
+    \item \textbf{Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$):}
+    I formulate an auxiliary pairwise binary classification objective over consecutive tokens within the same reading line ($s_i = s_{i+1}$), sharpening entity transitions and cutting span boundary errors on FUNSD by $82.6\%$.
 
-    \item \textbf{Cross-Modal Contrastive Loss:}
-    We introduce an alignment objective during fine-tuning that pulls corresponding text tokens and visual patches closer in embedding space, improving visual-textual consistency on noisy scans.
+    \item \textbf{Calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$):}
+    I diagnose why naive symmetric contrastive tuning degrades token boundaries on smaller backbones and resolve this conflict by aligning pre-SCM token states against detached visual patch anchors ($\text{stop-grad}$) using a spatial-overlap soft-target InfoNCE objective ($\tau = 0.10$), turning cross-modal alignment into a consistent performance gain across all model scales.
 
-    \item \textbf{Systematic Multi-Seed Evaluation:}
-    We evaluate our methods across three random seeds on the FUNSD and CORD benchmarks using an NVIDIA A100 GPU. The proposed architecture improves entity F1 score on FUNSD from $89.92 \pm 0.85\%$ to $91.58 \pm 0.16\%$, while reducing variance across training runs.
+    \item \textbf{Rigorous Multi-Seed Evaluation and Ablation Study:}
+    I evaluate 24 model configurations across three random seeds ($\{42, 123, 1993\}$) on an NVIDIA A100 GPU on FUNSD and CORD. My full 4-module architecture achieves $92.12 \pm 0.14\%$ F1 on FUNSD \texttt{base} ($+2.20\%$ over baseline) and $93.35 \pm 0.18\%$ F1 on FUNSD \texttt{large} ($+2.11\%$ over baseline), while reaching $97.28 \pm 0.12\%$ and $97.62 \pm 0.08\%$ F1 on CORD \texttt{base} and \texttt{large}, respectively.
 \end{enumerate}
 
 \section{Thesis Structure}
 \label{sec:thesis_structure}
 
-The remainder of this thesis is structured as follows:
+The remainder of this thesis is organized as follows:
 \begin{itemize}
-    \item \textbf{Chapter~\ref{chap:related_works}:} Reviews background concepts, including Vision-Language Transformers, sequence labeling, the LayoutLM model family, and related work on structural document understanding.
-    \item \textbf{Chapter~\ref{chap:methodology}:} Details the proposed methodology, explaining the formulation of HPE, SCM, the Intra-Line Boundary Loss, and the Contrastive Loss.
-    \item \textbf{Chapter~\ref{chap:live experiments}:} Outlines the experimental environment, dataset statistics, hyperparameters, experimental results, and ablation studies.
-    \item \textbf{Chapter~\ref{chap:summary}:} Summarizes the thesis findings, discusses practical limitations, and suggests future research directions.
+    \item \textbf{Chapter~\ref{chap:related_works}:} Reviews multimodal document representation, 2D spatial-aware attention, the LayoutLM architecture family, and related structural and contrastive tuning methods.
+    \item \textbf{Chapter~\ref{chap:methodology}:} Details the mathematical formulation and architectural design of HPE, SCM, Intra-Line Boundary Loss, and calibrated Cross-Modal Contrastive Loss.
+    \item \textbf{Chapter~\ref{chap:live experiments}:} Describes the experimental setup, dataset properties, contrastive calibration analysis, multi-seed benchmark results, 24-configuration leave-one-out ablation studies, and qualitative boundary error analysis.
+    \item \textbf{Chapter~\ref{chap:conclusion}:} Summarizes the thesis findings, analyzes current limitations, and proposes future research directions.
 \end{itemize}

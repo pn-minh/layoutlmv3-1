@@ -12,23 +12,13 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{indentfirst}
-\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
 \usepackage{tikz}
-\usetikzlibrary{calc,arrows.meta,positioning,shapes.geometric,fit}
-\usepackage[
-backend=bibtex,
-sorting=none,
-citestyle=numeric,
-maxbibnames=99,
-uniquelist=false,
-uniquename=false]{biblatex}
+\usetikzlibrary{calc,arrows.meta,positioning}
+\usepackage{cite}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{dsfont}
 \usepackage{enumitem}
 \usepackage{multirow}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
 \usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -39,24 +29,22 @@ uniquename=false]{biblatex}
 \usepackage{microtype}
 \usepackage[hypertexnames=false]{hyperref}
 
-\addbibresource{ref.bib}
-
 % Prevent unwanted hyphenation on technical keywords and models
 \hyphenation{LayoutLM}
 
-% set font, font size, and spacing (matching sample thesis)
+% Set font size and spacing (matching university thesis template)
 \changefontsizes{13pt}
 \renewcommand{\baselinestretch}{1.3}
 \setlength{\emergencystretch}{3em}
 \hfuzz=1pt
 \vfuzz=1pt
 
-% section spacing (matching sample thesis)
+% Section spacing
 \usepackage{titlesec}
 \titlespacing*{\section}{0pt}{0.5\baselineskip}{0.2\baselineskip}
 \titlespacing*{\subsection}{0pt}{0.4\baselineskip}{0.2\baselineskip}
 
-% setup page layout (matching sample thesis)
+% Page layout
 \usepackage[a4paper,left=30mm,top=25mm,bottom=30mm,right=20mm]{geometry}
 \newcolumntype{b}{X}
 \newcolumntype{s}{>{\hsize=.5\hsize}X}
@@ -72,13 +60,13 @@ uniquename=false]{biblatex}
 \import{frontMatter/}{acknowledge.tex}
 \import{frontMatter/}{declaration.tex}
 
-% Show ToC and change the title to Table of Contents
+% Table of Contents
 \renewcommand{\contentsname}{Table of Contents}
 \tableofcontents
 
 \import{frontMatter/}{acronyms.tex}
 
-% Show list of figures and tables
+% List of Figures and Tables
 \listoffigures
 \clearpage
 \listoftables
@@ -93,7 +81,11 @@ uniquename=false]{biblatex}
 \import{chapter4/}{main.tex}
 \import{chapter5/}{main.tex}
 
-\printbibliography[title={References}]
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{References}
+\renewcommand{\bibname}{References}
+\bibliographystyle{ieeetr}
+\bibliography{ref}
 
 \end{document}
-

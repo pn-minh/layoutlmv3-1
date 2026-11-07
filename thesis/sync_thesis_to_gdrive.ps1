@@ -56,7 +56,7 @@ function Build-OverleafZip {
     )
 
     if (Test-Path $DestZip) { Remove-Item $DestZip -Force }
-    $excludeExts = @(".aux", ".log", ".out", ".toc", ".lof", ".lot", ".bbl", ".blg", ".synctex.gz", ".fls", ".fdb_latexmk")
+    $excludeExts = @(".aux", ".log", ".out", ".toc", ".lof", ".lot", ".bbl", ".blg", ".synctex.gz", ".fls", ".fdb_latexmk", ".pdf", ".md")
 
     $zipStream = [System.IO.File]::Open($DestZip, [System.IO.FileMode]::Create)
     $archive   = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create)
@@ -64,33 +64,15 @@ function Build-OverleafZip {
     try {
         $langRoot = (Resolve-Path $LangDir).Path
         Get-ChildItem -Path $langRoot -Recurse -File | ForEach-Object {
-            if ($excludeExts -contains $_.Extension.ToLower()) { return }
+            $ext = $_.Extension.ToLower()
+            # Keep figure PDFs (e.g. chapter3/model_architecture.pdf) while excluding compiled main.pdf
+            if ($_.Name.ToLower() -eq "main.pdf") { return }
+            if (($excludeExts -contains $ext) -and ($ext -ne ".pdf")) { return }
             $relPath = $_.FullName.Substring($langRoot.Length).TrimStart('\', '/') -replace '\\', '/'
             $entry = $archive.CreateEntry($relPath, [System.IO.Compression.CompressionLevel]::Optimal)
             $entryStream = $entry.Open()
             try {
-                if ($_.Extension -in @(".tex", ".sty", ".bib")) {
-                    $text = [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8)
-                    $text = $text.Replace("../figures/", "figures/")
-                    $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
-                    $entryStream.Write($bytes, 0, $bytes.Length)
-                } else {
-                    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
-                    $entryStream.Write($bytes, 0, $bytes.Length)
-                }
-            } finally {
-                $entryStream.Dispose()
-            }
-        }
-
-        $figRoot = (Resolve-Path $FiguresDir).Path
-        Get-ChildItem -Path $figRoot -Recurse -File | ForEach-Object {
-            if ($excludeExts -contains $_.Extension.ToLower()) { return }
-            $relPath = "figures/" + ($_.FullName.Substring($figRoot.Length).TrimStart('\', '/') -replace '\\', '/')
-            $entry = $archive.CreateEntry($relPath, [System.IO.Compression.CompressionLevel]::Optimal)
-            $entryStream = $entry.Open()
-            try {
-                if ($_.Extension -eq ".tex") {
+                if ($ext -in @(".tex", ".sty", ".bib")) {
                     $text = [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8)
                     $text = $text.Replace("../figures/", "figures/")
                     $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
@@ -360,7 +342,7 @@ if ($Watch) {
 
             if ($enChanged) {
                 Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Recompiling English Thesis & updating Overleaf ZIP..." -ForegroundColor Yellow
-                & $Tectonic (Join-Path $ScriptDir "en\main.tex")
+                & $Tectonic -r 2 (Join-Path $ScriptDir "en\main.tex")
                 Build-OverleafZip -LangDir (Join-Path $ScriptDir "en") -FiguresDir (Join-Path $ScriptDir "figures") -DestZip $EnZip
                 Upload-SingleFile -FilePath $EnPdf -RemoteName "English_Thesis_LayoutLMv3.pdf" -Language "en" | Out-Null
                 Upload-SingleFile -FilePath $EnZip -RemoteName "LaTeX_Source_English_Thesis_Overleaf.zip" | Out-Null

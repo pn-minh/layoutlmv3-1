@@ -1,102 +1,67 @@
 \chapter{Background and Related Work}
 \label{chap:related_works}
 
-\section{Foundations of Document Understanding}
+\section{Multimodal Document Representation}
 \label{sec:foundational_knowledge}
 
-\subsection{Visually Rich Documents and Preprocessing}
+\subsection{OCR Serialization and Subword Alignment in VRDs}
 \label{subsec:vrd_ocr}
 
-A Visually Rich Document (VRD) is a document format where the spatial arrangement and visual styling are just as important as the written words \cite{cui2021documentai}. Examples include receipts, invoices, official application forms, tax declarations, and financial tables. In these documents, reading text sequentially from top-left to bottom-right often fails to capture the true meaning, because information is organized into multiple columns, tables, or separate boxes.
+Unlike plain text, Visually Rich Documents (VRDs) require joint modeling of lexical tokens, 2D spatial geometry, and visual rendering \cite{cui2021documentai}. Standard pipelines first apply Optical Character Recognition (OCR) to detect word-level bounding boxes $\tilde{\mathbf{b}}_i$ and transcribe character strings, which are subsequently normalized to the integer coordinate domain $[0, 1000]^4$ (Equation~\ref{eq:doc_representation}) to ensure scale invariance across heterogeneous scan resolutions.
 
-In typical document understanding workflows, processing starts by running Optical Character Recognition (OCR) on the scanned document image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$. The OCR system performs two functions:
-\begin{enumerate}
-    \item \textbf{Text Detection:} Locates bounding boxes around individual words or text lines, yielding coordinates $\tilde{\mathbf{b}}_i = (\tilde{x}_0^{(i)}, \tilde{y}_0^{(i)}, \tilde{x}_1^{(i)}, \tilde{y}_1^{(i)})$.
-    \item \textbf{Text Recognition:} Transcribes the image content within each box into character strings $w_i$, and identifies words that belong to the same text line.
-\end{enumerate}
+When Byte-Pair Encoding (BPE) \cite{sennrich2016neural,liu2019roberta} splits a single OCR word into $m > 1$ subword tokens $(w_{i,1}, \dots, w_{i,m})$, all constituent subwords inherit the parent word's normalized bounding box $\mathbf{b}_i$ and OCR line segment index $s_i$. Under standard IOB2 sequence labeling \cite{ramshaw1995text}, cross-entropy supervision and \texttt{seqeval} entity decoding are restricted strictly to the initial subword $w_{i,1}$, while continuation subwords $(w_{i,2}, \dots, w_{i,m})$ are masked with label index $-100$ so that subword fertility does not skew gradient magnitudes or boundary evaluation.
 
-Because document images come in various resolutions and orientations, coordinates are normalized to an integer range between $0$ and $1000$:
-\begin{equation}
-    x_0^{(i)} = \left\lfloor \frac{\tilde{x}_0^{(i)}}{W} \times 1000 \right\rfloor, \quad
-    y_0^{(i)} = \left\lfloor \frac{\tilde{y}_0^{(i)}}{H} \times 1000 \right\rfloor,
-\end{equation}
-with $x_1^{(i)}$ and $y_1^{(i)}$ computed similarly. This normalization allows models to handle different page sizes without changing their embedding tables.
-
-\subsection{Sequence Labeling and BIO Tagging}
-\label{subsec:iob2_scheme}
-
-Key Information Extraction is commonly set up as a sequence labeling problem using the BIO (or IOB2) tagging convention \cite{ramshaw1995text}. Under this scheme, every token $w_i$ is assigned a label indicating whether it starts an entity, continues an entity, or falls outside any target class:
-\begin{itemize}
-    \item $\texttt{B-}e_k$: Marks the beginning of an entity of type $e_k$.
-    \item $\texttt{I-}e_k$: Marks continuation tokens inside the same entity $e_k$.
-    \item $\texttt{O}$: Marks tokens that do not belong to any entity of interest.
-\end{itemize}
-
-When words are split into multiple subwords by Byte-Pair Encoding (BPE) \cite{sennrich2016neural}, standard evaluation protocols only evaluate the prediction on the first subword token of each word, ignoring subsequent subwords during metric computation.
-
-\subsection{Multimodal Self-Attention Mechanisms}
+\subsection{2D Spatial-Aware Multimodal Attention}
 \label{subsec:transformer_attention}
 
-The Transformer architecture \cite{vaswani2017attention} serves as the basis for modern vision and language processing. In a standard self-attention layer, an input representation $\mathbf{H} \in \mathbb{R}^{N \times d}$ is projected into queries ($\mathbf{Q}$), keys ($\mathbf{K}$), and values ($\mathbf{V}$) across $H_{\text{head}}$ attention heads:
+To fuse textual and visual streams within a single Transformer \cite{vaswani2017attention}, modern document backbones concatenate $L$ text token embeddings with $M+1$ visual patch embeddings into a unified sequence $\mathbf{H} \in \mathbb{R}^{(L+M+1) \times d}$. Because standard 1D sinusoidal or learned position embeddings capture only serialized reading order, LayoutLMv2 \cite{xu2021layoutlmv2} and LayoutLMv3 \cite{huang2022layoutlmv3} inject explicit 2D spatial biases into the pre-softmax attention logits of each head $h$:
 \begin{equation}
-    \mathbf{Q}_h = \mathbf{H}\mathbf{W}_h^Q, \quad
-    \mathbf{K}_h = \mathbf{H}\mathbf{W}_h^K, \quad
-    \mathbf{V}_h = \mathbf{H}\mathbf{W}_h^V,
+    \mathbf{A}_h = \text{softmax}\!\left( \frac{\mathbf{Q}_h \mathbf{K}_h^\top}{\sqrt{d_k}} + \mathbf{B}^{\text{1D}}_{\text{rel}} + \mathbf{B}^{\text{2D-}x}_{\text{rel}} + \mathbf{B}^{\text{2D-}y}_{\text{rel}} \right),
+    \label{eq:spatial_attention}
 \end{equation}
-where each head has dimension $d_k = d / H_{\text{head}}$. The attention weights are calculated using scaled dot-product attention:
-\begin{equation}
-    \text{Attention}(\mathbf{Q}_h, \mathbf{K}_h, \mathbf{V}_h) = \text{softmax}\!\left(\frac{\mathbf{Q}_h \mathbf{K}_h^\top}{\sqrt{d_k}} + \mathbf{B}_{\text{rel}}\right)\mathbf{V}_h,
-    \label{eq:scaled_dot_attention}
-\end{equation}
-where $\mathbf{B}_{\text{rel}}$ denotes relative position bias terms. In multimodal document models, $\mathbf{H}$ contains both textual tokens and visual tokens, allowing them to attend to each other across all layers.
+where $\mathbf{B}^{\text{1D}}_{\text{rel}}(i,j)$ encodes relative 1D sequence distance $|i - j|$, while $\mathbf{B}^{\text{2D-}x}_{\text{rel}}(i,j)$ and $\mathbf{B}^{\text{2D-}y}_{\text{rel}}(i,j)$ are learnable bucketed biases indexed by the horizontal and vertical coordinate offsets $(x_0^{(i)} - x_0^{(j)})$ and $(y_0^{(i)} - y_0^{(j)})$. While these pairwise biases capture continuous coordinate deltas, they remain agnostic to discrete structural boundaries—such as whether two horizontally separated tokens belong to the same reading line or to adjacent columns in a multi-column form.
 
-\section{The LayoutLM Model Family}
+\section{The LayoutLM Architecture Family}
 \label{sec:layoutlm_evolution}
 
-\subsection{LayoutLM and LayoutLMv2}
+\subsection{Evolution from LayoutLM to LayoutLMv2}
 \label{subsec:layoutlm_v1_v2}
 
-LayoutLM \cite{xu2020layoutlm} was among the first models to combine text and spatial layouts in pretraining. Built on BERT \cite{devlin2019bert}, it introduced 2D spatial coordinate embeddings $(x_0, y_0, x_1, y_1)$ for each word. While LayoutLM could incorporate visual features from a Faster R-CNN backbone during fine-tuning, image representations were not part of its pretraining objectives.
+LayoutLM \cite{xu2020layoutlm} extended BERT \cite{devlin2019bert} by summing 2D coordinate embeddings $(x_0, y_0, x_1, y_1)$ with subword embeddings during Masked Visual-Language Modeling on IIT-CDIP scans, relying on an external Faster R-CNN detector only during downstream fine-tuning. LayoutLMv2 \cite{xu2021layoutlmv2} integrated a ResNeXt-FPN convolutional visual backbone directly into pre-training alongside spatial-aware self-attention (Equation~\ref{eq:spatial_attention}) and cross-modal Text-Image Alignment objectives. However, the convolutional feature extractor introduced substantial parameter overhead and region-alignment bottlenecks.
 
-LayoutLMv2 \cite{xu2021layoutlmv2} integrated visual information directly into pretraining by extracting visual feature maps using a ResNeXt-FPN convolutional network. It also introduced spatial-aware self-attention, adding relative position biases along the horizontal and vertical axes. While LayoutLMv2 showed strong accuracy improvements, using a convolutional visual backbone resulted in high computational overhead and made training complex.
-
-\subsection{LayoutLMv3 Architecture}
+\subsection{LayoutLMv3 Backbone}
 \label{subsec:layoutlmv3_backbone}
 
-LayoutLMv3 \cite{huang2022layoutlmv3} simplifies this pipeline by replacing convolutional feature extractors with linear image patch projections, following Vision Transformers \cite{dosovitskiy2020image}. Figure~\ref{fig:layoutlmv3_arch} shows the overall architecture of LayoutLMv3.
+LayoutLMv3 \cite{huang2022layoutlmv3} eliminates heavy CNN backbones by adopting Vision Transformer (ViT) linear patch projections \cite{dosovitskiy2020image}, as illustrated in Figure~\ref{fig:layoutlmv3_arch}.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.88\textwidth]{chapter2/architecture.png}
-    \caption{Architecture overview of the LayoutLMv3 backbone, showing text embeddings, visual patch projections, and multimodal pretraining objectives \cite{huang2022layoutlmv3}.}
+    \includegraphics[width=0.86\textwidth]{chapter2/architecture.png}
+    \caption{Architecture of the LayoutLMv3 backbone, unifying segment-shared 2D text embeddings and linear image patch projections under joint MLM, MIM, and WPA pre-training \cite{huang2022layoutlmv3}.}
     \label{fig:layoutlmv3_arch}
 \end{figure}
 
-The input sequence to the LayoutLMv3 Transformer consists of two concatenated streams:
+Its input representation comprises two streams:
 \begin{enumerate}
-    \item \textbf{Text Stream:} Text is tokenized using RoBERTa's Byte-Pair Encoding vocabulary \cite{liu2019roberta}. For each token, the input embedding is formed by summing its word embedding, 1D position embedding, token type embedding, and 2D spatial layout embedding:
+    \item \textbf{Text Embedding Stream:} Each BPE subword $w_i$ combines its token embedding, 1D position embedding, token-type embedding, and 6-tuple 2D box embedding $(x_0, y_0, x_1, y_1, w, h)$:
     \begin{equation}
         \mathbf{e}_i^{\text{text}} = \text{LN}\!\left( \mathbf{e}^{\text{word}}(w_i) + \mathbf{e}^{\text{pos1D}}(i) + \mathbf{e}^{\text{type}}(0) + \mathbf{e}^{\text{pos2D}}(\mathbf{b}_i) \right).
         \label{eq:layoutlmv3_text_emb}
     \end{equation}
-    Importantly, words belonging to the same text line share identical segment-level bounding box coordinates, which helps reduce OCR bounding box noise.
-
-    \item \textbf{Image Patch Stream:} The document image $\mathbf{I}$ (resized to $224 \times 224$ pixels) is partitioned into $M = 14 \times 14 = 196$ non-overlapping patches of size $16 \times 16$. Each patch is linearly projected to dimension $d$, combined with a learnable visual position embedding, and prepended with a visual class token $[\texttt{CLS}_{\text{vis}}]$.
+    Instead of noisy word-level boxes, LayoutLMv3 assigns identical segment-level bounding coordinates to all words within the same OCR text line.
+    \item \textbf{Visual Patch Stream:} The $224 \times 224$ page image $\mathbf{I}$ is split into $M = 196$ patches of $16 \times 16$ pixels, linearly projected to $\mathbb{R}^d$, summed with learnable 1D visual position embeddings, and prepended with $[\texttt{CLS}_{\text{vis}}]$.
 \end{enumerate}
+Pre-trained on 11 million IIT-CDIP pages using Masked Language Modeling (MLM), Masked Image Modeling (MIM, reconstructing discrete dVAE visual tokens), and Word-Patch Alignment (WPA), LayoutLMv3 provides a strong foundation for document understanding.
 
-LayoutLMv3 is pretrained on 11 million document images from the IIT-CDIP collection using three self-supervised objectives: Masked Language Modeling (MLM), Masked Image Modeling (MIM), and Word-Patch Alignment (WPA). This combination enables the model to learn cross-modal relationships effectively while maintaining high computational efficiency.
-
-\section{Related Work in Document AI}
+\section{Related Work in Structural and Cross-Modal Document KIE}
 \label{sec:related_work_kie}
 
-\subsection{Layout and Structural Modeling}
+\subsection{Topological Layout and Segment Modeling}
 
-Several recent approaches have investigated ways to explicitly encode document layouts. StructuralLM \cite{li2021structurallm} introduced cell-level 2D position embeddings to bridge word-level and block-level information in forms. BROS \cite{hong2022bros} focused on relative spatial bounding box offsets to handle complex layouts and non-standard reading orders. FormNet \cite{lee2022formnet} used graph convolutional networks to model spatial connections between words, avoiding strict sequential ordering assumptions.
+Recent studies demonstrate that flat 2D coordinate embeddings are insufficient for complex multi-column and tabular layouts. StructuralLM \cite{li2021structurallm} grouped words into shared 2D cell embeddings to capture form regions, while BROS \cite{hong2022bros} encoded relative spatial offsets between bounding box vertices to improve reading-order robustness. Graph-based architectures such as FormNet \cite{lee2022formnet} and GraphLayoutLM \cite{li2023graphlayoutlm} constructed explicit layout graphs over neighboring text segments to mitigate serialization distortion, and ROAP \cite{xie2026roap} injected reading-order-aware relative position biases derived from an Adaptive-XY-Gap tree.
 
-Other works explore reading-order extraction and graph modeling. GraphLayoutLM \cite{li2023graphlayoutlm} constructed hierarchical layout graphs to guide the attention matrix. ROAP \cite{xie2026roap} introduced an Adaptive-XY-Gap tree algorithm to recover logical reading sequences from complex documents, adding reading-order position biases directly into self-attention. These studies confirm that relying solely on flat 2D bounding boxes is often insufficient for understanding multi-column and dense tabular layouts.
+Unlike approaches that require custom graph attention kernels or full re-pretraining on millions of pages, my Hierarchical Position Encoding (HPE) and Segment Context Module (SCM) inject multi-scale layout topology (line, column, block) and inter-segment reading context directly into an off-the-shelf LayoutLMv3 checkpoint via ReZero residual gating \cite{bachlechner2021rezero}.
 
-\subsection{Cross-Modal Alignment and Tuning Strategies}
+\subsection{Cross-Modal Alignment and Boundary Supervision}
 
-Another important line of research focuses on improving cross-modal alignment during adaptation. While pretraining provides general visual-textual associations, standard fine-tuning often optimizes only the sequence labeling objective on text tokens, leaving visual representations under-utilized.
-
-To improve cross-modal alignment, AETNet \cite{wang2023aetnet} proposed alignment-enriched tuning for patch-level document models. By introducing contrastive objectives between document images and text representations, AETNet improves feature quality on downstream tasks without retraining the full model from scratch. Similarly, DocExtractNet \cite{yan2025docextractnet} combined multimodal feature enhancement with side-tuning and prompt-based hints to handle poor-quality scans and incomplete text fields. These works demonstrate that maintaining explicit alignment objectives between text and image representations is valuable when adapting models to specialized document benchmarks.
+During downstream KIE fine-tuning, optimizing token cross-entropy alone leaves the visual patch stream without direct supervision, allowing cross-modal alignment to degrade \cite{wang2023aetnet}. AETNet \cite{wang2023aetnet} addressed this by introducing patch-token contrastive objectives during fine-tuning, while DocExtractNet \cite{yan2025docextractnet} combined cross-modal feature enhancement with side-tuning to handle noisy scans. However, my empirical analysis reveals that applying symmetric InfoNCE directly to post-segment token representations creates gradient interference with token boundary classification on smaller backbones. I resolve this limitation by decoupling pre-SCM contrastive alignment with stop-gradient visual anchors from post-SCM classification and pairing it with explicit Intra-Line Boundary supervision.

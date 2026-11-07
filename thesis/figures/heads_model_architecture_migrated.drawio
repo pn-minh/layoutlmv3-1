@@ -1,13 +1,9 @@
 <mxfile host="65bd71144e">
     <diagram id="model_arch_migrated" name="Structure-Aware LayoutLMv3">
-        <mxGraphModel dx="1050" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1200" math="1" shadow="0">
+        <mxGraphModel dx="173" dy="138" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1200" math="1" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-
-                <!-- ========================================================================= -->
-                <!-- 1. INPUT MODULE (x=40, y=40, w=460, h=260)                                -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_input" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#F1F5F9;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Input&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="260" width="460" x="40" y="40" as="geometry"/>
                 </mxCell>
@@ -41,7 +37,6 @@
                 <mxCell id="lbl_pos2d" parent="c_input" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#000000;align=left;verticalAlign=middle;" value="`&quot;2D Spatial Embedding&quot;`" vertex="1">
                     <mxGeometry height="26" width="145" x="292" y="200" as="geometry"/>
                 </mxCell>
-                <!-- Strictly Horizontal Edges in Input Module -->
                 <mxCell id="9GxaVimFCrMZP6Yi7SCQ-58" edge="1" parent="c_input" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;" value="">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="155" y="69" as="sourcePoint"/>
@@ -66,10 +61,6 @@
                         <mxPoint x="200" y="213" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 2. HIERARCHICAL POSITION ENCODING (x=40, y=330, w=460, h=270)             -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_hpe" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#F1F5F9;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Hierarchical Position Encoding&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="270" width="460" x="40" y="330" as="geometry"/>
                 </mxCell>
@@ -135,10 +126,6 @@
                 <mxCell id="9GxaVimFCrMZP6Yi7SCQ-24" edge="1" parent="c_hpe" source="box_proj" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="pill_ehier" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 3. ADDER & LAYOUTLMV3 BACKBONE PILLAR (x=535..690, y=40..600)             -->
-                <!-- ========================================================================= -->
                 <mxCell id="adder_node" parent="1" style="shape=image;imageAspect=0;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%20%3Ccircle%20cx%3D%2218%22%20cy%3D%2218%22%20r%3D%2216.5%22%20fill%3D%22%23FFFFFF%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%2F%3E%20%3Cline%20x1%3D%2218%22%20y1%3D%225%22%20x2%3D%2218%22%20y2%3D%2231%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%2F%3E%20%3Cline%20x1%3D%225%22%20y1%3D%2218%22%20x2%3D%2231%22%20y2%3D%2218%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%2F%3E%20%3C%2Fsvg%3E;" value="" vertex="1">
                     <mxGeometry height="36" width="36" x="535" y="302" as="geometry"/>
                 </mxCell>
@@ -165,10 +152,6 @@
                 <mxCell id="4" edge="1" parent="1" source="adder_node" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="bb_pillar" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 4. SEGMENT CONTEXT MODULE (x=730, y=40, w=430, h=140)                     -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_scm" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#D1EDE3;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Segment Context Module&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="140" width="430" x="730" y="40" as="geometry"/>
                 </mxCell>
@@ -211,10 +194,6 @@
                 <mxCell id="9GxaVimFCrMZP6Yi7SCQ-43" edge="1" parent="c_scm" source="box_seg_enc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="9GxaVimFCrMZP6Yi7SCQ-37" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 5. TOKEN CUBES, NEURAL NETWORK CLASSIFIER, LOGITS & SOFTMAX               -->
-                <!-- ========================================================================= -->
                 <mxCell id="cube_h1" parent="1" style="shape=image;imageAspect=0;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2229%22%20height%3D%2225%22%20viewBox%3D%220%200%2029%2025%22%3E%20%3Cpolygon%20points%3D%2224%2C5%2029%2C0%2029%2C20%2024%2C25%22%20fill%3D%22%23F1F5F9%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%20%3Cpolygon%20points%3D%220%2C5%205%2C0%2029%2C0%2024%2C5%22%20fill%3D%22%23FFFFFF%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%20%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%2224%22%20height%3D%2220%22%20fill%3D%22%23D4E8FA%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%20%3C%2Fsvg%3E;" value="" vertex="1">
                     <mxGeometry height="25" width="29" x="725" y="265" as="geometry"/>
                 </mxCell>
@@ -227,14 +206,12 @@
                 <mxCell id="lbl_hi" parent="1" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#000000;align=center;" value="`\mathbf{h}_i`" vertex="1">
                     <mxGeometry height="22" width="40" x="755" y="294" as="geometry"/>
                 </mxCell>
-                <!-- Backbone to Token Cubes -->
                 <mxCell id="edge_bb_to_hi" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;" value="">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="690" y="277.5" as="sourcePoint"/>
                         <mxPoint x="725" y="277.5" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <!-- Pooling Arrow up into SCM -->
                 <mxCell id="6" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;" value="">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="762.5" y="265" as="sourcePoint"/>
@@ -244,8 +221,6 @@
                 <mxCell id="9GxaVimFCrMZP6Yi7SCQ-63" parent="1" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#000000;align=center;horizontal=0;" value="`&quot;Pooling&quot;`" vertex="1">
                     <mxGeometry height="60" width="22" x="736" y="185" as="geometry"/>
                 </mxCell>
-
-                <!-- 3-Layer Neural Network Classifier -->
                 <mxCell id="9GxaVimFCrMZP6Yi7SCQ-64" parent="1" style="shape=image;imageAspect=0;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22110%22%20height%3D%2268%22%20viewBox%3D%220%200%20110%2068%22%3E%20%3Crect%20x%3D%221.5%22%20y%3D%221.5%22%20width%3D%22107%22%20height%3D%2265%22%20rx%3D%226%22%20fill%3D%22%23FFFFFF%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%20%3Cline%20x1%3D%2218%22%20y1%3D%2214%22%20x2%3D%2255%22%20y2%3D%228%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2214%22%20x2%3D%2255%22%20y2%3D%2225%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2214%22%20x2%3D%2255%22%20y2%3D%2242%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2214%22%20x2%3D%2255%22%20y2%3D%2260%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2234%22%20x2%3D%2255%22%20y2%3D%228%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2234%22%20x2%3D%2255%22%20y2%3D%2225%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2234%22%20x2%3D%2255%22%20y2%3D%2242%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2234%22%20x2%3D%2255%22%20y2%3D%2260%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2254%22%20x2%3D%2255%22%20y2%3D%228%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2254%22%20x2%3D%2255%22%20y2%3D%2225%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2254%22%20x2%3D%2255%22%20y2%3D%2242%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2218%22%20y1%3D%2254%22%20x2%3D%2255%22%20y2%3D%2260%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%228%22%20x2%3D%2292%22%20y2%3D%2214%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%228%22%20x2%3D%2292%22%20y2%3D%2234%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%228%22%20x2%3D%2292%22%20y2%3D%2254%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2225%22%20x2%3D%2292%22%20y2%3D%2214%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2225%22%20x2%3D%2292%22%20y2%3D%2234%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2225%22%20x2%3D%2292%22%20y2%3D%2254%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2242%22%20x2%3D%2292%22%20y2%3D%2214%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2242%22%20x2%3D%2292%22%20y2%3D%2234%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2242%22%20x2%3D%2292%22%20y2%3D%2254%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2260%22%20x2%3D%2292%22%20y2%3D%2214%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2260%22%20x2%3D%2292%22%20y2%3D%2234%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%3Cline%20x1%3D%2255%22%20y1%3D%2260%22%20x2%3D%2292%22%20y2%3D%2254%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%2F%3E%20%3Ccircle%20cx%3D%2218%22%20cy%3D%2214%22%20r%3D%225%22%20fill%3D%22%23D1EDE3%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2234%22%20r%3D%225%22%20fill%3D%22%23D1EDE3%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2254%22%20r%3D%225%22%20fill%3D%22%23D1EDE3%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2255%22%20cy%3D%228%22%20r%3D%225%22%20fill%3D%22%23FCE0BE%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2255%22%20cy%3D%2225%22%20r%3D%225%22%20fill%3D%22%23FCE0BE%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2255%22%20cy%3D%2242%22%20r%3D%225%22%20fill%3D%22%23FCE0BE%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2255%22%20cy%3D%2260%22%20r%3D%225%22%20fill%3D%22%23FCE0BE%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2292%22%20cy%3D%2214%22%20r%3D%225%22%20fill%3D%22%23D4E8FA%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2292%22%20cy%3D%2234%22%20r%3D%225%22%20fill%3D%22%23D4E8FA%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%3Ccircle%20cx%3D%2292%22%20cy%3D%2254%22%20r%3D%225%22%20fill%3D%22%23D4E8FA%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221.5%22%2F%3E%20%3C%2Fsvg%3E;" value="" vertex="1">
                     <mxGeometry height="95" width="154" x="910" y="230" as="geometry"/>
                 </mxCell>
@@ -259,8 +234,6 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- Token & Segment Logits Pills -->
                 <mxCell id="pill_tok_logits" parent="1" style="rounded=1;arcSize=16;fillColor=#FCE0BE;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontSize=12;fontStyle=1;html=1;align=center;" value="`&quot;Token Logits&quot;`" vertex="1">
                     <mxGeometry height="44" width="125" x="890" y="380" as="geometry"/>
                 </mxCell>
@@ -278,8 +251,6 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- Softmax Classifier Box -->
                 <mxCell id="box_softmax" parent="1" style="rounded=1;arcSize=12;fillColor=#D4E8FA;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontSize=13;fontStyle=1;html=1;align=center;" value="`&quot;Softmax Classifier&quot;`" vertex="1">
                     <mxGeometry height="44" width="195" x="965" y="485" as="geometry"/>
                 </mxCell>
@@ -291,18 +262,11 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="edge_seg_to_soft" edge="1" parent="1" source="pill_seg_logits" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" target="box_softmax" value="">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="1097.5" y="455"/>
-                            <mxPoint x="1111.25" y="455"/>
-                        </Array>
+                <mxCell id="edge_seg_to_soft" edge="1" parent="1" source="pill_seg_logits" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.68;entryY=0.024;entryDx=0;entryDy=0;entryPerimeter=0;" target="box_softmax" value="">
+                    <mxGeometry relative="1" x="0.0007" as="geometry">
+                        <Array as="points"/>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 6. INTRA-LINE BOUNDARY LOSS MODULE (x=40, y=650, w=435, h=310)            -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_boundary" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#FCE0BE;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Intra-Line Boundary Loss&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="310" width="435" x="40" y="650" as="geometry"/>
                 </mxCell>
@@ -349,10 +313,6 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 7. CROSS-MODAL CONTRASTIVE LOSS MODULE (x=505, y=650, w=435, h=310)       -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_contrastive" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#F1F5F9;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Cross-Modal Contrastive Loss&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="310" width="435" x="505" y="650" as="geometry"/>
                 </mxCell>
@@ -418,10 +378,6 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 8. CLASSIFICATION LOSS MODULE (x=965, y=650, w=195, h=310)                -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_cls_loss" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#D4E8FA;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Classification Loss&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="310" width="195" x="965" y="650" as="geometry"/>
                 </mxCell>
@@ -440,10 +396,6 @@
                 <mxCell id="cls_edge_1" edge="1" parent="c_cls_loss" source="cls_bars_icon" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="cls_gt_icon" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 9. MULTI-TASK TRAINING OBJECTIVE (x=40, y=1020, w=1120, h=110)            -->
-                <!-- ========================================================================= -->
                 <mxCell id="c_total_loss" parent="1" style="swimlane;startSize=32;rounded=1;arcSize=6;fillColor=#F1F5F9;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=14;fontStyle=1;whiteSpace=wrap;html=1;collapsible=0;" value="&lt;b&gt;`\mathbf{&quot;Multi-Task Training Objective&quot;}`&lt;/b&gt;" vertex="1">
                     <mxGeometry height="110" width="1120" x="40" y="1020" as="geometry"/>
                 </mxCell>
@@ -474,11 +426,6 @@
                 <mxCell id="total_edge_4" edge="1" parent="c_total_loss" source="plus_loss_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="pill_loss_cls" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
-                <!-- ========================================================================= -->
-                <!-- 10. INTER-MODULE ORTHOGONAL CONNECTIONS (ZERO CROSSINGS, ZERO DIAGONALS)  -->
-                <!-- ========================================================================= -->
-                <!-- Lane 1: Token Cube (x=739.5) -> Boundary Loss (x=257.5, y=650) -->
                 <mxCell id="edge_tokens_to_bound" edge="1" parent="1" source="cube_h1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="c_boundary" value="">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
@@ -487,20 +434,14 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <!-- Lane 2: Patch/Token Cube (x=809.5) -> Contrastive Loss (x=722.5, y=650) -->
-                <mxCell id="edge_patches_to_cont" edge="1" parent="1" source="9GxaVimFCrMZP6Yi7SCQ-19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="c_contrastive" value="">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="809.5" y="615"/>
-                            <mxPoint x="722.5" y="615"/>
-                        </Array>
+                <mxCell id="edge_patches_to_cont" edge="1" parent="1" source="9GxaVimFCrMZP6Yi7SCQ-19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.7;entryY=0.001;entryDx=0;entryDy=0;entryPerimeter=0;" target="c_contrastive" value="">
+                    <mxGeometry relative="1" x="0.2434" as="geometry">
+                        <Array as="points"/>
                     </mxGeometry>
                 </mxCell>
-                <!-- Lane 3: Softmax Classifier (x=1062.5) -> Classification Loss (x=1062.5, y=650) -->
                 <mxCell id="12" edge="1" parent="1" source="box_softmax" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="c_cls_loss" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <!-- Straight Vertical Drops from the 3 Loss Modules into Multi-Task Objective -->
                 <mxCell id="edge_bound_to_total" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;" value="">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="257.5" y="960" as="sourcePoint"/>

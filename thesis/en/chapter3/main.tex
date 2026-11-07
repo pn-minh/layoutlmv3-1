@@ -1,184 +1,122 @@
 \chapter{Proposed Methodology}
 \label{chap:methodology}
 
-\section{Overview of the Proposed Framework}
+\section{Overview of the Proposed Architecture}
 \label{sec:method_overview}
 
-To address the limitations of standard LayoutLMv3 on document key information extraction, we propose a structure-aware architecture that enhances the backbone at multiple stages. The framework introduces four practical components:
+To resolve the four structural failure modes of baseline LayoutLMv3 identified in Chapter~\ref{chap:introduction}—cross-column coordinate ambiguity, intra-segment label jitter, intra-line span bleeding, and cross-modal representation drift—I design a structure-aware architecture comprising four complementary components:
 \begin{enumerate}
-    \item \textbf{Hierarchical Position Encoding (HPE):} Replaces flat 2D coordinate embeddings with a hierarchical representation that explicitly groups tokens into reading lines, columns, and logical blocks before self-attention.
-    \item \textbf{Segment Context Module (SCM):} Pools token representations into text-line vectors, models interactions across lines using a lightweight Transformer encoder, and injects segment context back into tokens with a ReZero gating mechanism and segment-start embeddings.
-    \item \textbf{Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$):} Supervise adjacent token pairs on the same line using an auxiliary binary classifier, penalizing incorrect entity transitions and reducing span fragmentation.
-    \item \textbf{Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$):} Aligns contextualized text tokens with their corresponding visual image patches, encouraging the model to retain strong visual-textual consistency during fine-tuning.
+    \item \textbf{Hierarchical Position Encoding (HPE):} Clusters token bounding boxes into reading lines ($id_l$), vertical columns ($id_c$), and logical blocks ($id_b$), injecting explicit multi-scale layout topology into the input token embeddings prior to multimodal self-attention.
+    \item \textbf{Segment Context Module (SCM):} Mean-pools token hidden states within each OCR line segment, models inter-segment reading context via a ReZero-gated Transformer layer, and broadcasts segment consensus back to constituent tokens alongside a binary segment-onset embedding.
+    \item \textbf{Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$):} Supervises consecutive intra-line token pairs $(i, i+1)$ with an auxiliary binary transition classifier to enforce sharp cuts between adjacent inline entities.
+    \item \textbf{Calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$):} Aligns pre-SCM token states with detached visual patch anchors via a spatial-overlap soft-target InfoNCE objective, grounding text representations in local visual typography while avoiding gradient interference with post-SCM boundary classification.
 \end{enumerate}
 
-Figure~\ref{fig:proposed_architecture} illustrates the overall pipeline of our proposed architecture. Unlike earlier exploration that experimented with gated late-fusion between token and segment streams, our final model directly classifies the segment-enriched token representations, keeping the classification head simple and computationally lightweight.
+Figure~\ref{fig:proposed_architecture} illustrates the complete end-to-end architecture. Both $\mathcal{L}_{\text{bound}}$ and $\mathcal{L}_{\text{cont}}$ operate strictly as training-time regularizers; during inference, only the linear token classification head is executed, introducing zero additional latency over the segment-enriched backbone.
 
-\input{../figures/fig_proposed_architecture_en.tex}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{chapter3/model_architecture.pdf}
+\caption{End-to-end architecture of my proposed structure-aware LayoutLMv3 framework for Key Information Extraction on Visually Rich Documents, integrating (1) Hierarchical Position Encoding (HPE), (2) Multimodal LayoutLMv3 Backbone, (3) Segment Context Module (SCM) with ReZero gating and onset embeddings, (4) Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$), and (5) Calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$) with detached visual patch anchors.}
+\label{fig:proposed_architecture}
+\end{figure}
 
-\section{Hierarchical Position Encoding}
+\section{Hierarchical Position Encoding (HPE)}
 \label{sec:method_hpe}
 
-In baseline LayoutLMv3, each normalized coordinate $(x_0, y_0, x_1, y_1, w, h)$ of token $i$ is looked up independently in an embedding table. While this preserves coordinate values, it does not explicitly tell the model which words lie on the same line or which text blocks belong together.
-
-To provide clear structural cues, our Hierarchical Position Encoding (HPE) organizes bounding boxes into three hierarchical levels using geometric heuristics during preprocessing:
+Baseline LayoutLMv3 embeds normalized coordinates $(x_0, y_0, x_1, y_1, w, h)$ along flat horizontal and vertical axes, providing no explicit signal indicating whether two tokens at similar $y$-coordinates reside in the same continuous line or in separate vertical columns. To inject explicit topological structure, I derive three discrete hierarchical indices $(id_l^{(i)}, id_c^{(i)}, id_b^{(i)})$ for each token $i$ from the normalized bounding boxes $\mathbf{b}_i \in [0, 1000]^4$:
 
 \begin{enumerate}
-    \item \textbf{Line Grouping ($id_l$):} Two horizontally adjacent word boxes are assigned to the same reading line if their vertical overlap exceeds $50\%$ of the height of the shorter box:
+    \item \textbf{Line Index ($id_l$):} Horizontally adjacent bounding boxes are merged into the same reading line when their vertical intersection exceeds $50\%$ of the shorter box's height:
     \begin{equation}
-        \frac{\min(y_1^{(i)}, y_1^{(j)}) - \max(y_0^{(i)}, y_0^{(j)})}{\min(h_i, h_j)} \ge 0.5.
+        \frac{\min(y_1^{(i)}, y_1^{(j)}) - \max(y_0^{(i)}, y_0^{(j)})}{\min(h^{(i)}, h^{(j)})} \ge 0.50.
     \end{equation}
-    Words within the same line are sorted from left to right.
+    Tokens sharing $id_l$ are ordered monotonically by $x_0$.
 
-    \item \textbf{Column Detection ($id_c$):} Within a line, if the horizontal gap between two consecutive words exceeds $12\%$ of the total page width, the line is divided into separate column slots. This separation helps the model handle multi-column forms and invoice headers.
+    \item \textbf{Column Index ($id_c$):} Within a reading line, a horizontal gap between consecutive tokens exceeding $12\%$ of the normalized page width ($\Delta x > 120$) increments the column slot $id_c$. This cleanly separates multi-column form fields and right-aligned receipt prices from left-aligned descriptions.
 
-    \item \textbf{Block Grouping ($id_b$):} Consecutive reading lines are grouped into a common block if the vertical gap between them is less than $1.8$ times the median line height of the document page. This step groups sentences into coherent paragraphs or key-value fields.
+    \item \textbf{Block Index ($id_b$):} Vertically consecutive lines within the same column region are grouped into a unified logical block $id_b$ whenever their vertical gap is less than $1.8\times$ the median line height of the page, binding multi-line addresses, paragraphs, and tabular sections.
 \end{enumerate}
 
-After determining the indices $(id_l, id_c, id_b)$ for token $i$, we map each index to a 128-dimensional embedding vector using lookup tables $\mathbf{E}_{\text{line}}$, $\mathbf{E}_{\text{col}}$, and $\mathbf{E}_{\text{block}}$. We concatenate these three vectors into a $384$-dimensional descriptor and project it to match the backbone hidden size $d$ using a linear matrix $\mathbf{W}_{\text{hier}} \in \mathbb{R}^{384 \times d}$:
+Each discrete index is mapped to a $128$-dimensional learnable embedding via lookup tables $\mathbf{E}_{\text{line}}$, $\mathbf{E}_{\text{col}}$, and $\mathbf{E}_{\text{block}}$. The concatenated $384$-dimensional topological vector is projected to the backbone hidden dimension $d \in \{768, 1024\}$ via $\mathbf{W}_{\text{hier}} \in \mathbb{R}^{d \times 384}$ and fused into the input token representation with scale factor $\beta = 1.0$:
 \begin{equation}
-    \mathbf{e}_{\text{hier}}(i) = \mathbf{W}_{\text{hier}} \left[ \mathbf{E}_{\text{line}}(id_l) \;\|\; \mathbf{E}_{\text{col}}(id_c) \;\|\; \mathbf{E}_{\text{block}}(id_b) \right].
+    \mathbf{e}_{\text{hier}}(i) = \mathbf{W}_{\text{hier}} \left[ \mathbf{E}_{\text{line}}(id_l^{(i)}) \;\|\; \mathbf{E}_{\text{col}}(id_c^{(i)}) \;\|\; \mathbf{E}_{\text{block}}(id_b^{(i)}) \right], \qquad
+    \mathbf{e}_i^{\text{total}} = \mathbf{e}_i^{\text{text}} + \beta \, \mathbf{e}_{\text{hier}}(i).
     \label{eq:hpe_embedding}
 \end{equation}
 
-Finally, $\mathbf{e}_{\text{hier}}(i)$ is scaled by a weighting factor $\beta$ and added to the standard token input embeddings:
-\begin{equation}
-    \mathbf{e}_i^{\text{total}} = \mathbf{e}_i^{\text{text}} + \beta \cdot \mathbf{e}_{\text{hier}}(i).
-\end{equation}
-In our experiments, we set $\beta = 1.0$, which provides balanced spatial guidance without dominating the pretrained text features.
-
-\section{Segment Context Module}
+\section{Segment Context Module (SCM)}
 \label{sec:method_scm}
 
-While the LayoutLMv3 backbone contextualizes tokens using self-attention, classifying tokens independently can still lead to inconsistent labels within a multi-word field. The Segment Context Module (SCM) addresses this by allowing text segments to exchange information before final token classification.
+Let $\mathbf{H} = (\mathbf{h}_1, \dots, \mathbf{h}_L) \in \mathbb{R}^{L \times d}$ and $\mathbf{H}^{\text{img}} = (\mathbf{h}_0^{\text{img}}, \mathbf{h}_1^{\text{img}}, \dots, \mathbf{h}_M^{\text{img}}) \in \mathbb{R}^{(M+1) \times d}$ denote the contextualized text and visual patch hidden states emitted by the final layer of the LayoutLMv3 encoder. To eliminate intra-segment label jitter within multi-word entities and enable long-range key-value binding across reading lines, SCM processes $\mathbf{H}$ in three stages:
 
-Let $\mathbf{H} = (\mathbf{h}_1, \dots, \mathbf{h}_L) \in \mathbb{R}^{L \times d}$ denote the token hidden states produced by the LayoutLMv3 encoder. Based on the OCR text line segmentation, each token $i$ is associated with a line segment index $s_i \in \{0, 1, \dots, S-1\}$. The module operates in three steps:
+\begin{enumerate}
+    \item \textbf{Intra-Segment Mean Pooling:}
+    Given the OCR segment assignment $s_i \in \{0, \dots, S-1\}$, let $\mathcal{S}_k = \{i \in \{1, \dots, L\} \mid s_i = k\}$ denote the token indices belonging to segment $k$. I aggregate constituent token states into a compact segment representation $\mathbf{s}_k \in \mathbb{R}^d$:
+    \begin{equation}
+        \mathbf{s}_k = \frac{1}{|\mathcal{S}_k|} \sum_{i \in \mathcal{S}_k} \mathbf{h}_i, \qquad k \in \{0, \dots, S-1\}.
+        \label{eq:segment_mean_pool}
+    \end{equation}
 
-\subsection{Step 1: Segment Aggregation via Mean Pooling}
-For each segment $k \in \{0, \dots, S-1\}$, let $\mathcal{S}_k = \{i \mid s_i = k\}$ be the set of tokens belonging to segment $k$. We compute a compact segment representation $\mathbf{s}_k$ by averaging the hidden states of its constituent tokens:
-\begin{equation}
-    \mathbf{s}_k = \frac{1}{|\mathcal{S}_k|} \sum_{i \in \mathcal{S}_k} \mathbf{h}_i.
-    \label{eq:segment_mean_pool}
-\end{equation}
-This operation compresses the sequence of $L$ tokens into $S$ segment representations, where $S \ll L$.
+    \item \textbf{ReZero-Gated Inter-Segment Transformer:}
+    To model semantic dependencies across reading lines (e.g., transferring context from a \texttt{Total} or \texttt{Question} segment to a standalone numeric or answer segment), I add a learnable segment-order embedding $\mathbf{E}_{\text{seg}}(k) \in \mathbb{R}^d$ and pass the sequence $(\mathbf{s}_0, \dots, \mathbf{s}_{S-1})$ through a lightweight 1-layer bidirectional Transformer encoder (\texttt{SegmentTransformerLayer}). To prevent randomly initialized segment attention weights from perturbing pre-trained backbone representations at the start of fine-tuning, I apply a learnable ReZero residual gate $g \in \mathbb{R}$ initialized at $g = 0$ \cite{bachlechner2021rezero}:
+    \begin{equation}
+        \mathbf{c}_k = \text{TransformerEncoder}\big(\mathbf{s}_k + \mathbf{E}_{\text{seg}}(k)\big), \qquad
+        \mathbf{s}'_k = \mathbf{s}_k + g \cdot (\mathbf{c}_k - \mathbf{s}_k).
+        \label{eq:rezero_segment}
+    \end{equation}
 
-\subsection{Step 2: Inter-Segment Contextualization}
-The pooled segment vectors $(\mathbf{s}_0, \dots, \mathbf{s}_{S-1})$ are ordered according to their reading sequence on the page. We add a learnable segment-position embedding $\mathbf{E}_{\text{seg}}(k)$ to each vector and process the sequence with a lightweight 1-layer Transformer encoder:
-\begin{equation}
-    \mathbf{c}_k = \text{TransformerEncoder}\big(\mathbf{s}_k + \mathbf{E}_{\text{seg}}(k)\big).
-\end{equation}
-This allows each segment (such as an answer field) to directly attend to neighboring segments (such as its corresponding question label).
+    \item \textbf{Segment Broadcast and Onset Indicator Embedding:}
+    When $\mathbf{s}'_{s_i}$ is broadcast back to all tokens $i \in \mathcal{S}_{s_i}$, tokens within the same segment receive an identical contextual shift. To preserve sharp differentiation between entity onset (\texttt{B-}) and continuation (\texttt{I-}) tokens at segment starts, I compute a binary segment-onset indicator $f_i = \mathbb{I}[i = 1 \;\vee\; s_i \neq s_{i-1}] \in \{0, 1\}$ and look up a learnable onset embedding $\mathbf{e}_{\text{first}}(f_i) \in \mathbb{R}^d$:
+    \begin{equation}
+        \mathbf{h}_i^{\text{final}} = \mathbf{h}_i + \mathbf{s}'_{s_i} + \mathbf{e}_{\text{first}}(f_i).
+        \label{eq:final_token_repr}
+    \end{equation}
+\end{enumerate}
 
-To ensure that the newly initialized Transformer encoder does not disrupt the pretrained representations during early training steps, we apply a ReZero residual connection \cite{bachlechner2021rezero}. A learnable scalar parameter $g$, initialized to $0.0$, controls the contribution of the contextualized segment state:
-\begin{equation}
-    \mathbf{s}'_k = \mathbf{s}_k + g \cdot (\mathbf{c}_k - \mathbf{s}_k).
-    \label{eq:rezero_segment}
-\end{equation}
-
-\subsection{Step 3: Segment Broadcast and Onset Embedding}
-We broadcast the refined segment representation $\mathbf{s}'_{s_i}$ back to each constituent token $i$. To help the classifier distinguish the first token of an entity (\texttt{B-} tag) from continuation tokens (\texttt{I-} tag), we detect segment transitions using a binary indicator:
-\begin{equation}
-    f_i = \mathds{1}[i = 1 \;\vee\; s_i \neq s_{i-1}].
-\end{equation}
-This indicator looks up a learnable onset embedding $\mathbf{e}_{\text{first}}(f_i) \in \mathbb{R}^d$. The final contextualized token representation is computed as:
-\begin{equation}
-    \mathbf{h}_i^{\text{final}} = \mathbf{h}_i + \mathbf{s}'_{s_i} + \mathbf{e}_{\text{first}}(f_i).
-    \label{eq:final_token_repr}
-\end{equation}
-
-\section{Classification and Intra-Line Boundary Loss}
+\section{Token Classification and Intra-Line Boundary Loss}
 \label{sec:method_boundary_loss}
 
-The final token states $\mathbf{h}_i^{\text{final}}$ are fed directly into a linear classifier with dropout to compute token logits $\mathbf{z}_i = \mathbf{W}_{\text{cls}} \mathbf{h}_i^{\text{final}} + \mathbf{b}_{\text{cls}} \in \mathbb{R}^{|\mathcal{Y}|}$. The primary sequence labeling objective is the standard Cross-Entropy loss over valid non-padding tokens:
-\begin{equation}
-    \mathcal{L}_{\text{CE}} = -\frac{1}{|\mathcal{V}_{\text{valid}}|} \sum_{i \in \mathcal{V}_{\text{valid}}} \log \frac{\exp(z_{i, y_i})}{\sum_{c=1}^{|\mathcal{Y}|} \exp(z_{i, c})}.
-    \label{eq:ce_loss}
-\end{equation}
+The segment-enriched token states $\mathbf{h}_i^{\text{final}}$ are projected via a linear classification head $\mathbf{z}_i = \mathbf{W}_{\text{cls}}\mathbf{h}_i^{\text{final}} + \mathbf{b}_{\text{cls}} \in \mathbb{R}^{|\mathcal{Y}|}$ and supervised on valid word-initial tokens $\mathcal{V}_{\text{valid}}$ ($y_i \neq -100$) using standard multi-class cross-entropy loss $\mathcal{L}_{\text{CE}}(\mathbf{Z}, \mathbf{Y})$.
 
-In addition to token cross-entropy, we introduce an auxiliary Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$) to help the model identify where entities start and end on the same line. For each adjacent token pair $(i, i+1)$ that shares the same reading line ($s_i = s_{i+1}$), we concatenate their representations and pass them through a two-layer MLP boundary classifier:
+Because $\mathcal{L}_{\text{CE}}$ evaluates each token position independently and SCM broadcasts a shared vector $\mathbf{s}'_k$ to all tokens on line $k$, adjacent distinct entities sharing the same horizontal line (such as an inline key-value pair \texttt{TO: George Baroody} on FUNSD or a dense \texttt{cnt}--\texttt{nm}--\texttt{price} item row on CORD) remain vulnerable to boundary bleeding. To enforce sharp intra-line entity cuts, I define the set of valid consecutive intra-line token pairs:
 \begin{equation}
-    p_{i, i+1}^{\text{bound}} = \sigma\Big(\mathbf{W}_2 \, \text{ReLU}\big(\mathbf{W}_1 [\mathbf{h}_i^{\text{final}} \;\|\; \mathbf{h}_{i+1}^{\text{final}}] + \mathbf{b}_1\big) + b_2\Big).
+    \mathcal{P}_{\text{intra}} = \left\{ (i, i+1) \;\middle|\; s_i = s_{i+1} \;\wedge\; i, i+1 \in \mathcal{V}_{\text{valid}} \right\}.
 \end{equation}
+For each pair $(i, i+1) \in \mathcal{P}_{\text{intra}}$, a two-layer bottleneck MLP (\texttt{boundary\_detector}: $2d \to d/2 \to 1$ with GELU activation) predicts the probability of an entity boundary transition:
+\begin{equation}
+    p_{i, i+1}^{\text{bound}} = \sigma\!\left(\mathbf{W}_2 \, \text{GELU}\big(\mathbf{W}_1 [\mathbf{h}_i^{\text{final}} \;\|\; \mathbf{h}_{i+1}^{\text{final}}] + \mathbf{b}_1\big) + b_2\right).
+\end{equation}
+The ground-truth transition target $t_{i, i+1}^{\text{bound}} \in \{0, 1\}$ is set to $1$ if and only if token $i+1$ starts a new entity ($\texttt{B-}$ tag) or switches semantic category relative to token $i$ ($y_i \neq y_{i+1}$ and $y_{i+1}$ is not the matching $\texttt{I-}$ continuation of $y_i$). The Intra-Line Boundary Loss $\mathcal{L}_{\text{bound}}$ is computed as the binary cross-entropy between $p_{i, i+1}^{\text{bound}}$ and $t_{i, i+1}^{\text{bound}}$ averaged over $\mathcal{P}_{\text{intra}}$.
 
-We assign a ground-truth binary label $t_{i, i+1}^{\text{bound}}$ based on whether tokens $i$ and $i+1$ belong to the same entity:
-\begin{equation}
-    t_{i, i+1}^{\text{bound}} = 
-    \begin{cases}
-        0, & \text{if tokens } i \text{ and } i+1 \text{ share the same entity}, \\
-        1, & \text{if token } i+1 \text{ transitions to another entity or background}.
-    \end{cases}
-\end{equation}
-The boundary loss is computed using binary cross-entropy over all valid intra-line pairs:
-\begin{equation}
-    \mathcal{L}_{\text{bound}} = -\frac{1}{|\mathcal{P}_{\text{intra}}|} \sum_{(i, i+1) \in \mathcal{P}_{\text{intra}}} \Big[ t_{i, i+1}^{\text{bound}} \log p_{i, i+1}^{\text{bound}} + (1 - t_{i, i+1}^{\text{bound}}) \log (1 - p_{i, i+1}^{\text{bound}}) \Big].
-    \label{eq:bce_boundary_loss}
-\end{equation}
-This loss penalizes the model when it fails to detect entity transitions within the same horizontal line.
-
-\section{Cross-Modal Contrastive Loss}
+\section{Calibrated Cross-Modal Contrastive Loss}
 \label{sec:method_contrastive_loss}
 
-Document images provide important visual indicators, such as background color, font weight, and dividing lines, that complement text. However, during downstream fine-tuning, standard classification heads only propagate gradients back through the text representations, which can cause the visual patch features to drift \cite{wang2023aetnet}.
+While visual patch tokens capture font weight, text scale, and layout borders, fine-tuning exclusively with textual losses allows cross-modal alignment to degrade or succumb to scanning noise (e.g., background watermarks on CORD receipts or hole-punch margins on FUNSD forms). However, in my initial investigation, applying a naive symmetric InfoNCE loss ($\tau = 0.07, \lambda_{\text{cont}} = 0.10$) directly to the post-SCM representations $\mathbf{h}_i^{\text{final}}$ and single center patches slightly degraded entity F1 on \texttt{base} models ($-0.33\%$ on FUNSD \texttt{base} and $-0.36\%$ on CORD \texttt{base} relative to the 3-module model).
 
-To maintain strong alignment between modalities, we implement a cross-modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$). Let $\mathbf{v}_p \in \mathbb{R}^d$ denote the visual patch representations produced by the image branch, and let $\mathbf{h}_i^{\text{final}}$ denote the contextualized text token representations. For each token $i$, we identify the visual patch $p(i)$ whose spatial coordinates cover the center of the token's bounding box $\mathbf{b}_i$.
+Diagnosing the gradient dynamics revealed three causes of this conflict: (1) pulling post-SCM token states $\mathbf{h}_i^{\text{final}}$ toward spatially coarse $16 \times 16$ visual patches directly opposes the fine-grained token boundary separation enforced by $\mathcal{L}_{\text{bound}}$; (2) backpropagating noisy textual gradients into the visual patch stream without stop-gradient destabilizes pre-trained ViT patch features on small batch sizes; and (3) a multi-character word box often spans multiple visual patches rather than a single center patch.
 
-We project both representations into a normalized 128-dimensional shared space using linear projections $\mathbf{g}_{\text{text}}$ and $\mathbf{g}_{\text{img}}$:
-\begin{equation}
-    \mathbf{z}_i^{\text{text}} = \frac{\mathbf{g}_{\text{text}}(\mathbf{h}_i^{\text{final}})}{\|\mathbf{g}_{\text{text}}(\mathbf{h}_i^{\text{final}})\|_2}, \quad
-    \mathbf{z}_p^{\text{img}} = \frac{\mathbf{g}_{\text{img}}(\mathbf{v}_p)}{\|\mathbf{g}_{\text{img}}(\mathbf{v}_p)\|_2}.
-\end{equation}
+To resolve these issues, my calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$) introduces three architectural refinements:
+\begin{enumerate}
+    \item \textbf{Pre-SCM Text Projection:} Contrastive alignment is applied to the pre-SCM backbone token state $\mathbf{h}_i$ rather than $\mathbf{h}_i^{\text{final}}$, regularizing the multimodal backbone while leaving the post-SCM boundary representations unperturbed.
+    \item \textbf{Detached Visual Patch Anchors:} Visual patch representations $\mathbf{v}_p = \text{stop-grad}(\mathbf{h}_p^{\text{img}})$ ($p \in \{1, \dots, M\}$) are detached from contrastive backpropagation, serving as stable visual anchors before $\ell_2$-normalized projection into $\mathbb{R}^{128}$:
+    \begin{equation}
+        \mathbf{z}_i^{\text{text}} = \frac{\mathbf{W}_{\text{text}}\mathbf{h}_i}{\|\mathbf{W}_{\text{text}}\mathbf{h}_i\|_2}, \qquad
+        \mathbf{z}_p^{\text{img}} = \frac{\mathbf{W}_{\text{img}}\,\text{stop-grad}(\mathbf{h}_p^{\text{img}})}{\|\mathbf{W}_{\text{img}}\,\text{stop-grad}(\mathbf{h}_p^{\text{img}})\|_2}.
+    \end{equation}
+    \item \textbf{Spatial-Overlap Soft-Target InfoNCE:} Mapping normalized token box coordinates $\mathbf{b}_i \in [0, 1000]^4$ onto the $14 \times 14$ visual patch grid defines the set of overlapping patches $\mathcal{P}^+(i)$ along with the primary center patch $p_c(i)$. I assign unnormalized positive affinity weights $\tilde{w}_{i,p} = \mathbb{I}[p \in \mathcal{P}^+(i)] + \mathbb{I}[p = p_c(i)]$ (giving double weight to the center patch), normalized to a target distribution $q_{i,p} = \tilde{w}_{i,p} / \sum_{p'=1}^M \tilde{w}_{i,p'}$. The calibrated contrastive objective optimizes soft-target cross-entropy over patch similarities at temperature $\tau = 0.10$:
+    \begin{equation}
+        \mathcal{L}_{\text{cont}} = -\frac{1}{|\mathcal{V}_{\text{valid}}|} \sum_{i \in \mathcal{V}_{\text{valid}}} \sum_{p \in \mathcal{P}^+(i)} q_{i,p} \log \frac{\exp\!\big((\mathbf{z}_i^{\text{text}})^\top \mathbf{z}_p^{\text{img}} / \tau\big)}{\sum_{p'=1}^{M} \exp\!\big((\mathbf{z}_i^{\text{text}})^\top \mathbf{z}_{p'}^{\text{img}} / \tau\big)}.
+        \label{eq:contrastive_loss}
+    \end{equation}
+\end{enumerate}
 
-For a batch of matched pairs $(i, p(i))$, the contrastive loss pulls matching text-patch pairs together while pushing non-matching patches apart using an InfoNCE formulation with temperature parameter $\tau = 0.07$:
-\begin{equation}
-    \mathcal{L}_{\text{cont}} = -\frac{1}{N_{\text{text}}} \sum_{i=1}^{N_{\text{text}}} \log \frac{\exp\big((\mathbf{z}_i^{\text{text}})^\top \mathbf{z}_{p(i)}^{\text{img}} \,/\, \tau\big)}{\sum_{p'} \exp\big((\mathbf{z}_i^{\text{text}})^\top \mathbf{z}_{p'}^{\text{img}} \,/\, \tau\big)}.
-    \label{eq:contrastive_loss}
-\end{equation}
-
-This objective encourages the model to ground text tokens in their local visual appearance, improving recognition accuracy on degraded or low-contrast document scans.
-
-\section{Joint Training and Optimization}
+\section{Multi-Task Optimization and Zero-Overhead Inference}
 \label{sec:joint_objective}
 
-The full model is trained end-to-end by minimizing the combined loss function:
+During fine-tuning, all active modules are optimized jointly in a single end-to-end backward pass:
 \begin{equation}
     \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{bound}} \mathcal{L}_{\text{bound}} + \lambda_{\text{cont}} \mathcal{L}_{\text{cont}},
     \label{eq:total_loss}
 \end{equation}
-where $\lambda_{\text{bound}}$ and $\lambda_{\text{cont}}$ are hyperparameters that balance the auxiliary objectives. In our primary experiments, we set $\lambda_{\text{bound}} = 0.2$ and $\lambda_{\text{cont}} = 0.1$. Importantly, both the boundary classifier and contrastive projections are used only during training. At inference time, token predictions are produced directly from $\mathbf{z}_i$ via $\text{argmax}$, introducing zero additional inference latency.
-
-Algorithm~\ref{alg:forward_training} summarizes the complete forward pass and training procedure.
-
-\begin{algorithm}[htbp]
-\SetAlgoLined
-\DontPrintSemicolon
-\KwIn{Batch of tokenized documents $\mathcal{B} = \{(\mathbf{w}, \mathbf{b}, \mathbf{s}, \mathbf{I}, \mathbf{y})\}$; weights $\lambda_{\text{bound}} = 0.2, \lambda_{\text{cont}} = 0.1$.}
-\KwOut{Token predictions $\hat{\mathbf{Y}}$ and joint loss $\mathcal{L}_{\text{total}}$.}
-
-\BlankLine
-\textbf{1. Hierarchical Layout Encoding}\;
-Compute line $id_l$, column $id_c$, and block $id_b$ indices for all tokens\;
-Lookup embeddings and project: $\mathbf{e}_{\text{hier}} \leftarrow \mathbf{W}_{\text{hier}} [\mathbf{E}_{\text{line}} \| \mathbf{E}_{\text{col}} \| \mathbf{E}_{\text{block}}]$\;
-Construct text input: $\mathbf{e}_i^{\text{total}} \leftarrow \mathbf{e}_i^{\text{text}} + \beta \mathbf{e}_{\text{hier}}(i)$\;
-
-\BlankLine
-\textbf{2. Multimodal Transformer Encoding}\;
-Extract image patches $\mathbf{E}^{\text{image}}$ from image $\mathbf{I}$\;
-Pass concatenated sequence $[\mathbf{E}^{\text{total}} \| \mathbf{E}^{\text{image}}]$ through LayoutLMv3 backbone\;
-Extract token hidden states $\mathbf{H} = (\mathbf{h}_1, \dots, \mathbf{h}_L)$ and patch states $\mathbf{V}$\;
-
-\BlankLine
-\textbf{3. Segment Context Modeling}\;
-Mean-pool tokens into segment vectors: $\mathbf{s}_k \leftarrow \frac{1}{|\mathcal{S}_k|} \sum_{i \in \mathcal{S}_k} \mathbf{h}_i$\;
-Refine segment representations with ReZero gate: $\mathbf{s}'_k \leftarrow \mathbf{s}_k + g(\mathbf{c}_k - \mathbf{s}_k)$\;
-Broadcast back to tokens with onset embedding: $\mathbf{h}_i^{\text{final}} \leftarrow \mathbf{h}_i + \mathbf{s}'_{s_i} + \mathbf{e}_{\text{first}}(f_i)$\;
-
-\BlankLine
-\textbf{4. Predictions and Multi-Task Loss Computation}\;
-Compute classification logits: $\mathbf{Z} \leftarrow \mathbf{W}_{\text{cls}} \mathbf{h}_i^{\text{final}} + \mathbf{b}_{\text{cls}}$\;
-Calculate Cross-Entropy loss $\mathcal{L}_{\text{CE}}$ using Equation~\ref{eq:ce_loss}\;
-Compute Boundary Loss $\mathcal{L}_{\text{bound}}$ over intra-line token pairs using Equation~\ref{eq:bce_boundary_loss}\;
-Compute Contrastive Loss $\mathcal{L}_{\text{cont}}$ between text tokens and visual patches using Equation~\ref{eq:contrastive_loss}\;
-\Return{$\hat{\mathbf{Y}} = \text{argmax}(\mathbf{Z})$ and $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{bound}} \mathcal{L}_{\text{bound}} + \lambda_{\text{cont}} \mathcal{L}_{\text{cont}}$}\;
-\caption{Forward pass and joint training of the proposed architecture}
-\label{alg:forward_training}
-\end{algorithm}
+with calibrated loss weights $\lambda_{\text{bound}} = 0.10$ and $\lambda_{\text{cont}} = 0.03$ on FUNSD ($\lambda_{\text{cont}} = 0.01$ on CORD). At inference time, \texttt{boundary\_detector}, $\mathbf{W}_{\text{text}}$, and $\mathbf{W}_{\text{img}}$ are bypassed entirely, and entity predictions are decoded directly via $\hat{y}_i = \arg\max_y z_{i,y}$.

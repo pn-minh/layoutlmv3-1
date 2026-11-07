@@ -4,7 +4,7 @@
 \begingroup
 \small
 \renewcommand{\arraystretch}{1.25}
-\begin{longtable}{|>{\RaggedRight\arraybackslash}p{4.2cm}|>{\Centering\arraybackslash}p{2.6cm}|>{\RaggedRight\arraybackslash}p{7.6cm}|}
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{4.4cm}|>{\Centering\arraybackslash}p{2.4cm}|>{\RaggedRight\arraybackslash}p{7.6cm}|}
 \hline
 \textbf{Term} & \textbf{Acronym} & \textbf{Description} \\ \hline
 \endfirsthead
@@ -15,18 +15,19 @@
 \endfoot
 \hline
 \endlastfoot
-Key Information Extraction & KIE & Extracting structured semantic entities from documents \\ \hline
+Key Information Extraction & KIE & Extracting structured semantic entities and key-value fields from documents \\ \hline
 Visually Rich Documents & VRDs & Documents combining text, 2D spatial layout, and visual styling (forms, receipts, invoices) \\ \hline
-Document Artificial Intelligence & Document AI & Automated reading, understanding, and extraction of document data \\ \hline
-Optical Character Recognition & OCR & Recognizing text words and bounding boxes from document images \\ \hline
-Hierarchical Position Encoding & HPE & Multi-level spatial encoding across horizontal lines, local blocks, and vertical columns \\ \hline
+Document Artificial Intelligence & Document AI & Automated reading, structural parsing, and extraction of document data \\ \hline
+Optical Character Recognition & OCR & Detecting text regions and transcribing character sequences from document images \\ \hline
+Hierarchical Position Encoding & HPE & Multi-scale spatial encoding across reading lines, vertical columns, and local blocks \\ \hline
 Segment Context Module & SCM & Module that pools intra-segment tokens and models inter-segment reading-order context \\ \hline
-Late Token-Segment Fusion & LTSF & Masked residual gating between segment-level and token-level logits \\ \hline
-Intra-Line Boundary Loss & Boundary Loss & Pairwise binary cross-entropy loss supervising entity transitions between adjacent tokens \\ \hline
-Beginning-Inside-Outside & BIO & Standard sequence-labeling tag scheme marking entity starts, continuations, and background \\ \hline
-Masked Language Modeling & MLM & Self-supervised pre-training objective reconstructing masked text tokens \\ \hline
+Intra-Line Boundary Loss & $\mathcal{L}_{\text{bound}}$ & Auxiliary binary cross-entropy loss supervising entity transitions between adjacent intra-line tokens \\ \hline
+Cross-Modal Contrastive Loss & $\mathcal{L}_{\text{cont}}$ & Soft-target InfoNCE objective aligning pre-SCM text states with detached visual patch anchors \\ \hline
+Inside-Outside-Beginning & IOB2 / BIO & Sequence-labeling tag scheme marking entity onsets, continuations, and background tokens \\ \hline
+Masked Language Modeling & MLM & Self-supervised pre-training objective reconstructing masked subword tokens \\ \hline
 Masked Image Modeling & MIM & Self-supervised pre-training objective reconstructing discrete tokens of masked image patches \\ \hline
-Word-Patch Alignment & WPA & Cross-modal pre-training objective predicting whether a word's visual patch is masked \\ \hline
-Robotic Process Automation & RPA & Enterprise workflow automation using software robots \\ \hline
+Word-Patch Alignment & WPA & Pre-training objective predicting whether the visual patch corresponding to a word is unmasked \\ \hline
+Enterprise Resource Planning & ERP & Enterprise software systems for accounting, procurement, and supply chain management \\ \hline
+Know Your Customer & KYC & Regulatory identity and financial document verification in banking and FinTech \\ \hline
 \end{longtable}
 \endgroup

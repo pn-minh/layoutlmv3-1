@@ -1,22 +1,23 @@
 \chapter*{Preface}
 \addcontentsline{toc}{chapter}{Preface}
 
-Automating data entry from paper forms, invoices, and sales receipts has become a practical necessity in fields like finance, healthcare, and logistics. Every day, organizations process thousands of documents that contain important numbers, names, and dates. Manually typing these values into databases is slow, expensive, and often introduces typing errors. In recent years, machine learning models have made significant progress in automating this task, known as Key Information Extraction (KIE) on Visually Rich Documents (VRDs).
+Automating structured data extraction from scanned administrative forms, tax declarations, commercial invoices, and retail receipts is a critical requirement across modern enterprise workflows in finance, healthcare, logistics, and public administration. Unlike plain-text natural language corpora, Visually Rich Documents (VRDs) convey semantics jointly through lexical content, two-dimensional geometric layout, and visual typography. A numeric string on a receipt derives its meaning—whether unit price, tax amount, or grand total—from its tabular row alignment, column header, and font prominence.
 
-Unlike regular text documents, visually rich documents depend heavily on their visual and geometric layout. A price in a receipt gets its meaning from its row position and the item description to its left. Similarly, on an official form, question labels and their answer fields are arranged in columns or boxes. Models like LayoutLMv3 combine text, bounding box coordinates, and visual image patches into a unified Transformer. This design works well on general benchmarks, but several structural issues become apparent when fine-tuning the model on real forms and receipts:
+While multimodal Vision-Language Transformers such as LayoutLMv3 unify subword tokens, 2D bounding coordinates, and linear image patch projections within a single backbone, adapting the baseline model directly to downstream Key Information Extraction (KIE) exposes four recurring structural limitations:
 \begin{enumerate}
-    \item \textbf{Flat spatial coordinates:} The model embeds coordinates $(x_0, y_0, x_1, y_1)$ as separate numbers without explicit awareness of reading lines, text columns, or semantic blocks.
-    \item \textbf{Token-level fragmentation:} Classifying each subword token independently often causes inconsistent predictions within the same multi-word entity.
-    \item \textbf{Boundary ambiguity on the same line:} When different entity fields appear on the same horizontal line, such as a field name right next to its value, the model often merges them into a single entity.
+    \item \textbf{Cross-column coordinate ambiguity:} Embedding $(x_0, y_0, x_1, y_1)$ as flat coordinates provides no explicit inductive bias for reading lines, multi-column boundaries, or paragraph blocks.
+    \item \textbf{Intra-segment label jitter and key-value disconnection:} Classifying each BPE subword token in isolation frequently yields conflicting entity tags inside a single multi-token phrase and fails to propagate semantic labels from form keys to standalone values.
+    \item \textbf{Intra-line boundary bleeding:} When a field prompt and its filled value appear consecutively on the same horizontal line (e.g., \texttt{TO: George Baroody}), standard token cross-entropy frequently merges both spans into a single entity.
+    \item \textbf{Cross-modal representation drift under visual clutter:} Fine-tuning solely with token classification loss allows visual patch representations to drift or attract spurious attention from scanning borders, hole punches, and background watermarks.
 \end{enumerate}
 
-To address these issues, this graduation thesis investigates practical structural enhancements for LayoutLMv3. We develop an enhanced architecture that incorporates Hierarchical Position Encoding (HPE), a Segment Context Module (SCM) with a ReZero residual gate, an Intra-Line Boundary Loss, and a cross-modal Contrastive Loss. These components improve the model's structural awareness and entity consistency without requiring costly pre-training from scratch.
+To address these challenges, I design and evaluate a structure-aware LayoutLMv3 architecture comprising Hierarchical Position Encoding (HPE), a ReZero-gated Segment Context Module (SCM) with segment-onset embeddings, an Intra-Line Boundary Loss, and a calibrated Cross-Modal Contrastive Loss with detached visual patch anchors. Both auxiliary losses regularize representation learning exclusively during training and are discarded at test time, preserving the exact inference latency and memory footprint of the backbone classifier.
 
-The thesis is organized into five chapters:
+This thesis is organized into five chapters:
 \begin{itemize}
-    \item \textbf{Chapter 1 (Introduction):} Introduces the problem of document key information extraction, explains the challenges found in existing models, and summarizes the main contributions of this work.
-    \item \textbf{Chapter 2 (Background and Related Work):} Discusses foundational concepts including multimodal Transformers, sequence labeling with BIO tags, the evolution of the LayoutLM family, and related research on layout-aware models.
-    \item \textbf{Chapter 3 (Proposed Methodology):} Details the architecture and equations for Hierarchical Position Encoding, the Segment Context Module, the Intra-Line Boundary Loss, and the Contrastive Loss.
-    \item \textbf{Chapter 4 (Experiments and Results):} Describes our experimental setup on an NVIDIA A100 GPU, provides detailed statistics and visualizations of the FUNSD and CORD datasets, and presents multi-seed results and ablation studies.
-    \item \textbf{Chapter 5 (Conclusion):} Summarizes the findings of this thesis, discusses current limitations, and outlines directions for future exploration.
+    \item \textbf{Chapter 1 (Introduction):} Formulates the VRD Key Information Extraction problem, explicitly specifies the model's multimodal inputs and structured entity outputs, outlines real-world industrial applications, and summarizes my core contributions.
+    \item \textbf{Chapter 2 (Background and Related Work):} Reviews multimodal document representation, 2D spatial-aware attention, the LayoutLM architecture family, and recent structural and contrastive tuning methods.
+    \item \textbf{Chapter 3 (Proposed Methodology):} Presents the mathematical formulation and architectural design of HPE, SCM, Intra-Line Boundary Loss, and calibrated Cross-Modal Contrastive Loss.
+    \item \textbf{Chapter 4 (Experiments and Results):} Details my experimental setup on an NVIDIA A100 GPU, benchmark statistics on FUNSD and CORD, contrastive calibration findings, multi-seed evaluation results, leave-one-out ablation studies, and boundary error analysis.
+    \item \textbf{Chapter 5 (Conclusion):} Summarizes the main findings of my research, analyzes current architectural limitations, and outlines concrete directions for future work.
 \end{itemize}

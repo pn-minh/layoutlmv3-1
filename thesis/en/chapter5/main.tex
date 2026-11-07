@@ -1,44 +1,37 @@
 \chapter{Conclusion}
 \label{chap:conclusion}
 
-This chapter concludes the thesis by summarizing the primary findings and contributions, discussing the limitations of our proposed approach, and outlining potential directions for future research.
-
-\section{Summary of Contributions}
+\section{Summary of Findings and Contributions}
 \label{sec:conclusion_summary}
 
-In this thesis, we set out to address key structural weaknesses in multimodal vision-language models for document key information extraction, focusing specifically on LayoutLMv3. While pre-trained multimodal Transformers provide strong baseline representations by jointly processing text tokens, 2D coordinates, and visual image patches, their standard fine-tuning formulation treats spatial positions as flat numbers and classifies subwords largely in isolation. As observed in preliminary experiments, this causes frequent entity fragmentation and boundary confusion between adjacent text fields located on the same horizontal line.
+In this thesis, I investigated and resolved four structural bottlenecks that limit multimodal Vision-Language Transformers such as LayoutLMv3 when applied to Key Information Extraction (KIE) on Visually Rich Documents (VRDs): cross-column coordinate ambiguity, intra-segment label jitter, intra-line adjacent entity span bleeding, and cross-modal representation drift under background scanning noise.
 
-To address these challenges without incurring the massive computational cost of pre-training a foundation model from scratch, we developed four targeted architectural enhancements:
+Without incurring the prohibitive computational cost of pre-training a document foundation model from scratch or adding any inference-time latency overhead, I developed four targeted architectural enhancements:
 \begin{enumerate}
-    \item \textbf{Hierarchical Position Encoding (HPE):} We enriched token inputs with explicit line, column, and block structural indices derived from deterministic spatial grouping heuristics, allowing the backbone to distinguish reading units that share similar absolute coordinates.
-    \item \textbf{Segment Context Module (SCM):} We introduced a segment-level Transformer layer stabilized by a ReZero residual gate and a first-token onset embedding. This mechanism pools subwords into cohesive word segments, aggregates inter-segment context, and broadcasts consistent entity information back to each individual token.
-    \item \textbf{Intra-Line Boundary Loss:} We designed an auxiliary objective supervised by adjacent token pairs along the same text line. By directly penalizing false transitions between neighboring words, this loss encourages the model to learn sharp entity demarcations.
-    \item \textbf{Cross-Modal Contrastive Loss:} We incorporated an InfoNCE alignment loss between text token embeddings and their corresponding image patch features, preventing visual drift during downstream fine-tuning.
+    \item \textbf{Hierarchical Position Encoding (HPE):} By clustering 2D token bounding boxes into deterministic reading-line ($id_l$), vertical-column ($id_c$), and logical-block ($id_b$) indices and projecting their learned embeddings into the token stream prior to self-attention, HPE resolves cross-column coordinate ambiguity and binds multi-line blocks.
+    \item \textbf{Segment Context Module (SCM):} By pooling subword states into line-level segment vectors, modeling inter-segment reading context through a ReZero-gated Transformer encoder, and broadcasting segment consensus back to tokens alongside a binary segment-onset indicator embedding $\mathbf{e}_{\text{first}}(f_i)$, SCM eliminates intra-line word jitter and propagates semantic context from form keys to standalone values.
+    \item \textbf{Intra-Line Boundary Loss ($\mathcal{L}_{\text{bound}}$):} By supervising consecutive intra-line token pairs with an auxiliary binary transition detector during training, $\mathcal{L}_{\text{bound}}$ enforces sharp entity cuts between inline prompts and values, reducing span boundary errors on FUNSD by $82.6\%$.
+    \item \textbf{Calibrated Cross-Modal Contrastive Loss ($\mathcal{L}_{\text{cont}}$):} By decoupling contrastive alignment to pre-SCM token states $\mathbf{h}_i$, detaching visual patch anchors via stop-gradient, and optimizing a spatial-overlap soft-target InfoNCE objective ($\tau = 0.10$), $\mathcal{L}_{\text{cont}}$ grounds text representations in local visual typography while avoiding gradient interference with token boundary classification.
 \end{enumerate}
 
-Comprehensive experimental evaluation on two established benchmarks---FUNSD (complex administrative forms) and CORD (commercial shopping receipts)---demonstrated the practical effectiveness of these additions across three random seeds:
-\begin{itemize}
-    \item On FUNSD, our enhanced model achieved an entity-level macro F1 score of $92.68\%$, improving upon the standard LayoutLMv3-base baseline ($90.31\%$) by $+2.37$ points.
-    \item On CORD, the model attained $97.79\%$ F1, representing a $+1.28$ point gain over the base model ($96.51\%$) and performing competitively against much larger architectures.
-    \item Detailed error analysis revealed a $36.6\%$ reduction in entity boundary errors and a $31.8\%$ drop in intra-line entity mergers, confirming that our design directly addresses the failure modes identified at the outset of this research.
-\end{itemize}
+Multi-seed evaluation across three random seeds ($\{42, 123, 1993\}$) on an NVIDIA A100 GPU confirmed that every proposed component improves over the vanilla LayoutLMv3 baseline, with SCM delivering the largest individual performance gain ($-2.34\%$ F1 drop when ablated on FUNSD \texttt{large}). On FUNSD, my full 4-module model achieved $92.12 \pm 0.14\%$ F1 on \texttt{base} ($+2.20\%$ over baseline) and $93.35 \pm 0.18\%$ F1 on \texttt{large} ($+2.11\%$ over baseline). On CORD, the model reached $97.28 \pm 0.12\%$ F1 on \texttt{base} ($+0.56\%$) and $97.62 \pm 0.08\%$ F1 on \texttt{large} ($+0.47\%$).
 
 \section{Limitations}
 \label{sec:conclusion_limitations}
 
-Despite the encouraging improvements, there are several practical limitations to our current implementation that should be acknowledged:
+Despite these improvements, my current framework has three practical limitations:
 \begin{itemize}
-    \item \textbf{Dependence on upstream OCR quality:} Our hierarchical grouping heuristics (line, column, and block clustering) rely on accurate word bounding boxes generated by the OCR engine. In scenarios where OCR text detection produces skewed, merged, or severely misaligned boxes, layout grouping errors can cascade into the hierarchical embeddings.
-    \item \textbf{Heuristic assumptions for non-standard layouts:} The rule-based grouping logic assumes predominantly Manhattan-style layouts (horizontal text lines arranged in standard vertical columns). It may perform sub-optimally on documents with curved text, rotated stamps, diagonal receipts, or non-rectilinear artistic promotional flyers.
-    \item \textbf{Training memory overhead:} While the auxiliary boundary classifier and contrastive projection heads are discarded during inference---resulting in zero additional runtime latency during deployment---they do increase GPU memory consumption by roughly $14\%$ during training. This necessitates careful batch size selection when training on hardware with limited VRAM.
+    \item \textbf{Sensitivity to upstream OCR box quality:} Both HPE's topological clustering heuristics and SCM's line pooling rely on OCR bounding boxes and line groupings. Severe OCR detection errors—such as merging two columns into a single wide bounding box—can propagate inaccurate structural indices into HPE.
+    \item \textbf{Manhattan layout assumption:} The geometric thresholds used to extract $(id_l, id_c, id_b)$ assume approximately rectilinear horizontal lines and vertical columns. Severely curved camera captures, radial stamps, or arbitrarily rotated text require geometric rectification prior to HPE indexing.
+    \item \textbf{Training-time memory overhead:} While $\mathcal{L}_{\text{bound}}$ and $\mathcal{L}_{\text{cont}}$ are discarded during inference—yielding zero runtime latency or memory overhead in production—computing pairwise intra-line transitions and $L \times 196$ patch-token similarity matrices increases GPU VRAM consumption by approximately $14\%$ during training.
 \end{itemize}
 
-\section{Future Directions}
+\section{Future Research Directions}
 \label{sec:conclusion_future_work}
 
-Building upon the findings of this thesis, several promising directions remain for future exploration:
+Several promising directions extend naturally from my thesis:
 \begin{enumerate}
-    \item \textbf{Learned layout grouping:} Replacing deterministic geometric thresholds with a lightweight graph neural network or clustering head could make hierarchical position extraction more robust to warped, rotated, and irregular document scans.
-    \item \textbf{Knowledge distillation for edge deployment:} In many enterprise applications, invoices and receipts must be parsed locally on mobile devices or low-power servers. Distilling the predictions of our enhanced model into a compact student network (such as a 4-layer or 6-layer architecture) would be a valuable step toward practical real-time deployment.
-    \item \textbf{Evaluation on Vietnamese documents:} An immediate and practical next step is adapting and evaluating this approach on Vietnamese document datasets, such as the MC-OCR dataset and domestic administrative forms. Because Vietnamese documents frequently contain multi-syllable compound words and distinctive diacritical marks, studying the interaction between syllable-level tokenization and segment-level context represents a compelling avenue of research.
+    \item \textbf{Differentiable Topological Layout Clustering:} Replacing heuristic overlap thresholds in HPE with a lightweight differentiable graph or affinity predictor trained jointly with the backbone to handle perspective-warped and non-rectilinear mobile document captures.
+    \item \textbf{Cross-Architecture Distillation for Edge Deployment:} Distilling the segment-enriched representations and boundary predictions of my \texttt{large} model ($93.35\%$ FUNSD F1) into a compact 4- or 6-layer student network or quantized ONNX/TensorRT engine for low-latency CPU and mobile deployment.
+    \item \textbf{Adaptation to Vietnamese Administrative and Financial VRDs:} Extending my framework to Vietnamese benchmarks such as MC-OCR and domestic tax/invoice datasets, where multi-syllable compound words and dense diacritics interact closely with subword tokenization and intra-line boundary detection.
 \end{enumerate}
