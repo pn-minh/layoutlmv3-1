@@ -1,4 +1,4 @@
-# LayoutLMv3 Final Aggregated Ablation Results (Including Cross-Modal Contrastive Loss)
+# Modified LayoutLMv3 Ablation Results:
 
 All 24 configurations evaluated across 3 random seeds (`42, 123, 1993`) on NVIDIA A100 GPUs.
 
