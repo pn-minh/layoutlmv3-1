@@ -50,18 +50,19 @@ Table~\ref{tab:hyperparameters} summarizes the fine-tuning hyperparameters acros
 
 \begin{table}[htbp]
 \centering
-\footnotesize
+\small
 \caption{Hyperparameter configurations across datasets and backbone scales.}
 \label{tab:hyperparameters}
-\renewcommand{\arraystretch}{1.18}
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabularx}{\textwidth}{|>{\bfseries\RaggedRight\arraybackslash}p{4.0cm}|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{|>{\bfseries\RaggedRight\arraybackslash}p{4.2cm}|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|}
 \hline
 \textbf{Hyperparameter} & \makecell{\textbf{FUNSD}\\\textbf{(\texttt{base})}} & \makecell{\textbf{CORD}\\\textbf{(\texttt{base})}} & \makecell{\textbf{FUNSD}\\\textbf{(\texttt{large})}} & \makecell{\textbf{CORD}\\\textbf{(\texttt{large})}} \\ \hline
 Backbone Checkpoint & \multicolumn{2}{c|}{\texttt{layoutlmv3-base}} & \multicolumn{2}{c|}{\texttt{layoutlmv3-large}} \\ \hline
 Hidden Dimension ($d$) & \multicolumn{2}{c|}{$768$} & \multicolumn{2}{c|}{$1024$} \\ \hline
-Optimizer \& Schedule & \multicolumn{4}{c|}{AdamW ($\beta_1=0.9, \beta_2=0.999$, WD $=0.01$); $1000$ steps ($10\%$ warmup)} \\ \hline
+Optimizer & \multicolumn{4}{c|}{AdamW ($\beta_1 = 0.9, \beta_2 = 0.999$, Weight Decay $= 0.01$)} \\ \hline
 Peak Learning Rate & $5 \times 10^{-5}$ & $5 \times 10^{-5}$ & $3 \times 10^{-5}$ & $3 \times 10^{-5}$ \\ \hline
+Training Steps & \multicolumn{4}{c|}{$1000$ steps ($10\%$ linear warmup)} \\ \hline
 Effective Batch Size & $16$ & $64$ & $16$ & $16$ \\ \hline
 HPE Projection ($\beta = 1.0$) & \multicolumn{2}{c|}{$384 \to 768$} & \multicolumn{2}{c|}{$384 \to 1024$} \\ \hline
 Boundary Weight ($\lambda_{\text{bound}}$) & $0.10$ & $0.10$ & $0.10$ & $0.10$ \\ \hline
@@ -175,10 +176,10 @@ To isolate the contribution of each proposed module—HPE, SCM, Intra-Line Bound
 \caption{Complete 24-configuration leave-one-out ablation matrix across 3 random seeds ($\text{Mean} \pm \text{Std}$). Each ablation configuration includes two delta columns: $\Delta$ F1 vs.\ Full Model (negative values confirm that removing the module hurts F1) and $\Delta$ F1 vs.\ Vanilla Baseline (positive values confirm that all configurations outperform the baseline).}
 \label{tab:master_ablation_matrix}
 \renewcommand{\arraystretch}{1.22}
-\setlength{\tabcolsep}{2.4pt}
-\begin{tabularx}{\textwidth}{|>{\Centering\arraybackslash}p{0.90cm}|>{\Centering\arraybackslash}p{1.00cm}|>{\RaggedRight\arraybackslash}p{4.65cm}|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}p{1.30cm}|>{\Centering\arraybackslash}p{1.30cm}|}
+\setlength{\tabcolsep}{2.0pt}
+\begin{tabularx}{\textwidth}{|>{\Centering\arraybackslash}p{1.20cm}|>{\Centering\arraybackslash}p{1.10cm}|>{\RaggedRight\arraybackslash}p{3.80cm}|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}X|>{\Centering\arraybackslash}p{1.20cm}|>{\Centering\arraybackslash}p{1.20cm}|}
 \hline
-\textbf{Scale} & \textbf{Data} & \textbf{Model Configuration} & \textbf{Precision (\%)} & \textbf{Recall (\%)} & \textbf{Entity F1 (\%)} & $\Delta$ \textbf{vs.\ Full} & $\Delta$ \textbf{vs.\ Base} \\ \hline
+\textbf{Scale} & \textbf{Data} & \textbf{Model Configuration} & \textbf{Precision (\%)} & \textbf{Recall (\%)} & \textbf{Entity F1 (\%)} & \makecell{\textbf{$\Delta$ vs.}\\\textbf{Full}} & \makecell{\textbf{$\Delta$ vs.}\\\textbf{Base}} \\ \hline
 \multirow{12}{*}{\texttt{base}} 
 & \multirow{6}{*}{FUNSD} 
 & Baseline LayoutLMv3 & $89.32 \pm 1.31$ & $90.53 \pm 0.48$ & $89.92 \pm 0.85$ & $-2.20\%$ & Ref. \\

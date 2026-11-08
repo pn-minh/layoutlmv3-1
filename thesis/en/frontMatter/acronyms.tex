@@ -4,7 +4,7 @@
 \begingroup
 \small
 \renewcommand{\arraystretch}{1.25}
-\begin{longtable}{|>{\RaggedRight\arraybackslash}p{4.4cm}|>{\Centering\arraybackslash}p{2.4cm}|>{\RaggedRight\arraybackslash}p{7.6cm}|}
+\begin{longtable}{|>{\RaggedRight\arraybackslash}p{4.6cm}|>{\Centering\arraybackslash}p{2.2cm}|>{\RaggedRight\arraybackslash}p{7.6cm}|}
 \hline
 \textbf{Term} & \textbf{Acronym} & \textbf{Description} \\ \hline
 \endfirsthead
@@ -23,7 +23,7 @@ Hierarchical Position Encoding & HPE & Multi-scale spatial encoding across readi
 Segment Context Module & SCM & Module that pools intra-segment tokens and models inter-segment reading-order context \\ \hline
 Intra-Line Boundary Loss & $\mathcal{L}_{\text{bound}}$ & Auxiliary binary cross-entropy loss supervising entity transitions between adjacent intra-line tokens \\ \hline
 Cross-Modal Contrastive Loss & $\mathcal{L}_{\text{cont}}$ & Soft-target InfoNCE objective aligning pre-SCM text states with detached visual patch anchors \\ \hline
-Inside-Outside-Beginning & IOB2 / BIO & Sequence-labeling tag scheme marking entity onsets, continuations, and background tokens \\ \hline
+Inside-\allowbreak Outside-\allowbreak Beginning & IOB2 / BIO & Sequence-labeling tag scheme marking entity onsets, continuations, and background tokens \\ \hline
 Masked Language Modeling & MLM & Self-supervised pre-training objective reconstructing masked subword tokens \\ \hline
 Masked Image Modeling & MIM & Self-supervised pre-training objective reconstructing discrete tokens of masked image patches \\ \hline
 Word-Patch Alignment & WPA & Pre-training objective predicting whether the visual patch corresponding to a word is unmasked \\ \hline
