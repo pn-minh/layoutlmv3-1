@@ -1,7 +1,8 @@
 param(
     [string]$PdfPath = "thesis\figures\model_architecture_heads_style.pdf",
     [string]$PngPath = "thesis\figures\model_architecture_heads_style.png",
-    [uint32]$Dpi = 300
+    [uint32]$Dpi = 300,
+    [uint32]$PageIndex = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,7 +36,7 @@ function Await-Action($WinRtAction) {
 
 $file = Await-Operation ([Windows.Storage.StorageFile]::GetFileFromPathAsync($PdfPath)) ([Windows.Storage.StorageFile])
 $pdfDoc = Await-Operation ([Windows.Data.Pdf.PdfDocument]::LoadFromFileAsync($file)) ([Windows.Data.Pdf.PdfDocument])
-$page = $pdfDoc.GetPage(0)
+$page = $pdfDoc.GetPage($PageIndex)
 
 $renderOptions = New-Object Windows.Data.Pdf.PdfPageRenderOptions
 $scale = $Dpi / 96.0
