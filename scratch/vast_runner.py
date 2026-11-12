@@ -111,6 +111,7 @@ def log(msg: str):
 def get_python_bin() -> str:
     candidates = [
         "/workspace/miniconda3/envs/layoutlmv3/bin/python",
+        "/opt/miniforge3/envs/layoutlmv3/bin/python",
         "/dev/shm/miniconda3/envs/layoutlmv3/bin/python",
         "/venv/layoutlmv3/bin/python",
         sys.executable,
@@ -571,7 +572,7 @@ def detect_vast_instance_id() -> str:
             m = re.search(r"(\d{5,})", val)
             if m:
                 return m.group(1)
-    return "58981233"
+    return "60293806"
 
 
 def self_destruct_instance():

@@ -1,0 +1,9 @@
+Host vast
+    HostName 149.248.21.7
+    Port 30031
+    User root
+    IdentityFile C:/Users/nhatm/.ssh/id_ed25519
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 30
+    ServerAliveCountMax 5

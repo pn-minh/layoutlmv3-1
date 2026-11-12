@@ -761,9 +761,13 @@ def main():
             return self.optimizer
 
     # Callback to print real-time step progress, loss, and estimated time to finish (ETA)
+    # and retain the best eval_f1 model state in system RAM without PCIe/disk checkpoint stalls
     class RealTimeETACallback(TrainerCallback):
         def __init__(self):
             self.start_time = None
+            self.best_f1 = -1.0
+            self.best_step = 0
+            self.best_state_dict = None
 
         def on_train_begin(self, args, state, control, **kwargs):
             self.start_time = time.time()
@@ -782,6 +786,29 @@ def main():
                     flush=True,
                 )
 
+        def on_evaluate(self, args, state, control, metrics=None, model=None, **kwargs):
+            if metrics and model is not None and "eval_f1" in metrics:
+                cur_f1 = float(metrics["eval_f1"])
+                if cur_f1 >= self.best_f1:
+                    self.best_f1 = cur_f1
+                    self.best_step = state.global_step
+                    self.best_state_dict = {
+                        k: v.detach().cpu().clone() for k, v in model.state_dict().items()
+                    }
+                    print(
+                        f"[BEST-RAM-CHECKPOINT] Step {self.best_step}: eval_f1={self.best_f1*100:.2f}% cached in RAM",
+                        flush=True,
+                    )
+
+        def on_train_end(self, args, state, control, model=None, **kwargs):
+            if self.best_state_dict is not None and model is not None:
+                model.load_state_dict(self.best_state_dict)
+                print(
+                    f"[BEST-RAM-CHECKPOINT] Restored best model from step {self.best_step} (eval_f1={self.best_f1*100:.2f}%)",
+                    flush=True,
+                )
+                self.best_state_dict = None
+
     # Khởi tạo Trainer bằng CustomTrainer vừa tạo thay vì Trainer mặc định
     trainer = CustomTrainer(
         model=model,
@@ -793,23 +820,14 @@ def main():
         compute_metrics=compute_metrics,
         callbacks=[RealTimeETACallback()],
     )
-    # Initialize our Trainer
-    # trainer = Trainer(
-    #     model=model,
-    #     args=training_args,
-    #     train_dataset=train_dataset if training_args.do_train else None,
-    #     eval_dataset=eval_dataset if training_args.do_eval else None,
-    #     tokenizer=tokenizer,
-    #     data_collator=data_collator,
-    #     compute_metrics=compute_metrics,
-    # )
 
     # Training
     if training_args.do_train:
         checkpoint = last_checkpoint if last_checkpoint else None
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
         metrics = train_result.metrics
-        trainer.save_model()  # Saves the tokenizer too for easy upload
+        if os.environ.get("SKIP_SAVE_MODEL_BIN", "1") != "1":
+            trainer.save_model()  # Saves the tokenizer too for easy upload
 
         max_train_samples = (
             data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)

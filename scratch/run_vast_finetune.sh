@@ -39,14 +39,19 @@ cd /workspace/layoutlmv3-1
 echo "=========================================================="
 echo "[VAST.AI] 2/6: MINICONDA SETUP (EXEC OVERLAY + RAM CACHES)"
 echo "=========================================================="
-# Prevent /dev/shm noexec execution error
-mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache
+# Prevent /dev/shm noexec execution error while keeping heavy models/datasets in 78GB /dev/shm RAM disk
+mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache /dev/shm/models /dev/shm/data
 ln -sfn /dev/shm/hf_home /workspace/.hf_home
+ln -sfn /dev/shm/models /workspace/layoutlmv3-1/layoutlmv3/models
+ln -sfn /dev/shm/data /workspace/layoutlmv3-1/layoutlmv3/data
 export CONDA_PKGS_DIRS="/dev/shm/conda_pkgs"
 export PIP_CACHE_DIR="/dev/shm/pip_cache"
 export HF_HOME="/workspace/.hf_home"
 
-if [ ! -x "/workspace/miniconda3/bin/conda" ]; then
+if [ -x "/opt/miniforge3/bin/conda" ] && [ ! -e "/workspace/miniconda3" ]; then
+    echo "[CONDA] Reusing pre-installed /opt/miniforge3 via symlink /workspace/miniconda3..."
+    ln -sfn /opt/miniforge3 /workspace/miniconda3
+elif [ ! -x "/workspace/miniconda3/bin/conda" ]; then
     echo "[CONDA] Installing Miniconda to /workspace/miniconda3..."
     rm -rf /workspace/miniconda3 /dev/shm/miniconda.sh
     wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /dev/shm/miniconda.sh

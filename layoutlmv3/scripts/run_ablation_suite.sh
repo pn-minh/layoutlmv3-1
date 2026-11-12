@@ -36,33 +36,24 @@ else
     exit 1
 fi
 
-# Configure dataset-specific hyperparameters optimized for 2x A100 GPUs (40GB / 80GB VRAM):
-# Doubling per-device batch size and halving gradient accumulation eliminates micro-step overhead
-# while preserving the exact effective batch size (16 for FUNSD, 64 for CORD).
+# Configure dataset-specific hyperparameters optimized for 2x NVIDIA CMP 170HX (64GB HBM2e VRAM each):
+# Leveraging 64GB VRAM per GPU allows larger micro-batches (BS=16 on FUNSD-large, BS=32 on CORD-large)
+# and EVAL_BS=64 while preserving the exact effective batch size (16 for FUNSD, 64 for CORD)
+# and minimizing PCIe host-to-device transfer overhead.
 if [ "$DATASET" = "funsd" ]; then
     LR="1e-5"
-    if [ "$VARIANT" = "large" ]; then
-        PER_DEV_BS=8
-        GRAD_ACC=2
-    else
-        PER_DEV_BS=16
-        GRAD_ACC=1
-    fi
-    EVAL_BS=32
+    PER_DEV_BS=16
+    GRAD_ACC=1
+    EVAL_BS=64
     MAX_LINE=100
     MAX_BLOCK=30
     MAX_COL=8
     MAX_STEPS=1000
 elif [ "$DATASET" = "cord" ]; then
     LR="3e-5"
-    if [ "$VARIANT" = "large" ]; then
-        PER_DEV_BS=16
-        GRAD_ACC=4
-    else
-        PER_DEV_BS=32
-        GRAD_ACC=2
-    fi
-    EVAL_BS=32
+    PER_DEV_BS=32
+    GRAD_ACC=2
+    EVAL_BS=64
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
@@ -324,10 +315,11 @@ do
         CACHE_ARGS=(--overwrite_cache)
     fi
 
-    # Run training with Dual-A100 hardware & stability optimizations:
-    # 1. --fp16 True + TF32: Mixed precision on Ampere Tensor Cores
-    # 2. --dataloader_num_workers 4: Fast prefetching while avoiding /dev/shm IPC queue exhaustion across 2 GPUs
+    # Run training with Dual-CMP-170HX (64GB HBM2e) hardware & stability optimizations:
+    # 1. --fp16 True + TF32: Mixed precision on GA100 Ampere Tensor Cores
+    # 2. --save_strategy no + In-RAM Best Checkpoint: Avoids 4.3GB PCIe Gen1/2 & 20GB overlay disk stalls every 100 steps
     # 3. --return_entity_level_metrics True: Logs per-class F1 & step-by-step accuracy/F1 curves at every eval step
+    export SKIP_SAVE_MODEL_BIN=1
     python examples/run_funsd_cord.py \
         --dataset_name "$DATASET" \
         --do_train \
@@ -340,12 +332,7 @@ do
         --visual_embed 1 \
         --input_size 224 \
         --max_steps "$MAX_STEPS" \
-        --save_steps 100 \
-        --save_strategy steps \
-        --save_total_limit 1 \
-        --load_best_model_at_end True \
-        --metric_for_best_model eval_f1 \
-        --greater_is_better True \
+        --save_strategy no \
         --evaluation_strategy steps \
         --eval_steps 100 \
         --learning_rate "$LR" \
