@@ -39,8 +39,14 @@ cd /workspace/layoutlmv3-1
 echo "=========================================================="
 echo "[VAST.AI] 2/6: MINICONDA SETUP (EXEC OVERLAY + RAM CACHES)"
 echo "=========================================================="
-# Force system-wide IPv4 preference in glibc so Python urllib/requests never fail on IPv6-disabled containers
+# Route HuggingFace, Google Drive, and Google Sheets through SSH Reverse Proxy (127.0.0.1:18888)
 grep -q "^precedence ::ffff:0:0/96  100" /etc/gai.conf 2>/dev/null || echo "precedence ::ffff:0:0/96  100" >> /etc/gai.conf
+export HTTP_PROXY="http://127.0.0.1:18888"
+export HTTPS_PROXY="http://127.0.0.1:18888"
+export http_proxy="http://127.0.0.1:18888"
+export https_proxy="http://127.0.0.1:18888"
+export NO_PROXY="localhost,127.0.0.1"
+export no_proxy="localhost,127.0.0.1"
 
 # Prevent /dev/shm noexec execution error while keeping heavy models/datasets in 78GB /dev/shm RAM disk
 mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache /dev/shm/models /dev/shm/datasets /dev/shm/CORD
