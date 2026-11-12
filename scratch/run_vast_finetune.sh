@@ -65,8 +65,8 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/ma
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
 
 if ! conda info --envs | grep -q "^layoutlmv3 "; then
-    echo "[CONDA] Creating Python 3.7.16 environment..."
-    conda create -n layoutlmv3 python=3.7.16 -y
+    echo "[CONDA] Creating Python 3.7 environment..."
+    conda create -n layoutlmv3 python=3.7 -c conda-forge -c defaults -y
 fi
 conda activate layoutlmv3
 

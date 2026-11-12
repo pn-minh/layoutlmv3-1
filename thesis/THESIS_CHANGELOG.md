@@ -23,6 +23,15 @@
 - **Problem Statement & Real-World Applicability (`Chapter 1` & `Chapter 5`):** Clarified exact multimodal inputs (OCR word tokens, normalized 2D bounding boxes, document page image), BIO entity outputs, and production deployment pathways (invoice/receipt automation, banking KYC, medical form digitization, tax processing).
 - **Overleaf Free-Tier Compilation Optimization:** Pre-compiled TikZ/PGF figures into standalone vector PDFs so full compilation completes in `< 5 seconds` on Overleaf's free tier.
 
-## [PENDING SYNC] OVERLEAF COLLABORATOR & SUPERVISOR REVISIONS
-- *Tracking Status:* Ready to ingest collaborator/supervisor edits and comments from Overleaf History (`https://www.overleaf.com/project/6aeeb45d264c70bbb1215bc4`).
-- *Workflow:* Every change made on Overleaf by the supervisor or author is diffed against `thesis_en_overleaf_extracted/` and logged in this section with date, author, affected chapter/section, and resolution status.
+## [2026-11-12] OVERLEAF COLLABORATOR & SUPERVISOR REVISION AUDIT (`v0 -> v149`)
+- **Project Identity:** `Thesis - Phạm Nhật Minh` (`https://www.overleaf.com/project/6aeeb45d264c70bbb1215bc4`)
+- **Owner:** `Minh Pham` (`21020651@vnu.edu.vn`, User ID: `65410c60afb99827363302af`)
+- **Invited Collaborator (Supervisor):** `TrangPTQ` (`phamthiquynhtrang95@gmail.com`, User ID: `627484779e22a519f0756650`, Role: `Editor / readAndWrite`)
+- **Review Threads & Comments (`/threads` & `/messages`):** `0` open or resolved comment threads; `0` chat messages.
+- **Chronological Overleaf Version History (`v0` to `v149`):**
+  - **`v0 -> v17` (2026-11-07 12:17 ICT — Minh Pham):** Initial project creation and upload of all 17 thesis files (`main.tex`, `ref.bib`, `chapter0/main.tex`..`chapter5/main.tex`, `chapter2/architecture.png`, `chapter3/model_architecture.pdf`, and 7 files in `frontMatter/`).
+  - **`v17 -> v23` (2026-11-09 08:01–08:07 ICT — Minh Pham):** Tested uploading and removing `thesis_en_overleaf.zip`.
+  - **`v23 -> v89` (2026-11-09 08:12–08:13 ICT — Minh Pham):** Uploaded extracted package `thesis_en_overleaf_extracted/`, then cleaned up nested subfolder and re-uploaded the 15 chapter/frontMatter files and updated root `main.tex`.
+  - **`v89 -> v119` (2026-11-09 17:30–17:31 ICT — Minh Pham):** Refreshed all 15 files inside `chapter0/`–`chapter5/` and `frontMatter/` with updated accuracy and per-class convergence plots.
+  - **`v119 -> v149` (2026-11-09 17:34–17:35 ICT — Minh Pham):** Latest Overleaf upload replacing all 15 chapter and frontMatter files.
+  - **Supervisor Edits Status:** Confirmed `0` edits or comments made by `TrangPTQ` (`phamthiquynhtrang95@gmail.com`) between `v0` and `v149`. Continuous tracking via Overleaf's `/updates` and `/threads` endpoints is active.
