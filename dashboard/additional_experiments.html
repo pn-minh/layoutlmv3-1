@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LayoutLMv3 Additional Experiments — Dual-A100 Live Tracker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #3b82f6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --purple: #8b5cf6;
+      --red: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    .header p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid var(--blue);
+      color: #60a5fa;
+    }
+    .badge.done {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--green);
+      color: #34d399;
+    }
+    .links-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .btn-link {
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      transition: all 0.15s;
+    }
+    .btn-link:hover { border-color: var(--blue); color: #fff; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transition: width 0.3s ease;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .st-done { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .st-run  { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .st-wait { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .metric-val { font-family: "JetBrains Mono", Consolas, monospace; font-weight: 600; }
+    .section-gap { margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>LayoutLMv3 Additional Experiments — Dual-A100 Live Tracker</h1>
+      <p>Pack A (Calibrated 4-Module + Step/Per-Class Curves) &bull; Pack B (Sensitivity Sweep) &bull; Pack C (Few-Shot + Latency/Span Analysis)</p>
+    </div>
+    <div>
+      <span id="statusBadge" class="badge">INITIALIZING...</span>
+    </div>
+  </div>
+
+  <div class="links-bar">
+    <a class="btn-link" href="https://docs.google.com/spreadsheets/d/173WXkbMXDCEVs4pYBRNXGTHihOda18adbJRJ7RpFw7o/edit" target="_blank">📊 Google Sheet Tracker (New Tab)</a>
+    <a class="btn-link" href="https://drive.google.com/drive/folders/1eibbB-iAHuhbi_Lz2TFb1i_GIscpRDh5" target="_blank">📁 Clean Google Drive Thesis Folder</a>
+    <a class="btn-link" href="https://www.overleaf.com/project/6aeeb45d264c70bbb1215bc4" target="_blank">📝 Overleaf Project</a>
+    <a class="btn-link" href="/legacy">🗂️ View Previous 24-Cell Ablation Dashboard</a>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>
+        <span>Dual-GPU Worker 0 (CUDA:0)</span>
+        <span id="gpu0Util" style="color:var(--green);font-size:0.85rem;">Standby</span>
+      </h2>
+      <div id="gpu0Task" style="font-size:0.9rem;color:var(--muted);">Waiting for Vast.ai job assignment...</div>
+      <div class="progress-bar"><div id="gpu0Bar" class="progress-fill" style="width:0%"></div></div>
+      <div id="gpu0Meta" style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;">
+        <span>Seed: -/-</span>
+        <span>Step: 0/1000</span>
+        <span>ETA: --</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>Dual-GPU Worker 1 (CUDA:1)</span>
+        <span id="gpu1Util" style="color:var(--green);font-size:0.85rem;">Standby</span>
+      </h2>
+      <div id="gpu1Task" style="font-size:0.9rem;color:var(--muted);">Waiting for Vast.ai job assignment...</div>
+      <div class="progress-bar"><div id="gpu1Bar" class="progress-fill" style="width:0%"></div></div>
+      <div id="gpu1Meta" style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;">
+        <span>Seed: -/-</span>
+        <span>Step: 0/1000</span>
+        <span>ETA: --</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card section-gap">
+    <h2>
+      <span>Additional Experiments Execution Queue (15 Cells across 2x A100 GPUs)</span>
+      <span id="queueCounter" style="font-size:0.85rem;color:var(--muted);">0 / 15 Completed</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Cell</th>
+          <th>Pack</th>
+          <th>Dataset &amp; Variant</th>
+          <th>Mode / Configuration</th>
+          <th>Status</th>
+          <th>Precision (%)</th>
+          <th>Recall (%)</th>
+          <th>F1 (Mean &plusmn; Std %)</th>
+          <th>Accuracy (%)</th>
+        </tr>
+      </thead>
+      <tbody id="cellsTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2><span>Pack B: Hyperparameter Sensitivity Sweep (FUNSD-base)</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Parameter Setting</th>
+            <th>F1 (Mean &plusmn; Std)</th>
+            <th>Accuracy</th>
+            <th>&Delta; vs. Baseline</th>
+          </tr>
+        </thead>
+        <tbody id="sensTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2><span>Pack C: Few-Shot Sample Efficiency (FUNSD-base)</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Training Data Fraction</th>
+            <th>Baseline F1</th>
+            <th>Full 4-Module F1</th>
+            <th>Gain (&Delta; F1)</th>
+          </tr>
+        </thead>
+        <tbody id="fewshotTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function fmtMetric(item, keyMean, keyStd) {
+      if (!item || typeof item[keyMean] !== 'number') return '--';
+      if (keyStd && typeof item[keyStd] === 'number') {
+        return `${item[keyMean].toFixed(2)} ± ${item[keyStd].toFixed(2)}%`;
+      }
+      return `${item[keyMean].toFixed(2)}%`;
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = `${data.pipeline_status || 'STANDBY'} (Updated: ${data.updated_at || ''})`;
+        if ((data.pipeline_status || '').includes('COMPLETE')) {
+          badge.classList.add('done');
+        }
+
+        // GPU workers
+        const workers = data.active_workers || {};
+        const gpus = data.gpu_telemetry || [];
+        [0, 1].forEach(gid => {
+          const wk = workers[`GPU_${gid}`];
+          const ginfo = gpus.find(g => g.index === gid);
+          const utilEl = document.getElementById(`gpu${gid}Util`);
+          if (ginfo) {
+            utilEl.textContent = `${ginfo.name} | Util: ${ginfo.util_pct}% | VRAM: ${(ginfo.mem_used_mb/1024).toFixed(1)}/${(ginfo.mem_total_mb/1024).toFixed(0)} GB | ${ginfo.temp_c}°C`;
+          }
+          const taskEl = document.getElementById(`gpu${gid}Task`);
+          const barEl = document.getElementById(`gpu${gid}Bar`);
+          const metaEl = document.getElementById(`gpu${gid}Meta`);
+          if (wk) {
+            taskEl.textContent = `Cell ${wk.cell}: ${wk.label}`;
+            const prog = wk.progress || {};
+            const pct = prog.max_steps ? Math.min(100, (prog.step / prog.max_steps) * 100) : 0;
+            barEl.style.width = `${pct.toFixed(1)}%`;
+            metaEl.innerHTML = `<span>Seed: ${prog.seed_idx || 1}/${prog.total_seeds || 3}</span><span>Step: ${prog.step || 0}/${prog.max_steps || 1000} (${pct.toFixed(0)}%)</span><span>ETA: ${prog.eta_sec ? (prog.eta_sec/60).toFixed(1) + ' min' : '--'}</span>`;
+          } else {
+            taskEl.textContent = 'Idle / Waiting for next cell';
+            barEl.style.width = '0%';
+          }
+        });
+
+        const summaryMap = {};
+        (data.completed_summaries || []).forEach(s => {
+          summaryMap[s.file] = s;
+        });
+
+        const plan = data.additional_cells_plan || data.cells_plan || [];
+        const completedSet = new Set(data.completed_cells || []);
+        const activeCells = new Set(Object.values(workers).map(w => w.cell));
+        let doneCount = 0;
+
+        const tbody = document.getElementById('cellsTableBody');
+        tbody.innerHTML = '';
+        plan.forEach(row => {
+          const s = summaryMap[row.summary_file];
+          const isDone = completedSet.has(row.cell) || Boolean(s && s.has_step_history !== false);
+          const isRunning = activeCells.has(row.cell);
+          if (isDone) doneCount++;
+
+          let pill = '<span class="status-pill st-wait">QUEUED</span>';
+          if (isRunning) pill = '<span class="status-pill st-run">RUNNING</span>';
+          else if (isDone) pill = '<span class="status-pill st-done">COMPLETED</span>';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="metric-val">#${row.cell}</td>
+            <td>${row.pack || 'Pack A'}</td>
+            <td><strong>${row.dataset.toUpperCase()}</strong> (${row.variant})</td>
+            <td>${row.label}</td>
+            <td>${pill}</td>
+            <td class="metric-val">${fmtMetric(s, 'p_mean')}</td>
+            <td class="metric-val">${fmtMetric(s, 'r_mean')}</td>
+            <td class="metric-val" style="color:#60a5fa">${fmtMetric(s, 'f1_mean', 'f1_std')}</td>
+            <td class="metric-val">${fmtMetric(s, 'acc_mean')}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('queueCounter').textContent = `${doneCount} / ${plan.length} Completed`;
+
+        // Pack B sensitivity table
+        const baseFunsd = summaryMap['funsd-base-baseline_3seed_summary.json'];
+        const sensRows = [
+          { name: 'λ_bound = 0.00 (w/o Boundary)', file: 'funsd-base-no_boundary_3seed_summary.json' },
+          { name: 'λ_bound = 0.05', file: 'funsd-base-sens_bound_005_3seed_summary.json' },
+          { name: 'λ_bound = 0.10, τ = 0.10 (Optimal)', file: 'funsd-base-contrastive_3seed_summary.json' },
+          { name: 'λ_bound = 0.20', file: 'funsd-base-sens_bound_020_3seed_summary.json' },
+          { name: 'Contrastive τ = 0.07', file: 'funsd-base-sens_tau_007_3seed_summary.json' },
+          { name: 'Contrastive τ = 0.20', file: 'funsd-base-sens_tau_020_3seed_summary.json' },
+        ];
+        const sensBody = document.getElementById('sensTableBody');
+        sensBody.innerHTML = '';
+        sensRows.forEach(sr => {
+          const item = summaryMap[sr.file];
+          let delta = '--';
+          if (item && baseFunsd && typeof item.f1_mean === 'number' && typeof baseFunsd.f1_mean === 'number') {
+            const d = item.f1_mean - baseFunsd.f1_mean;
+            delta = (d >= 0 ? '+' : '') + d.toFixed(2) + '%';
+          }
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${sr.name}</td>
+            <td class="metric-val">${fmtMetric(item, 'f1_mean', 'f1_std')}</td>
+            <td class="metric-val">${fmtMetric(item, 'acc_mean')}</td>
+            <td class="metric-val" style="color:var(--green)">${delta}</td>
+          `;
+          sensBody.appendChild(tr);
+        });
+
+        // Pack C few-shot table
+        const fsRows = [
+          { frac: '25% Training Data (37 docs)', b: 'funsd-base-fewshot_base_25_3seed_summary.json', f: 'funsd-base-fewshot_full_25_3seed_summary.json' },
+          { frac: '50% Training Data (75 docs)', b: 'funsd-base-fewshot_base_50_3seed_summary.json', f: 'funsd-base-fewshot_full_50_3seed_summary.json' },
+          { frac: '100% Training Data (149 docs)', b: 'funsd-base-baseline_3seed_summary.json', f: 'funsd-base-contrastive_3seed_summary.json' },
+        ];
+        const fsBody = document.getElementById('fewshotTableBody');
+        fsBody.innerHTML = '';
+        fsRows.forEach(fr => {
+          const bItem = summaryMap[fr.b];
+          const fItem = summaryMap[fr.f];
+          let gain = '--';
+          if (bItem && fItem && typeof bItem.f1_mean === 'number' && typeof fItem.f1_mean === 'number') {
+            const g = fItem.f1_mean - bItem.f1_mean;
+            gain = (g >= 0 ? '+' : '') + g.toFixed(2) + '%';
+          }
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${fr.frac}</td>
+            <td class="metric-val">${fmtMetric(bItem, 'f1_mean', 'f1_std')}</td>
+            <td class="metric-val" style="color:#60a5fa">${fmtMetric(fItem, 'f1_mean', 'f1_std')}</td>
+            <td class="metric-val" style="color:var(--green)">${gain}</td>
+          `;
+          fsBody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

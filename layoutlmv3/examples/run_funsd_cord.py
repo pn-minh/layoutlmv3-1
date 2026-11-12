@@ -228,6 +228,12 @@ class DataTrainingArguments:
 
 
 def main():
+    # Enable Ampere TF32 Tensor Cores for faster matmul/convolutions on A100 GPUs
+    import torch
+    if torch.cuda.is_available():
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
     # See all possible arguments in layoutlmft/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
@@ -717,23 +723,21 @@ def main():
         ]
 
         results = metric.compute(predictions=true_predictions, references=true_labels)
+        final_results = {
+            "precision": results["overall_precision"],
+            "recall": results["overall_recall"],
+            "f1": results["overall_f1"],
+            "accuracy": results["overall_accuracy"],
+        }
         if data_args.return_entity_level_metrics:
-            # Unpack nested dictionaries
-            final_results = {}
+            # Unpack nested per-class dictionaries while preserving top-level precision/recall/f1/accuracy
             for key, value in results.items():
                 if isinstance(value, dict):
                     for n, v in value.items():
                         final_results[f"{key}_{n}"] = v
                 else:
                     final_results[key] = value
-            return final_results
-        else:
-            return {
-                "precision": results["overall_precision"],
-                "recall": results["overall_recall"],
-                "f1": results["overall_f1"],
-                "accuracy": results["overall_accuracy"],
-            }
+        return final_results
     import torch
     # Định nghĩa Trainer tùy chỉnh để tách biệt Learning Rate
     class CustomTrainer(Trainer):

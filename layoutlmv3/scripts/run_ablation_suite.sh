@@ -1,6 +1,7 @@
 #!/bin/bash
-# Unified runner for Baseline, Full Model, and 3 Leave-One-Out Ablations across FUNSD & CORD (Base & Large, 3 Seeds)
-# Usage: bash scripts/run_ablation_suite.sh <dataset: funsd|cord> <variant: base|large> <mode: baseline|full|no_boundary|no_segment|no_hpe>
+# Unified runner for Baseline, Full Model, Leave-One-Out Ablations, Sensitivity Sweeps, and Few-Shot Runs
+# across FUNSD & CORD (Base & Large, 3 Seeds) — Optimized for Dual A100 GPUs
+# Usage: bash scripts/run_ablation_suite.sh <dataset: funsd|cord> <variant: base|large> <mode>
 set -e
 
 DATASET="${1:-funsd}"
@@ -15,6 +16,9 @@ cd "$PROJECT_DIR"
 export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
 export TOKENIZERS_PARALLELISM=false
 export WANDB_DISABLED=true
+
+# Raise file descriptor limit to prevent IPC socket exhaustion on multi-GPU runs
+ulimit -n 65535 2>/dev/null || true
 
 # Select pretrained checkpoint (use local models/ folder if downloaded, otherwise HuggingFace Hub)
 if [ "$VARIANT" = "base" ]; then
@@ -32,18 +36,19 @@ else
     exit 1
 fi
 
-# Configure dataset-specific hyperparameters matching the paper & existing scripts
-# Micro-batch and gradient accumulation are sized to fit 40GB A100 GPUs with headroom
+# Configure dataset-specific hyperparameters optimized for 2x A100 GPUs (40GB / 80GB VRAM):
+# Doubling per-device batch size and halving gradient accumulation eliminates micro-step overhead
 # while preserving the exact effective batch size (16 for FUNSD, 64 for CORD).
 if [ "$DATASET" = "funsd" ]; then
     LR="1e-5"
     if [ "$VARIANT" = "large" ]; then
-        PER_DEV_BS=4
-        GRAD_ACC=4
-    else
         PER_DEV_BS=8
         GRAD_ACC=2
+    else
+        PER_DEV_BS=16
+        GRAD_ACC=1
     fi
+    EVAL_BS=32
     MAX_LINE=100
     MAX_BLOCK=30
     MAX_COL=8
@@ -51,12 +56,13 @@ if [ "$DATASET" = "funsd" ]; then
 elif [ "$DATASET" = "cord" ]; then
     LR="3e-5"
     if [ "$VARIANT" = "large" ]; then
-        PER_DEV_BS=8
-        GRAD_ACC=8
-    else
         PER_DEV_BS=16
         GRAD_ACC=4
+    else
+        PER_DEV_BS=32
+        GRAD_ACC=2
     fi
+    EVAL_BS=32
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
@@ -71,13 +77,11 @@ fi
 export HF_DATASETS_CACHE="/dev/shm/hf_cache_${DATASET}_${VARIANT}_${MODE}"
 mkdir -p "$HF_DATASETS_CACHE"
 
-# Configure feature flags based on experiment mode:
-# - baseline:     Vanilla LayoutLMv3 (no HPE, no Token-Segment, no Boundary Loss, no Contrastive Loss)
-# - full:         3-module model (HPE + Token-Segment + Boundary Loss; w/o Contrastive Loss)
-# - contrastive:  Full 4-module model (HPE + Token-Segment + Boundary Loss + Cross-Modal Contrastive Loss)
-# - no_boundary:  Without Boundary Loss (HPE + Token-Segment active, Boundary Loss disabled)
-# - no_segment:   Without Token-Segment (HPE + Boundary Loss active, Token-Segment disabled)
-# - no_hpe:       Without HPE (Token-Segment + Boundary Loss active, HPE disabled)
+CONT_LAMBDA="0.03"
+if [ "$DATASET" = "cord" ]; then
+    CONT_LAMBDA="0.01"
+fi
+
 EXTRA_ARGS=()
 case "$MODE" in
     baseline)
@@ -99,11 +103,7 @@ case "$MODE" in
         )
         ;;
     contrastive|with_contrastive)
-        # Full 4-module model: Token-Segment + HPE (Line/Block/Column) + Intra-Line Boundary Loss + Cross-Modal Contrastive Loss
-        CONT_LAMBDA="0.03"
-        if [ "$DATASET" = "cord" ]; then
-            CONT_LAMBDA="0.01"
-        fi
+        # Full 4-module model: Token-Segment + HPE + Intra-Line Boundary Loss + Calibrated Cross-Modal Contrastive Loss
         EXTRA_ARGS=(
             --use_segment_head
             --use_token_segment True
@@ -155,13 +155,144 @@ case "$MODE" in
             --lambda_bound_init 0.1
         )
         ;;
+    sens_bound_005)
+        # Sensitivity Sweep: Boundary Loss weight lambda_bound = 0.05
+        EXTRA_ARGS=(
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.05
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.10
+        )
+        ;;
+    sens_bound_020)
+        # Sensitivity Sweep: Boundary Loss weight lambda_bound = 0.20
+        EXTRA_ARGS=(
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.20
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.10
+        )
+        ;;
+    sens_tau_007)
+        # Sensitivity Sweep: Contrastive temperature tau = 0.07
+        EXTRA_ARGS=(
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.1
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.07
+        )
+        ;;
+    sens_tau_020)
+        # Sensitivity Sweep: Contrastive temperature tau = 0.20
+        EXTRA_ARGS=(
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.1
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.20
+        )
+        ;;
+    fewshot_base_25)
+        # Few-Shot 25% Training Data (37 docs on FUNSD): Baseline
+        MAX_STEPS=400
+        EXTRA_ARGS=(
+            --max_train_samples 37
+        )
+        ;;
+    fewshot_base_50)
+        # Few-Shot 50% Training Data (75 docs on FUNSD): Baseline
+        MAX_STEPS=600
+        EXTRA_ARGS=(
+            --max_train_samples 75
+        )
+        ;;
+    fewshot_full_25)
+        # Few-Shot 25% Training Data (37 docs on FUNSD): Full 4-Module Model
+        MAX_STEPS=400
+        EXTRA_ARGS=(
+            --max_train_samples 37
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.1
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.10
+        )
+        ;;
+    fewshot_full_50)
+        # Few-Shot 50% Training Data (75 docs on FUNSD): Full 4-Module Model
+        MAX_STEPS=600
+        EXTRA_ARGS=(
+            --max_train_samples 75
+            --use_segment_head
+            --use_token_segment True
+            --use_hierarchical_position_encoding
+            --max_line_position "$MAX_LINE"
+            --max_block_position "$MAX_BLOCK"
+            --use_column_encoding True
+            --max_column_position "$MAX_COL"
+            --use_intra_line_boundary True
+            --lambda_bound_init 0.1
+            --use_contrastive_loss True
+            --lambda_contrastive_init "$CONT_LAMBDA"
+            --contrastive_proj_dim 128
+            --contrastive_temperature 0.10
+        )
+        ;;
     *)
-        echo "ERROR: Invalid mode '$MODE'. Choose: baseline | full | contrastive | no_boundary | no_segment | no_hpe"
+        echo "ERROR: Invalid mode '$MODE'."
         exit 1
         ;;
 esac
 
-SEEDS=(42 123 1993)
+if [ -n "$SEEDS_OVERRIDE" ]; then
+    read -r -a SEEDS <<< "$SEEDS_OVERRIDE"
+else
+    SEEDS=(42 123 1993)
+fi
+
 BASE_OUT_DIR="./logs/${DATASET}-${VARIANT}-${MODE}"
 mkdir -p "./logs"
 
@@ -179,8 +310,8 @@ do
     echo "[RUN ${SEED_IDX}/${TOTAL_SEEDS}] DATASET=${DATASET} | VARIANT=${VARIANT} | MODE=${MODE} | SEED=${SEED}"
     echo "============================================================"
 
-    # Skip seed if evaluation results already exist
-    if [ -f "$OUT_DIR/eval_results.json" ]; then
+    # Skip seed if evaluation results AND trainer_state.json already exist
+    if [ -f "$OUT_DIR/eval_results.json" ] && [ -f "$OUT_DIR/trainer_state.json" ]; then
         echo "[SKIP] Seed ${SEED} already completed at $OUT_DIR/eval_results.json"
         continue
     fi
@@ -193,15 +324,16 @@ do
         CACHE_ARGS=(--overwrite_cache)
     fi
 
-    # Run training with A100 hardware optimizations:
-    # 1. --fp16 True: Enables mixed precision on Ampere Tensor Cores (~2.5x speedup without loss of accuracy)
-    # 2. --dataloader_num_workers 8: Pre-fetches batches using multi-threaded DataLoader workers
-    # 3. --group_by_length True: Minimizes redundant padding computation in multi-head attention
+    # Run training with Dual-A100 hardware & stability optimizations:
+    # 1. --fp16 True + TF32: Mixed precision on Ampere Tensor Cores
+    # 2. --dataloader_num_workers 4: Fast prefetching while avoiding /dev/shm IPC queue exhaustion across 2 GPUs
+    # 3. --return_entity_level_metrics True: Logs per-class F1 & step-by-step accuracy/F1 curves at every eval step
     python examples/run_funsd_cord.py \
         --dataset_name "$DATASET" \
         --do_train \
         --do_eval \
         --do_predict \
+        --return_entity_level_metrics True \
         --model_name_or_path "$MODEL_PATH" \
         --output_dir "$OUT_DIR" \
         --segment_level_layout 1 \
@@ -219,9 +351,10 @@ do
         --learning_rate "$LR" \
         --warmup_ratio 0.1 \
         --per_device_train_batch_size "$PER_DEV_BS" \
+        --per_device_eval_batch_size "$EVAL_BS" \
         --gradient_accumulation_steps "$GRAD_ACC" \
         --fp16 True \
-        --dataloader_num_workers 8 \
+        --dataloader_num_workers 4 \
         --dataloader_pin_memory True \
         --group_by_length True \
         --report_to none \
@@ -234,9 +367,10 @@ do
     SEED_ELAPSED=$((SEED_END - SEED_START))
     REMAINING_SEEDS=$((TOTAL_SEEDS - SEED_IDX))
     EST_REMAINING=$((REMAINING_SEEDS * SEED_ELAPSED))
-    # Remove multi-GB model weight binary after evaluation completes to preserve container disk space
+    # Remove multi-GB model weight binary & intermediate checkpoints after evaluation to preserve container disk space
     rm -f "$OUT_DIR/pytorch_model.bin"
-    echo "[CELL TIMING] Seed ${SEED} finished in ${SEED_ELAPSED}s | Estimated time left for this 3-seed cell: ${EST_REMAINING}s"
+    rm -rf "$OUT_DIR"/checkpoint-*
+    echo "[CELL TIMING] Seed ${SEED} finished in ${SEED_ELAPSED}s | Estimated time left for this cell: ${EST_REMAINING}s"
 done
 
 # Clean up temporary RAM-disk dataset cache for this cell
@@ -244,7 +378,7 @@ rm -rf "$HF_DATASETS_CACHE"
 
 echo ""
 echo "============================================================"
-echo "CALCULATING 3-SEED MEAN ± STD: ${DATASET} | ${VARIANT} | ${MODE}"
+echo "CALCULATING MULTI-SEED SUMMARY + STEP CURVES + PER-CLASS METRICS: ${DATASET} | ${VARIANT} | ${MODE}"
 echo "============================================================"
 
 export BASE_OUT_DIR DATASET VARIANT MODE
@@ -253,13 +387,13 @@ import os
 import json
 import numpy as np
 
-seeds = [42, 123, 1993]
 base_dir = os.environ["BASE_OUT_DIR"]
 dataset = os.environ["DATASET"]
 variant = os.environ["VARIANT"]
 mode = os.environ["MODE"]
 
-metrics = [
+seeds = [42, 123, 1993]
+core_metrics = [
     "eval_precision",
     "eval_recall",
     "eval_f1",
@@ -267,40 +401,70 @@ metrics = [
     "eval_loss",
 ]
 
-results = {m: [] for m in metrics}
+results = {m: [] for m in core_metrics}
+per_class_raw = {}
 per_seed = {}
+step_curves_raw = {}
 
+active_seeds = []
 for seed in seeds:
-    path = f"{base_dir}-seed{seed}/eval_results.json"
-    print(f"\nSeed {seed}:")
-    if not os.path.exists(path):
-        print("  [WARNING] Missing:", path)
+    eval_path = f"{base_dir}-seed{seed}/eval_results.json"
+    state_path = f"{base_dir}-seed{seed}/trainer_state.json"
+    if not os.path.exists(eval_path):
         continue
-    with open(path, "r") as f:
+    active_seeds.append(seed)
+    print(f"\nSeed {seed}:")
+    with open(eval_path, "r") as f:
         data = json.load(f)
     per_seed[str(seed)] = {}
-    for metric in metrics:
+    for metric in core_metrics:
         if metric in data:
             val = float(data[metric])
             results[metric].append(val)
             per_seed[str(seed)][metric] = val
             print(f"  {metric:18s} = {val:.6f}")
 
+    # Collect per-class entity metrics (e.g. eval_HEADER_f1, eval_QUESTION_f1, eval_ANSWER_f1)
+    for k, v in data.items():
+        if k.startswith("eval_") and k not in core_metrics and isinstance(v, (int, float)):
+            if k not in per_class_raw:
+                per_class_raw[k] = []
+            per_class_raw[k].append(float(v))
+            per_seed[str(seed)][k] = float(v)
+
+    # Collect step-by-step evaluation history from trainer_state.json
+    if os.path.exists(state_path):
+        try:
+            with open(state_path, "r") as sf:
+                state_data = json.load(sf)
+            for entry in state_data.get("log_history", []):
+                if "eval_f1" in entry and "step" in entry:
+                    step_str = str(int(entry["step"]))
+                    if step_str not in step_curves_raw:
+                        step_curves_raw[step_str] = {m: [] for m in core_metrics}
+                    for m in core_metrics:
+                        if m in entry:
+                            step_curves_raw[step_str][m].append(float(entry[m]))
+        except Exception as e:
+            print(f"  [WARN] Could not parse trainer_state.json for seed {seed}: {e}")
+
 print("\n" + "=" * 70)
-print(f"FINAL 3-SEED RESULT ({dataset.upper()} - {variant.upper()} - {mode.upper()}): MEAN ± STD")
+print(f"FINAL RESULT ({dataset.upper()} - {variant.upper()} - {mode.upper()}): MEAN ± STD")
 print("=" * 70)
 
 summary = {
     "dataset": dataset,
     "variant": variant,
     "mode": mode,
-    "seeds": seeds,
+    "seeds": active_seeds,
     "per_seed": per_seed,
     "mean_std": {},
     "metrics": {},
+    "per_class_metrics": {},
+    "step_history": {},
 }
 
-for metric in metrics:
+for metric in core_metrics:
     values = results[metric]
     if not values:
         print(f"{metric:18s}: NO DATA")
@@ -308,10 +472,7 @@ for metric in metrics:
     mean = float(np.mean(values))
     std = float(np.std(values, ddof=1)) if len(values) > 1 else 0.0
     print(f"{metric:18s}: {mean:.4f} ± {std:.4f}  (pct: {mean*100:.2f} ± {std*100:.2f})")
-    summary["mean_std"][metric] = {
-        "mean": mean,
-        "std": std,
-    }
+    summary["mean_std"][metric] = {"mean": mean, "std": std}
     summary["metrics"][metric] = {
         "values": values,
         "mean": mean,
@@ -319,6 +480,32 @@ for metric in metrics:
         "mean_pct": round(mean * 100, 2),
         "std_pct": round(std * 100, 2),
     }
+
+for k, values in sorted(per_class_raw.items()):
+    if not values:
+        continue
+    mean = float(np.mean(values))
+    std = float(np.std(values, ddof=1)) if len(values) > 1 else 0.0
+    summary["per_class_metrics"][k] = {
+        "values": values,
+        "mean": mean,
+        "std": std,
+        "mean_pct": round(mean * 100, 2),
+        "std_pct": round(std * 100, 2),
+    }
+
+for step_str in sorted(step_curves_raw.keys(), key=lambda x: int(x)):
+    summary["step_history"][step_str] = {}
+    for m, values in step_curves_raw[step_str].items():
+        if values:
+            mean = float(np.mean(values))
+            std = float(np.std(values, ddof=1)) if len(values) > 1 else 0.0
+            summary["step_history"][step_str][m] = {
+                "mean": mean,
+                "std": std,
+                "mean_pct": round(mean * 100, 2),
+                "std_pct": round(std * 100, 2),
+            }
 
 output_summary_file = f"{base_dir}_3seed_summary.json"
 with open(output_summary_file, "w") as f:

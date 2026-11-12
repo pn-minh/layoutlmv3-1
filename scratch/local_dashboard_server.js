@@ -1,6 +1,8 @@
 /**
  * Local Real-Time Tracking Dashboard Server & Vast.ai SSH Watcher
- * Serves http://localhost:8765 and polls Vast.ai /workspace/live_status.json when SSH is active.
+ * Serves the new Additional Experiments Dashboard at http://localhost:8765
+ * (and http://localhost:8765/additional_experiments.html; legacy dashboard at /legacy)
+ * and automatically pulls results from Vast.ai /workspace/live_status.json and logs/.
  */
 const http = require('http');
 const https = require('https');
@@ -10,69 +12,74 @@ const { exec } = require('child_process');
 
 const PORT = 8765;
 const ROOT_DIR = path.resolve(__dirname, '..');
-const DASHBOARD_HTML = path.join(ROOT_DIR, 'dashboard', 'index.html');
+const NEW_DASHBOARD_HTML = path.join(ROOT_DIR, 'dashboard', 'additional_experiments.html');
+const LEGACY_DASHBOARD_HTML = path.join(ROOT_DIR, 'dashboard', 'index.html');
+const LOGS_DIR = path.join(ROOT_DIR, 'layoutlmv3', 'logs');
 const SUMMARIES_DIR = path.join(ROOT_DIR, 'scratch', 'colab_summaries');
 const SSH_CONFIG_PATH = path.join(ROOT_DIR, 'scratch', 'ssh_config');
 const LOCAL_STATUS_JSON = path.join(ROOT_DIR, 'scratch', 'live_status_local.json');
-const EXP_PROGRESS_MD = path.join(ROOT_DIR, 'EXPERIMENT_PROGRESS.md');
 const VAST_API_KEY = process.env.VAST_API_KEY || '3ad44c08d95a4f951cced4d2fdbda4698d1cfab2c81ccc51f7ad6830e573bd50';
 
-const CELLS_PLAN = [
-  { cell: 23, dataset: 'cord',  variant: 'large', mode: 'no_hpe',      label: 'CORD large no_hpe (w/o HPE)',                  summary_file: 'cord-large-no_hpe_3seed_summary.json' },
-  { cell: 24, dataset: 'funsd', variant: 'base',  mode: 'contrastive', label: 'FUNSD base contrastive (+Contrastive Loss)',   summary_file: 'funsd-base-contrastive_3seed_summary.json' },
-  { cell: 25, dataset: 'cord',  variant: 'base',  mode: 'contrastive', label: 'CORD base contrastive (+Contrastive Loss)',    summary_file: 'cord-base-contrastive_3seed_summary.json' },
-  { cell: 26, dataset: 'funsd', variant: 'large', mode: 'contrastive', label: 'FUNSD large contrastive (+Contrastive Loss)',  summary_file: 'funsd-large-contrastive_3seed_summary.json' },
-  { cell: 27, dataset: 'cord',  variant: 'large', mode: 'contrastive', label: 'CORD large contrastive (+Contrastive Loss)',   summary_file: 'cord-large-contrastive_3seed_summary.json' },
-  { cell: 28, dataset: 'all',   variant: 'all',   mode: 'aggregate',   label: 'Master 24-Config Aggregation & Drive Archive', summary_file: 'FINAL_AGGREGATED_ABLATION_TABLE.md' }
+const ADDITIONAL_CELLS_PLAN = [
+  { cell: 27, pack: 'Pack A (Core + Curves)', dataset: 'cord',  variant: 'large', mode: 'contrastive',     label: 'CORD large contrastive (Calibrated 4-Module)',  summary_file: 'cord-large-contrastive_3seed_summary.json' },
+  { cell: 26, pack: 'Pack A (Core + Curves)', dataset: 'funsd', variant: 'large', mode: 'contrastive',     label: 'FUNSD large contrastive (Calibrated 4-Module)', summary_file: 'funsd-large-contrastive_3seed_summary.json' },
+  { cell: 25, pack: 'Pack A (Core + Curves)', dataset: 'cord',  variant: 'base',  mode: 'contrastive',     label: 'CORD base contrastive (Calibrated 4-Module)',   summary_file: 'cord-base-contrastive_3seed_summary.json' },
+  { cell: 24, pack: 'Pack A (Core + Curves)', dataset: 'funsd', variant: 'base',  mode: 'contrastive',     label: 'FUNSD base contrastive (Calibrated 4-Module)',  summary_file: 'funsd-base-contrastive_3seed_summary.json' },
+  { cell: 29, pack: 'Pack A (Step Curves)',   dataset: 'cord',  variant: 'base',  mode: 'baseline',        label: 'CORD base baseline (Step & Per-Class Curves)',  summary_file: 'cord-base-baseline_3seed_summary.json' },
+  { cell: 30, pack: 'Pack A (Step Curves)',   dataset: 'funsd', variant: 'base',  mode: 'baseline',        label: 'FUNSD base baseline (Step & Per-Class Curves)', summary_file: 'funsd-base-baseline_3seed_summary.json' },
+  { cell: 31, pack: 'Pack B (Sensitivity)',   dataset: 'funsd', variant: 'base',  mode: 'sens_bound_005',  label: 'Sensitivity: λ_bound = 0.05',                   summary_file: 'funsd-base-sens_bound_005_3seed_summary.json' },
+  { cell: 32, pack: 'Pack B (Sensitivity)',   dataset: 'funsd', variant: 'base',  mode: 'sens_bound_020',  label: 'Sensitivity: λ_bound = 0.20',                   summary_file: 'funsd-base-sens_bound_020_3seed_summary.json' },
+  { cell: 33, pack: 'Pack B (Sensitivity)',   dataset: 'funsd', variant: 'base',  mode: 'sens_tau_007',    label: 'Sensitivity: Contrastive τ = 0.07',             summary_file: 'funsd-base-sens_tau_007_3seed_summary.json' },
+  { cell: 34, pack: 'Pack B (Sensitivity)',   dataset: 'funsd', variant: 'base',  mode: 'sens_tau_020',    label: 'Sensitivity: Contrastive τ = 0.20',             summary_file: 'funsd-base-sens_tau_020_3seed_summary.json' },
+  { cell: 37, pack: 'Pack C (Few-Shot)',      dataset: 'funsd', variant: 'base',  mode: 'fewshot_base_50', label: 'Few-Shot 50% Data: Baseline',                   summary_file: 'funsd-base-fewshot_base_50_3seed_summary.json' },
+  { cell: 38, pack: 'Pack C (Few-Shot)',      dataset: 'funsd', variant: 'base',  mode: 'fewshot_full_50', label: 'Few-Shot 50% Data: Full 4-Module',              summary_file: 'funsd-base-fewshot_full_50_3seed_summary.json' },
+  { cell: 35, pack: 'Pack C (Few-Shot)',      dataset: 'funsd', variant: 'base',  mode: 'fewshot_base_25', label: 'Few-Shot 25% Data: Baseline',                   summary_file: 'funsd-base-fewshot_base_25_3seed_summary.json' },
+  { cell: 36, pack: 'Pack C (Few-Shot)',      dataset: 'funsd', variant: 'base',  mode: 'fewshot_full_25', label: 'Few-Shot 25% Data: Full 4-Module',              summary_file: 'funsd-base-fewshot_full_25_3seed_summary.json' },
+  { cell: 28, pack: 'Benchmarks & Sync',      dataset: 'all',   variant: 'all',   mode: 'aggregate',       label: 'Latency/VRAM + Span-Length Eval + Sheet Sync',  summary_file: 'FINAL_AGGREGATED_ABLATION_TABLE.md' }
 ];
 
 function loadLocalSummaries() {
-  const list = [];
-  if (!fs.existsSync(SUMMARIES_DIR)) return list;
-  const files = fs.readdirSync(SUMMARIES_DIR).filter(f => f.endsWith('_3seed_summary.json')).sort();
-  for (const fname of files) {
-    try {
-      const data = JSON.parse(fs.readFileSync(path.join(SUMMARIES_DIR, fname), 'utf8'));
-      const ms = data.mean_std || data.metrics || {};
-      const f1 = ms.eval_f1 || {};
-      const p = ms.eval_precision || {};
-      const r = ms.eval_recall || {};
-      if (typeof f1.mean === 'number') {
-        list.push({
-          file: fname,
-          dataset: data.dataset,
-          variant: data.variant,
-          mode: data.mode,
-          f1_mean: Number((f1.mean * 100).toFixed(2)),
-          f1_std: Number(((f1.std || 0) * 100).toFixed(2)),
-          p_mean: Number(((p.mean || 0) * 100).toFixed(2)),
-          r_mean: Number(((r.mean || 0) * 100).toFixed(2)),
-        });
-      }
-    } catch (_) {}
+  const map = new Map();
+  for (const dir of [SUMMARIES_DIR, LOGS_DIR]) {
+    if (!fs.existsSync(dir)) continue;
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('_3seed_summary.json')).sort();
+    for (const fname of files) {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(dir, fname), 'utf8'));
+        const ms = data.mean_std || data.metrics || {};
+        const f1 = ms.eval_f1 || {};
+        const p = ms.eval_precision || {};
+        const r = ms.eval_recall || {};
+        const acc = ms.eval_accuracy || {};
+        if (typeof f1.mean === 'number') {
+          map.set(fname, {
+            file: fname,
+            dataset: data.dataset,
+            variant: data.variant,
+            mode: data.mode,
+            f1_mean: Number((f1.mean * 100).toFixed(2)),
+            f1_std: Number(((f1.std || 0) * 100).toFixed(2)),
+            p_mean: Number(((p.mean || 0) * 100).toFixed(2)),
+            r_mean: Number(((r.mean || 0) * 100).toFixed(2)),
+            acc_mean: typeof acc.mean === 'number' ? Number((acc.mean * 100).toFixed(2)) : null,
+            has_step_history: Boolean(data.step_history && Object.keys(data.step_history).length > 0),
+          });
+        }
+      } catch (_) {}
+    }
   }
-  return list;
+  return Array.from(map.values());
 }
 
 let liveState = {
-  pipeline_status: 'STANDBY — WAITING FOR VAST.AI SSH CONNECTION',
+  pipeline_status: 'STANDBY — READY FOR DUAL-A100 VAST.AI LAUNCH',
   updated_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
   elapsed_total_sec: 0,
-  current_cell: 23,
-  current_label: 'CORD large no_hpe (w/o HPE)',
-  current_dataset: 'cord',
-  current_variant: 'large',
-  current_mode: 'no_hpe',
-  current_seed: '',
-  current_seed_idx: 0,
-  step: 0,
-  max_steps: 500,
-  step_pct: 0.0,
-  seed_eta_sec: 0,
-  latest_eval: {},
-  gpu: {},
+  active_workers: {},
+  gpu_telemetry: [],
   completed_cells: [],
-  cells_plan: CELLS_PLAN,
+  additional_cells_plan: ADDITIONAL_CELLS_PLAN,
+  cells_plan: ADDITIONAL_CELLS_PLAN,
   completed_summaries: loadLocalSummaries(),
 };
 
@@ -96,12 +103,11 @@ function destroyVastInstanceRest(instanceId) {
   req.end();
 }
 
-let syncingFinal = false;
-
 function pollRemoteVast() {
+  liveState.completed_summaries = loadLocalSummaries();
+  liveState.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
   if (!fs.existsSync(SSH_CONFIG_PATH)) {
-    liveState.completed_summaries = loadLocalSummaries();
-    liveState.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
     saveLocalState();
     return;
   }
@@ -109,62 +115,46 @@ function pollRemoteVast() {
   const cmd = `ssh -F "${SSH_CONFIG_PATH}" -o ConnectTimeout=6 -o BatchMode=yes vast "cat /workspace/live_status.json 2>/dev/null"`;
   exec(cmd, { timeout: 12000 }, (err, stdout) => {
     if (err || !stdout || !stdout.trim().startsWith('{')) {
+      saveLocalState();
       return;
     }
     try {
       const remoteData = JSON.parse(stdout.trim());
+      // Pull any newly completed summary JSONs to local layoutlmv3/logs & scratch/colab_summaries
+      exec(`scp -F "${SSH_CONFIG_PATH}" "vast:/workspace/layoutlmv3-1/layoutlmv3/logs/*.json" "${LOGS_DIR}/"`, () => {
+        liveState.completed_summaries = loadLocalSummaries();
+      });
+
       liveState = {
         ...liveState,
         ...remoteData,
-        cells_plan: CELLS_PLAN,
+        additional_cells_plan: ADDITIONAL_CELLS_PLAN,
+        cells_plan: ADDITIONAL_CELLS_PLAN,
+        completed_summaries: loadLocalSummaries(),
       };
       saveLocalState();
-
-      // Pull any newly completed summary JSONs to local scratch/colab_summaries
-      if (Array.isArray(remoteData.completed_summaries)) {
-        for (const item of remoteData.completed_summaries) {
-          const localPath = path.join(SUMMARIES_DIR, item.file);
-          if (!fs.existsSync(localPath)) {
-            exec(`scp -F "${SSH_CONFIG_PATH}" vast:/workspace/layoutlmv3-1/layoutlmv3/logs/${item.file} "${localPath}"`, () => {});
-          }
-        }
-      }
-
-      // If pipeline finished and is waiting for final local sync before self-destruction
-      if (remoteData.pipeline_status === 'COMPLETED_WAITING_LOCAL_SYNC' && !syncingFinal) {
-        syncingFinal = true;
-        console.log('[FINAL SYNC] Pulling final table, summaries, and master archive before Vast.ai self-destruction...');
-        const syncCmd = [
-          `scp -F "${SSH_CONFIG_PATH}" "vast:/workspace/layoutlmv3-1/layoutlmv3/logs/*_3seed_summary.json" "${SUMMARIES_DIR}/"`,
-          `scp -F "${SSH_CONFIG_PATH}" vast:/workspace/layoutlmv3-1/FINAL_AGGREGATED_ABLATION_TABLE.md "${path.join(ROOT_DIR, 'FINAL_AGGREGATED_ABLATION_TABLE.md')}"`,
-          `scp -F "${SSH_CONFIG_PATH}" vast:/workspace/LayoutLMv3_Final_Experiment_Results_All_28_Cells.zip "${path.join(ROOT_DIR, 'scratch', 'LayoutLMv3_Final_Experiment_Results_All_28_Cells.zip')}"`,
-          `ssh -F "${SSH_CONFIG_PATH}" vast "touch /workspace/LOCAL_SYNC_CONFIRMED"`
-        ].join(' && ');
-
-        exec(syncCmd, { timeout: 60000 }, () => {
-          console.log('[FINAL SYNC] Local sync complete! Triggering Vast.ai self-destruct confirmation.');
-          const idFile = path.join(ROOT_DIR, 'scratch', 'vast_instance_id.txt');
-          if (fs.existsSync(idFile)) {
-            const instId = fs.readFileSync(idFile, 'utf8').trim();
-            destroyVastInstanceRest(instId);
-          }
-          liveState.pipeline_status = 'COMPLETED & INSTANCE SELF-DESTRUCTED';
-          saveLocalState();
-        });
-      }
     } catch (_) {}
   });
 }
 
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/api/status')) {
+    liveState.completed_summaries = loadLocalSummaries();
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify(liveState));
     return;
   }
-  if (fs.existsSync(DASHBOARD_HTML)) {
+  if (req.url.startsWith('/legacy')) {
+    if (fs.existsSync(LEGACY_DASHBOARD_HTML)) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(fs.readFileSync(LEGACY_DASHBOARD_HTML, 'utf8'));
+      return;
+    }
+  }
+  const targetHtml = fs.existsSync(NEW_DASHBOARD_HTML) ? NEW_DASHBOARD_HTML : LEGACY_DASHBOARD_HTML;
+  if (fs.existsSync(targetHtml)) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(fs.readFileSync(DASHBOARD_HTML, 'utf8'));
+    res.end(fs.readFileSync(targetHtml, 'utf8'));
   } else {
     res.writeHead(404);
     res.end('Dashboard HTML not found');
@@ -172,7 +162,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[LOCAL DASHBOARD] Live Tracking Dashboard running at http://localhost:${PORT}`);
+  console.log(`[LOCAL DASHBOARD] Additional Experiments Live Tracker running at http://localhost:${PORT}`);
   saveLocalState();
-  setInterval(pollRemoteVast, 15000);
+  setInterval(pollRemoteVast, 12000);
 });

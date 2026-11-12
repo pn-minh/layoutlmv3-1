@@ -221,8 +221,11 @@ pkill -9 -f vast_runner.py 2>/dev/null || true
 pkill -9 -f run_ablation_suite.sh 2>/dev/null || true
 pkill -9 -f run_funsd_cord.py 2>/dev/null || true
 
-export FORCE_RERUN=1
-export CELLS="${CELLS:-24,25,26,27}"
+# Free /dev/shm RAM disk after package installation so dual-GPU DataLoaders never exhaust shared memory
+rm -rf /dev/shm/conda_pkgs /dev/shm/pip_cache 2>/dev/null || true
+
+export FORCE_RERUN="${FORCE_RERUN:-0}"
+export CELLS="${CELLS:-24,25,26,27,29,30,31,32,33,34,35,36,37,38}"
 
 echo "[LAUNCH] Running cells: $CELLS with FORCE_RERUN=$FORCE_RERUN"
 nohup python -u /workspace/layoutlmv3-1/scratch/vast_runner.py >> /workspace/vast_runner.log 2>&1 < /dev/null &
@@ -239,3 +242,4 @@ echo "[VAST.AI] MASTER PIPELINE RUNNING AUTONOMOUSLY."
 echo "Results will auto-sync to Google Sheet and Google Drive."
 echo "Instance will self-destruct upon verified completion."
 echo "=========================================================="
+

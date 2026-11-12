@@ -197,6 +197,9 @@ assert model.contrastive_img_proj.weight.grad is not None, "Missing grad on cont
 print(f"[SMOKE TEST PASSED] FP16 Forward+Backward Loss={loss.item():.4f} | Contrastive grads verified on {device}!")
 PY
 
+# Free /dev/shm RAM disk after installation so dual-GPU DataLoaders never exhaust shared memory
+rm -rf /dev/shm/conda_pkgs /dev/shm/pip_cache 2>/dev/null || true
+
 echo "=========================================================="
 echo "[VAST.AI] BOOTSTRAP COMPLETE: DATASETS + 19 SUMMARIES READY"
 echo "=========================================================="
