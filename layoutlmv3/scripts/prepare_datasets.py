@@ -13,23 +13,16 @@ from pathlib import Path
 
 
 def download_with_eta(url: str, dest_path: Path, label: str):
-    """Download a file from a URL with real-time progress and ETA output."""
+    """Download a file from a URL forcing IPv4 via curl -4 -L with fallback to urllib."""
     start_time = time.time()
-
-    def reporthook(block_num, block_size, total_size):
-        if total_size > 0 and block_num % 50 == 0:
-            downloaded = min(block_num * block_size, total_size)
-            elapsed = max(time.time() - start_time, 1e-3)
-            speed = downloaded / elapsed
-            eta = (total_size - downloaded) / max(speed, 1e-3)
-            pct = 100.0 * downloaded / total_size
-            print(
-                f"[{label}] {pct:5.1f}% ({downloaded / 1e6:.1f}/{total_size / 1e6:.1f} MB) | "
-                f"Elapsed: {elapsed:.1f}s | ETA: {eta:.1f}s",
-                flush=True,
-            )
-
-    urllib.request.urlretrieve(url, str(dest_path), reporthook=reporthook)
+    print(f"[{label}] Downloading {url} -> {dest_path} ...", flush=True)
+    res = subprocess.run(["curl", "-4", "-L", "--retry", "3", "-sS", "-o", str(dest_path), url])
+    if res.returncode == 0 and dest_path.exists() and dest_path.stat().st_size > 1000:
+        elapsed = max(time.time() - start_time, 1e-3)
+        mb = dest_path.stat().st_size / 1e6
+        print(f"[{label}] Downloaded {mb:.1f} MB in {elapsed:.1f}s ({mb/elapsed:.1f} MB/s)", flush=True)
+        return
+    urllib.request.urlretrieve(url, str(dest_path))
 
 
 def prepare_funsd(project_dir: Path):

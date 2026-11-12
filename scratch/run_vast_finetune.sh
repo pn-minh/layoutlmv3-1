@@ -39,11 +39,16 @@ cd /workspace/layoutlmv3-1
 echo "=========================================================="
 echo "[VAST.AI] 2/6: MINICONDA SETUP (EXEC OVERLAY + RAM CACHES)"
 echo "=========================================================="
+# Force system-wide IPv4 preference in glibc so Python urllib/requests never fail on IPv6-disabled containers
+grep -q "^precedence ::ffff:0:0/96  100" /etc/gai.conf 2>/dev/null || echo "precedence ::ffff:0:0/96  100" >> /etc/gai.conf
+
 # Prevent /dev/shm noexec execution error while keeping heavy models/datasets in 78GB /dev/shm RAM disk
-mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache /dev/shm/models /dev/shm/data
+mkdir -p /dev/shm/hf_home /dev/shm/conda_pkgs /dev/shm/pip_cache /dev/shm/models /dev/shm/datasets /dev/shm/CORD
 ln -sfn /dev/shm/hf_home /workspace/.hf_home
+rm -rf /workspace/layoutlmv3-1/layoutlmv3/models /workspace/layoutlmv3-1/layoutlmv3/datasets /workspace/layoutlmv3-1/layoutlmv3/CORD
 ln -sfn /dev/shm/models /workspace/layoutlmv3-1/layoutlmv3/models
-ln -sfn /dev/shm/data /workspace/layoutlmv3-1/layoutlmv3/data
+ln -sfn /dev/shm/datasets /workspace/layoutlmv3-1/layoutlmv3/datasets
+ln -sfn /dev/shm/CORD /workspace/layoutlmv3-1/layoutlmv3/CORD
 export CONDA_PKGS_DIRS="/dev/shm/conda_pkgs"
 export PIP_CACHE_DIR="/dev/shm/pip_cache"
 export HF_HOME="/workspace/.hf_home"
