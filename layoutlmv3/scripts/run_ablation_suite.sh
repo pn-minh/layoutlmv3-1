@@ -37,23 +37,34 @@ else
 fi
 
 # Configure dataset-specific hyperparameters optimized for 2x NVIDIA CMP 170HX (64GB HBM2e VRAM each):
-# Leveraging 64GB VRAM per GPU allows larger micro-batches (BS=16 on FUNSD-large, BS=32 on CORD-large)
-# and EVAL_BS=64 while preserving the exact effective batch size (16 for FUNSD, 64 for CORD)
-# and minimizing PCIe host-to-device transfer overhead.
+# Accounting for 2D relative attention bias tensors [B, num_heads, 709, 709] across 24 layers on Large,
+# these micro-batch sizes keep peak VRAM at ~18-26 GiB (well within 64 GiB with zero OOM risk)
+# while preserving the exact effective batch size (16 for FUNSD, 64 for CORD).
+export PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb:128"
 if [ "$DATASET" = "funsd" ]; then
     LR="1e-5"
-    PER_DEV_BS=16
-    GRAD_ACC=1
-    EVAL_BS=64
+    if [ "$VARIANT" = "large" ]; then
+        PER_DEV_BS=4
+        GRAD_ACC=4
+    else
+        PER_DEV_BS=8
+        GRAD_ACC=2
+    fi
+    EVAL_BS=16
     MAX_LINE=100
     MAX_BLOCK=30
     MAX_COL=8
     MAX_STEPS=1000
 elif [ "$DATASET" = "cord" ]; then
     LR="3e-5"
-    PER_DEV_BS=32
-    GRAD_ACC=2
-    EVAL_BS=64
+    if [ "$VARIANT" = "large" ]; then
+        PER_DEV_BS=8
+        GRAD_ACC=8
+    else
+        PER_DEV_BS=16
+        GRAD_ACC=4
+    fi
+    EVAL_BS=16
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8

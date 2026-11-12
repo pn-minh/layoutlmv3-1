@@ -362,7 +362,7 @@ def run_suite_step_on_gpu(gpu_id: int, cell_num: int, dataset: str, variant: str
         f"export HF_HOME=/workspace/.hf_home && "
         f"export PYTHONUNBUFFERED=1 && cd /workspace/layoutlmv3-1/layoutlmv3 && "
         f"bash scripts/run_ablation_suite.sh {dataset} {variant} {mode} > /tmp/cell_{cell_num}.log 2>&1; "
-        f"echo '===EXIT_CODE:'$? '===' >> /tmp/cell_{cell_num}.log"
+        f"EC=$?; echo '===EXIT_CODE:'$EC'===' >> /tmp/cell_{cell_num}.log; exit $EC"
     )
 
     max_attempts = 2
