@@ -90,9 +90,10 @@ def prepare_cord(project_dir: Path):
 
     extracted_cord = tmp_dir / "CORD"
     if extracted_cord.is_dir():
-        if cord_dir.exists():
-            shutil.rmtree(str(cord_dir))
-        shutil.move(str(extracted_cord), str(cord_dir))
+        real_cord_dir = cord_dir.resolve()
+        if real_cord_dir.exists():
+            shutil.rmtree(str(real_cord_dir))
+        shutil.move(str(extracted_cord), str(real_cord_dir))
     shutil.rmtree(str(tmp_dir), ignore_errors=True)
 
     n_train = len(list((cord_dir / "train" / "json").glob("*.json")))

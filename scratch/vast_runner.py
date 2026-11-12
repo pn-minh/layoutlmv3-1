@@ -35,6 +35,12 @@ import threading
 from pathlib import Path
 
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyTnMY4wH9BwXUeNKKWqUdL_BClo-8ai76o70kQM0sT-nh7wv9oN64BpumGGAoalhSM1w/exec"
+os.environ.setdefault("HTTP_PROXY", "http://127.0.0.1:18888")
+os.environ.setdefault("HTTPS_PROXY", "http://127.0.0.1:18888")
+os.environ.setdefault("http_proxy", "http://127.0.0.1:18888")
+os.environ.setdefault("https_proxy", "http://127.0.0.1:18888")
+os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1")
+os.environ.setdefault("no_proxy", "localhost,127.0.0.1")
 ACCOUNT_VAST_API_KEY = os.environ.get(
     "VAST_API_KEY",
     "3ad44c08d95a4f951cced4d2fdbda4698d1cfab2c81ccc51f7ad6830e573bd50",
