@@ -74,9 +74,9 @@ echo "=========================================================="
 echo "[VAST.AI] 3/6: TORCH, DETECTRON2 & DEPENDENCY INSTALL"
 echo "=========================================================="
 if ! python -c "import torch, detectron2, transformers, datasets, seqeval, layoutlmft, psutil, requests" 2>/dev/null; then
-    python -m pip install --upgrade "pip<24.1" "setuptools<68.0" "wheel<0.43"
+    python -m pip install --upgrade "pip<24.1" "setuptools<68.0" "wheel<0.43" certifi
     python -m pip install torch==1.10.0+cu111 torchvision==0.11.1+cu111 -f https://download.pytorch.org/whl/cu111/torch_stable.html
-    python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.10/index.html
+    python -m pip install detectron2 --trusted-host dl.fbaipublicfiles.com -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.10/index.html
     python -m pip install -r layoutlmv3/requirements.txt
     python -m pip install requests psutil vastai
     python -m pip install -e layoutlmv3/
