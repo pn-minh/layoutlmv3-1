@@ -54,21 +54,21 @@ RUNNER_LOG = WORKSPACE_DIR / "vast_runner.log"
 LIVE_STATUS_PATH = WORKSPACE_DIR / "live_status.json"
 INSTANCE_ID_FILE = WORKSPACE_DIR / "vast_instance_id.txt"
 
-CELL_TIMEOUT_SEC = int(os.environ.get("CELL_TIMEOUT_SEC", "2700"))  # 45 minutes max per cell
+CELL_TIMEOUT_SEC = int(os.environ.get("CELL_TIMEOUT_SEC", "14400"))  # 4 hours max per cell on CMP 170HX
 GDRIVE_SUBFOLDER = "Experiments & Logs"
 
-# Ordered Longest-Processing-Time-First (LPT) across 2x A100 GPUs:
+# Ordered so partially-completed cells (31, 24, 26, 29, 30) finish first and sync immediately:
 # (cell_id, dataset, variant, mode, label, summary_filename)
 CELL_QUEUE = [
-    # Part 1: Core Calibrated 4-Module Contrastive + Step/Per-Class Curves (Pack A)
-    (27, "cord",  "large", "contrastive",     "CORD large contrastive (Calibrated 4-Module)",      "cord-large-contrastive_3seed_summary.json"),
+    # Already-done or 1-seed-remaining cells first for immediate completion & sync
+    (30, "funsd", "base",  "baseline",        "FUNSD base baseline (Step & Per-Class Curves)",     "funsd-base-baseline_3seed_summary.json"),
+    (31, "funsd", "base",  "sens_bound_005",  "FUNSD base sensitivity (lambda_bound=0.05)",        "funsd-base-sens_bound_005_3seed_summary.json"),
+    (29, "cord",  "base",  "baseline",        "CORD base baseline (Step & Per-Class Curves)",      "cord-base-baseline_3seed_summary.json"),
+    (24, "funsd", "base",  "contrastive",     "FUNSD base contrastive (Calibrated 4-Module)",      "funsd-base-contrastive_3seed_summary.json"),
     (26, "funsd", "large", "contrastive",     "FUNSD large contrastive (Calibrated 4-Module)",     "funsd-large-contrastive_3seed_summary.json"),
     (25, "cord",  "base",  "contrastive",     "CORD base contrastive (Calibrated 4-Module)",       "cord-base-contrastive_3seed_summary.json"),
-    (24, "funsd", "base",  "contrastive",     "FUNSD base contrastive (Calibrated 4-Module)",      "funsd-base-contrastive_3seed_summary.json"),
-    (29, "cord",  "base",  "baseline",        "CORD base baseline (Step & Per-Class Curves)",      "cord-base-baseline_3seed_summary.json"),
-    (30, "funsd", "base",  "baseline",        "FUNSD base baseline (Step & Per-Class Curves)",     "funsd-base-baseline_3seed_summary.json"),
+    (27, "cord",  "large", "contrastive",     "CORD large contrastive (Calibrated 4-Module)",      "cord-large-contrastive_3seed_summary.json"),
     # Part 2: Hyperparameter Sensitivity Sweep on FUNSD-base (Pack B)
-    (31, "funsd", "base",  "sens_bound_005",  "FUNSD base sensitivity (lambda_bound=0.05)",        "funsd-base-sens_bound_005_3seed_summary.json"),
     (32, "funsd", "base",  "sens_bound_020",  "FUNSD base sensitivity (lambda_bound=0.20)",        "funsd-base-sens_bound_020_3seed_summary.json"),
     (33, "funsd", "base",  "sens_tau_007",    "FUNSD base sensitivity (tau=0.07)",                 "funsd-base-sens_tau_007_3seed_summary.json"),
     (34, "funsd", "base",  "sens_tau_020",    "FUNSD base sensitivity (tau=0.20)",                 "funsd-base-sens_tau_020_3seed_summary.json"),
@@ -326,6 +326,12 @@ def run_suite_step_on_gpu(gpu_id: int, cell_num: int, dataset: str, variant: str
     sum_path = LOG_DIR / summary_file
     log_path = Path(f"/tmp/cell_{cell_num}.log")
 
+    if cell_num == 29 and Path("/proc/69412").exists():
+        log(f"[{worker_key}] Attaching to active Cell 29 process (PID 69412) on GPU 1 until completion...")
+        while Path("/proc/69412").exists():
+            time.sleep(5)
+        log(f"[{worker_key}] Active Cell 29 process (PID 69412) finished!")
+
     if not summary_needs_refresh(cell_num, sum_path):
         log(f"[{worker_key}] [SKIP] Up-to-date summary already exists for Cell {cell_num}: {sum_path}")
         with SYNC_LOCK:
@@ -352,7 +358,7 @@ def run_suite_step_on_gpu(gpu_id: int, cell_num: int, dataset: str, variant: str
     )
 
     seeds_env = ""
-    if os.environ.get("FAST_SWEEP", "0") == "1" and cell_num >= 31:
+    if os.environ.get("FAST_SWEEP", "1") == "1" and cell_num >= 31:
         seeds_env = "export SEEDS_OVERRIDE='42' && "
 
     cmd = (
@@ -637,12 +643,22 @@ def main():
     hb_thread.start()
 
     work_q = queue.Queue()
+    cell29_item = None
     for item in CELL_QUEUE:
-        work_q.put(item)
+        if item[0] == 29 and Path("/proc/69412").exists():
+            cell29_item = item
+        else:
+            work_q.put(item)
 
     worker_errors = []
 
     def gpu_worker(gpu_id: int):
+        if gpu_id == 1 and cell29_item is not None:
+            try:
+                run_suite_step_on_gpu(gpu_id, *cell29_item)
+            except Exception as e:
+                log(f"[GPU_{gpu_id} ERROR] {e}")
+                worker_errors.append(str(e))
         while True:
             try:
                 cell_num, dataset, variant, mode, label, summary_file = work_q.get_nowait()

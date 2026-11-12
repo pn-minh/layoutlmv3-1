@@ -59,17 +59,17 @@ elif [ "$DATASET" = "cord" ]; then
     LR="3e-5"
     if [ "$VARIANT" = "large" ]; then
         PER_DEV_BS=8
-        GRAD_ACC=8
+        GRAD_ACC=4
     else
         PER_DEV_BS=16
-        GRAD_ACC=4
+        GRAD_ACC=2
     fi
     EVAL_BS=16
     MAX_LINE=80
     MAX_BLOCK=15
     MAX_COL=8
-    # 800 steps for CORD allows 4-module multi-task auxiliary heads to reach full convergence
-    MAX_STEPS=800
+    # 600 steps at effective batch size 32 = 24 full epochs (19,200 receipt passes) for full convergence
+    MAX_STEPS=600
 else
     echo "ERROR: Invalid dataset '$DATASET'. Choose 'funsd' or 'cord'."
     exit 1
